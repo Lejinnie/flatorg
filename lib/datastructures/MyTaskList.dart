@@ -19,6 +19,19 @@ class Mytasklist {
   }
 
   // TODO: REORDER FUNCTION
+  bool reorder(Mytask task, int oldPos, int newPos) {
+    if (oldPos < 0 ||
+        oldPos >= _taskList.length ||
+        newPos < 0 ||
+        newPos >= _taskList.length) {
+      return false;
+    }
+
+    _taskList.removeAt(oldPos);
+    _taskList.insert(newPos, task);
+
+    return true;
+  }
 
   Mytask remove() {
     return _taskList.removeLast();

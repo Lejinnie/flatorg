@@ -1,5 +1,4 @@
 import 'package:flatorg/datastructures/MyTask.dart';
-import 'package:flatorg/styles/Colors.dart';
 import 'package:flatorg/styles/Spacings.dart';
 import 'package:flutter/material.dart';
 
@@ -29,8 +28,7 @@ class _TaskCardState extends State<TaskCard> {
     return Container(
       padding: Spacings.big_card_outside_padding,
       child: Card(
-        shadowColor: MyColors.black,
-        color: MyColors.background,
+        // color: MyColors.background,
         child: Container(
           padding: EdgeInsets.all(10),
           child: Row(
@@ -50,7 +48,7 @@ class _TaskCardState extends State<TaskCard> {
                     ),
                     Text(
                       "Assigned: ${widget.personname}",
-                      style: TextStyle(color: MyColors.darkgray),
+                      // style: TextStyle(color: MyColors.dark_3),
                     ),
                   ],
                 ),

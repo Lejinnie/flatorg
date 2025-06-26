@@ -1,5 +1,5 @@
 class Mytask {
-  String _taskname;
+  final String _taskname;
   int difficulty;
 
   Mytask(this._taskname, this.difficulty);

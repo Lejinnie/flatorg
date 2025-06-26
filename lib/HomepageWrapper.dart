@@ -1,5 +1,4 @@
 import 'package:flatorg/pages/TasksHomepage.dart';
-import 'package:flatorg/styles/Colors.dart';
 import 'package:flutter/material.dart';
 
 class HomepageWrapper extends StatefulWidget {
@@ -18,7 +17,7 @@ class _HomepageWrapperState extends State<HomepageWrapper> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: MyColors.highlight,
+        backgroundColor: Theme.of(context).primaryColor,
         title: Text(widget.title),
       ),
       drawer: const Drawer(
