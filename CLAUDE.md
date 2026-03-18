@@ -11,17 +11,17 @@
     - [Notifications](#notifications)
   - [Further Functionality:](#further-functionality)
     - [Shopping list](#shopping-list)
-    - [Complaint List](#complaint-list)
+    - [Issue List](#issue-list)
   - [UI/UX](#uiux)
   - [Implementation Details](#implementation-details)
     - [Task class](#task-class)
     - [Person class](#person-class)
     - [EthSemesterCalendar class](#ethsemestercalendar-class)
-    - [Initial Assignment (TODO)](#initial-assignment-todo)
+    - [Initial Assignment](#initial-assignment)
+    - [App Settings](#app-settings)
     - [Login](#login)
   - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
     - [Red L1 escape when Green L3 fills L2](#red-l1-escape-when-green-l3-fills-l2)
-  - [Open Questions](#open-questions)
 
 
 FlatOrg is a Flutter app for scheduling and managing household tasks in a co-living area. Built for a 9-person flat.
@@ -45,7 +45,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - All notification triggers run as Cloud Functions
 
 **Authentication: Firebase Auth with Email/Password**
-- Admin invites members by adding their name + email to a whitelist in Firestore; members then register via the app using that email
+- Any flat member can generate and copy an invite code from within the app (via a "Generate & Copy Invite Code" button); the member then shares this code out-of-band (e.g. messaging) with new people who enter it during registration
 - Email verification required on signup before app access is granted
 - Password requirements: minimum 6 characters + at least one number (enforced client-side before submission to Firebase)
 - Password reset: built-in Firebase reset-link flow, wired up in the UI
@@ -54,16 +54,17 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 ### Roles & Permissions
 
 **Admin** (the flat creator; can transfer admin rights to another member):
-- Add/remove members from the flat
+- Remove members from the flat
 - Modify tasks (name, description, due date, etc.)
 - Read/write all tasks and app settings
 - No read/write access to other members' personal data
 
 **Normal Member** (includes admin):
+- Add members to the flat
 - Mark themselves as on vacation
 - Mark their own task as done
 - Read/write on the shopping list
-- Read/write/send on the complaints list
+- Read/write/send on the issue list
 
 ## Coding & Design Standards
 
@@ -150,20 +151,30 @@ A simple shared shopping list on a separate tab.
 - Bought items are automatically deleted after X hours (configurable per flat by admin; default: 6h) via a Cloud Function.
 - Duplicate items are acceptable — no deduplication needed.
 
-### Complaint List
+### Issue List
 
-A list of complaints to be sent to Livit, on a separate tab.
+A list of issues to be sent to Livit, on a separate tab.
 
-- Any member can add a complaint (requires a title and a description).
-- Any member can delete any complaint (no ownership).
-- Members can select individual complaints or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
-- Email boilerplate (subject + body template) — to be discussed.
+- Any member can add an issue (requires a title and a description).
+- Any member can delete any issue (no ownership).
+- Members can select individual issues or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
+- Email boilerplate: the app randomly selects one of 3 pre-written German-language templates (to avoid repetitive emails to the landlord). Each template includes a polite greeting, a reference to the flat (HWB 33), and placeholder bullet points that are replaced with the selected issues. All templates share the subject line: **"Mängelmeldung für die Wohnung HWB 33"**. See `email_templates/issue_template_1.txt`, `email_templates/issue_template_2.txt`, and `email_templates/issue_template_3.txt`.
 - Only the member currently assigned to the **Shopping** task (which includes "& report to @Livit") can trigger the send.
-- To avoid spamming: the send button is enabled once per week per flat, and resets after Sunday 23:59. Once anyone sends, the button is disabled for all members until the reset.
+- To avoid spamming: each issue can only be sent once every 5 days. The cooldown is tracked per issue via a `last_sent_at` timestamp. Issues still on cooldown are visually greyed out and cannot be selected for sending.
 
 ## UI/UX
 
 ![image](./wireframe.png)
+
+**Navigation:** 3 bottom tabs:
+1. **Tasks** — home screen with task cards and inline notifications at top
+2. **Shopping List** — shared shopping list
+3. **Issue List** — flat issues to report to Livit
+
+**Interaction patterns:**
+- Tapping an issue opens a detail view showing the full title and description.
+- Long-press on an issue to select it for sending. Multiple issues can be selected this way. A "Deselect all" button clears the selection.
+- Swap request confirmation popup shows remaining swap tokens (e.g. "2/3 Left").
 
 ## Implementation Details
 
@@ -247,9 +258,13 @@ A pure utility class (no Firebase dependency) that encapsulates ETH semester bou
 
 The token-reset Cloud Function is scheduled as a cron at the start of each semester using `nextSemesterStart()`.
 
-### Initial Assignment (TODO)
+### Initial Assignment
 
-**TODO:** design and implement the initial assignment UI. On first launch, admin must manually assign all 9 people to all 9 tasks before `reset_for_new_week()` can run. This is a one-time setup screen.
+Initial task assignment is integrated into the flat creation flow as page 2 of "Create a new flat."
+
+**Flow:** After the admin fills in flat details and invites members (page 1), page 2 shows "Let's assign tasks!" with all 9 tasks listed in order (Toilet → Kitchen → Recycling → Shower → Floor(A) → Washing Rags → Bathroom → Floor(B) → Shopping). The admin assigns each of the 9 people to a task before the flat is fully set up. This is a one-time setup step — `reset_for_new_week()` cannot run until all tasks have an initial assignee.
+
+For members who join later (via invite code), the admin assigns them to a vacant task or the system assigns them to the next available slot.
 
 ### Flat document (Firestore schema)
 
@@ -260,21 +275,55 @@ Collection: flats
   └── Document: {flatId}
         ├── name: String                          // flat display name
         ├── admin_uid: String                     // Firebase Auth UID of the admin
+        ├── invite_code: String                   // short alphanumeric code for joining
         ├── vacation_threshold_weeks: int          // short vs long vacation cutoff (default: 1)
         ├── grace_period_hours: int                // hours after last due date before reset runs (default: 1)
         ├── reminder_hours_before_deadline: int    // notification timing (default: 1)
         ├── shopping_cleanup_hours: int            // hours before bought items are deleted (default: 6)
-        ├── complaint_send_enabled: bool           // resets to true every Sunday 23:59
-        ├── last_complaint_sent_at: Timestamp?     // null if not yet sent this week
         └── created_at: Timestamp
 ```
 
 All settings are editable by the admin only. Cloud Functions read these values at trigger time.
 
+**Issue documents** are stored in a subcollection under the flat:
+
+```
+Collection: flats/{flatId}/issues
+  └── Document: {issueId}
+        ├── title: String
+        ├── description: String
+        ├── created_by: String                    // user ID
+        ├── created_at: Timestamp
+        └── last_sent_at: Timestamp?              // null if never sent; cooldown of 5 days
+```
+
+### App Settings
+
+Settings accessible to all members and admin-only settings, consolidated in one place.
+
+**Admin-only settings:**
+- `vacation_threshold_weeks` — short vs. long vacation cutoff (default: 1)
+- `grace_period_hours` — hours after the last due date before `reset_for_new_week()` runs (default: 1)
+- `reminder_hours_before_deadline` — how many hours before a task's deadline to send a reminder notification (default: 1)
+- `shopping_cleanup_hours` — hours before bought shopping items are auto-deleted (default: 6)
+- Task configuration: name, description, and `due_date_time` per task
+- Remove members from the flat
+- Transfer admin rights to another member
+
+**Normal member settings (available to everyone, including admin):**
+- Add members to the flat
+- Mark self as on vacation
+- Mark own task as done
+- Request a task swap (costs 1 token per accepted swap; 3 tokens per semester)
+
 ### Login
 
 - Firebase Auth with Email/Password
-- Admin adds members by name + email to a Firestore whitelist; members register via the app using their whitelisted email
+- **First launch:** user chooses "Create a new flat" or "Join an existing flat"
+  - **Create a new flat (2-step flow):**
+    - **Page 1:** admin enters flat name, their name, email, password, and optionally the names of initial flatmates (the app generates an invite code the admin can share)
+    - **Page 2:** "Let's assign tasks!" — admin assigns each person to one of the 9 tasks before the flat is active (see Initial Assignment)
+  - **Join an existing flat:** user enters a flat invite code (shared by any existing member), plus their name, email, and password
 - Email verification required before app access is granted
 - Password: minimum 6 characters + at least one number, validated client-side
 - Password reset: Firebase built-in reset-link email, triggered from the login screen
@@ -291,12 +340,3 @@ When all 3 L3 people are Green, they move to L2 in step 2 and fill all 3 L2 slot
 
 This is an accepted tradeoff of the priority ordering: Green rewards take precedence over Red punishments. In practice this only occurs when all L3 people do their tasks in the same week that all L1 people fail theirs, which is unlikely. And Red L1 people staying at L1 (the easiest level) is a mild consequence regardless.
 
----
-
-## Open Questions
-
-**15. Complaint email boilerplate** — Subject line and body template for the email to `studentvillage@ch.issworld.com` are unspecified. To be discussed.
- 
-**16. UI/UX Conflicts** does UI/UX correspond to the implementation? Or does it have things either missing, or more things, or has conflicts with the docs?
-
-**17. Startup** How is the Flat inititialized? What fields and information does it need? How does the UI look like?

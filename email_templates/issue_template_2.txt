@@ -1,0 +1,15 @@
+Guten Tag Arben Hajdari,
+
+Uns in letzter Zeit ein paar Kleinigkeiten aufgefallen, die nicht mehr ganz rund laufen und wahrscheinlich repariert werden müssten.
+
+Hier ist eine kurze Übersicht für Sie:
+
+{{issues}}
+
+Sagen Sie uns doch einfach Bescheid, wann es Ihnen oder einem Handwerker passen würde, kurz vorbeizuschauen.
+
+Vielen Dank für Ihre Arbeit bei der Studentvillage!
+
+Liebe Grüsse
+
+{{sender_first_name}} {{sender_last_name}}

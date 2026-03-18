@@ -1,0 +1,15 @@
+Sehr geehrte(r) Arben Hajdari,
+
+ich hoffe, es geht Ihnen gut und Sie haben einen angenehmen Tag.
+
+Wir melden uns heute bei Ihnen mit einem Anliegen zu unserer Wohnung (HWB 33). Damit keine grösseren Schäden entstehen und alles gut in Schuss bleibt, möchten wir Ihnen die folgenden Punkte melden, die aktuell leider nicht einwandfrei funktionieren:
+
+{{issues}}
+
+Wir würden uns sehr freuen, wenn diese Dinge bei Gelegenheit behoben werden könnten.
+
+Wir bedanken uns herzlich für Ihre Bemühungen und wünschen Ihnen eine schöne restliche Woche!
+
+Freundliche Grüsse
+
+{{sender_first_name}} {{sender_last_name}}
