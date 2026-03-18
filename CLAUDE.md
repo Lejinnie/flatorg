@@ -18,6 +18,7 @@
     - [Person class](#person-class)
     - [EthSemesterCalendar class](#ethsemestercalendar-class)
     - [Initial Assignment](#initial-assignment)
+    - [Flat document (Firestore schema)](#flat-document-firestore-schema)
     - [App Settings](#app-settings)
     - [Login](#login)
   - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
@@ -77,7 +78,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Use constants (static final variables) instead of "Magic numbers". 
 - Use docstrings to explain mehthods/fields when it is not obvious from their naming.
 - Use comments to explain why something was coded in a certain way, not to explain how something was coded, or what the code does. 
-- use tests for backend and frontend.
+- use smoke tests and BDD Tests for backend and frontend.
 
 
 ## Functionality
