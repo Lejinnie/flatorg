@@ -46,7 +46,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - All notification triggers run as Cloud Functions
 
 **Authentication: Firebase Auth with Email/Password**
-- Admin invites members by adding their name + email to a whitelist in Firestore; members then register via the app using that email
+- Admin shares a flat invite code out-of-band; new members join by entering the code during registration
 - Email verification required on signup before app access is granted
 - Password requirements: minimum 6 characters + at least one number (enforced client-side before submission to Firebase)
 - Password reset: built-in Firebase reset-link flow, wired up in the UI
@@ -161,11 +161,21 @@ A list of issues to be sent to Livit, on a separate tab.
 - Members can select individual issues or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
 - Email boilerplate: the app randomly selects one of 3 pre-written German-language templates (to avoid repetitive emails to the landlord). Each template includes a polite greeting, a reference to the flat (HWB 33), and placeholder bullet points that are replaced with the selected issues. All templates share the subject line: **"Mängelmeldung für die Wohnung HWB 33"**. See `email_templates/issue_template_1.txt`, `email_templates/issue_template_2.txt`, and `email_templates/issue_template_3.txt`.
 - Only the member currently assigned to the **Shopping** task (which includes "& report to @Livit") can trigger the send.
-- To avoid spamming: the send button is enabled once per week per flat, and resets after Sunday 23:59. Once anyone sends, the button is disabled for all members until the reset.
+- To avoid spamming: each issue can only be sent once every 5 days. The cooldown is tracked per issue via a `last_sent_at` timestamp. Issues still on cooldown are visually greyed out and cannot be selected for sending.
 
 ## UI/UX
 
 ![image](./wireframe.png)
+
+**Navigation:** 3 bottom tabs:
+1. **Tasks** — home screen with task cards and inline notifications at top
+2. **Shopping List** — shared shopping list
+3. **Issue List** — flat issues to report to Livit
+
+**Interaction patterns:**
+- Tapping an issue opens a detail view showing the full title and description.
+- Long-press on an issue to select it for sending. Multiple issues can be selected this way. A "Deselect all" button clears the selection.
+- Swap request confirmation popup shows remaining swap tokens (e.g. "2/3 Left").
 
 ## Implementation Details
 
@@ -262,16 +272,27 @@ Collection: flats
   └── Document: {flatId}
         ├── name: String                          // flat display name
         ├── admin_uid: String                     // Firebase Auth UID of the admin
+        ├── invite_code: String                   // short alphanumeric code for joining
         ├── vacation_threshold_weeks: int          // short vs long vacation cutoff (default: 1)
         ├── grace_period_hours: int                // hours after last due date before reset runs (default: 1)
         ├── reminder_hours_before_deadline: int    // notification timing (default: 1)
         ├── shopping_cleanup_hours: int            // hours before bought items are deleted (default: 6)
-        ├── issue_send_enabled: bool                // resets to true every Sunday 23:59
-        ├── last_issue_sent_at: Timestamp?         // null if not yet sent this week
         └── created_at: Timestamp
 ```
 
 All settings are editable by the admin only. Cloud Functions read these values at trigger time.
+
+**Issue documents** are stored in a subcollection under the flat:
+
+```
+Collection: flats/{flatId}/issues
+  └── Document: {issueId}
+        ├── title: String
+        ├── description: String
+        ├── created_by: String                    // user ID
+        ├── created_at: Timestamp
+        └── last_sent_at: Timestamp?              // null if never sent; cooldown of 5 days
+```
 
 ### App Settings
 
@@ -295,7 +316,9 @@ Settings accessible to all members and admin-only settings, consolidated in one 
 ### Login
 
 - Firebase Auth with Email/Password
-- Admin adds members by name + email to a Firestore whitelist; members register via the app using their whitelisted email
+- **First launch:** user chooses "Create a new flat" or "Join an existing flat"
+  - **Create a new flat:** admin enters their name, email, password, and optionally the names of initial flatmates
+  - **Join an existing flat:** user enters a flat invite code (shared out-of-band by admin), plus their name, email, and password
 - Email verification required before app access is granted
 - Password: minimum 6 characters + at least one number, validated client-side
 - Password reset: Firebase built-in reset-link email, triggered from the login screen
