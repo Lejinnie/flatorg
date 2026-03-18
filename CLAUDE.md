@@ -18,6 +18,7 @@
     - [Person class](#person-class)
     - [EthSemesterCalendar class](#ethsemestercalendar-class)
     - [Initial Assignment (TODO)](#initial-assignment-todo)
+    - [App Settings](#app-settings)
     - [Login](#login)
   - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
     - [Red L1 escape when Green L3 fills L2](#red-l1-escape-when-green-l3-fills-l2)
@@ -54,12 +55,13 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 ### Roles & Permissions
 
 **Admin** (the flat creator; can transfer admin rights to another member):
-- Add/remove members from the flat
+- Remove members from the flat
 - Modify tasks (name, description, due date, etc.)
 - Read/write all tasks and app settings
 - No read/write access to other members' personal data
 
 **Normal Member** (includes admin):
+- Add members to the flat
 - Mark themselves as on vacation
 - Mark their own task as done
 - Read/write on the shopping list
@@ -270,6 +272,25 @@ Collection: flats
 ```
 
 All settings are editable by the admin only. Cloud Functions read these values at trigger time.
+
+### App Settings
+
+Settings accessible to all members and admin-only settings, consolidated in one place.
+
+**Admin-only settings:**
+- `vacation_threshold_weeks` — short vs. long vacation cutoff (default: 1)
+- `grace_period_hours` — hours after the last due date before `reset_for_new_week()` runs (default: 1)
+- `reminder_hours_before_deadline` — how many hours before a task's deadline to send a reminder notification (default: 1)
+- `shopping_cleanup_hours` — hours before bought shopping items are auto-deleted (default: 6)
+- Task configuration: name, description, and `due_date_time` per task
+- Remove members from the flat
+- Transfer admin rights to another member
+
+**Normal member settings (available to everyone, including admin):**
+- Add members to the flat
+- Mark self as on vacation
+- Mark own task as done
+- Request a task swap (costs 1 token per accepted swap; 3 tokens per semester)
 
 ### Login
 
