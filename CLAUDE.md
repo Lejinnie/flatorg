@@ -11,7 +11,7 @@
     - [Notifications](#notifications)
   - [Further Functionality:](#further-functionality)
     - [Shopping list](#shopping-list)
-    - [Complaint List](#complaint-list)
+    - [Issue List](#issue-list)
   - [UI/UX](#uiux)
   - [Implementation Details](#implementation-details)
     - [Task class](#task-class)
@@ -63,7 +63,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Mark themselves as on vacation
 - Mark their own task as done
 - Read/write on the shopping list
-- Read/write/send on the complaints list
+- Read/write/send on the issue list
 
 ## Coding & Design Standards
 
@@ -150,14 +150,14 @@ A simple shared shopping list on a separate tab.
 - Bought items are automatically deleted after X hours (configurable per flat by admin; default: 6h) via a Cloud Function.
 - Duplicate items are acceptable — no deduplication needed.
 
-### Complaint List
+### Issue List
 
-A list of complaints to be sent to Livit, on a separate tab.
+A list of issues to be sent to Livit, on a separate tab.
 
-- Any member can add a complaint (requires a title and a description).
-- Any member can delete any complaint (no ownership).
-- Members can select individual complaints or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
-- Email boilerplate: the app randomly selects one of 3 pre-written German-language templates (to avoid repetitive emails to the landlord). Each template includes a polite greeting, a reference to the flat (HWB 33), and placeholder bullet points that are replaced with the selected complaints. All templates share the subject line: **"Mängelmeldung für die Wohnung HWB 33"**. See `email_templates/complaint_template_1.txt`, `email_templates/complaint_template_2.txt`, and `email_templates/complaint_template_3.txt`.
+- Any member can add an issue (requires a title and a description).
+- Any member can delete any issue (no ownership).
+- Members can select individual issues or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
+- Email boilerplate: the app randomly selects one of 3 pre-written German-language templates (to avoid repetitive emails to the landlord). Each template includes a polite greeting, a reference to the flat (HWB 33), and placeholder bullet points that are replaced with the selected issues. All templates share the subject line: **"Mängelmeldung für die Wohnung HWB 33"**. See `email_templates/issue_template_1.txt`, `email_templates/issue_template_2.txt`, and `email_templates/issue_template_3.txt`.
 - Only the member currently assigned to the **Shopping** task (which includes "& report to @Livit") can trigger the send.
 - To avoid spamming: the send button is enabled once per week per flat, and resets after Sunday 23:59. Once anyone sends, the button is disabled for all members until the reset.
 
@@ -264,8 +264,8 @@ Collection: flats
         ├── grace_period_hours: int                // hours after last due date before reset runs (default: 1)
         ├── reminder_hours_before_deadline: int    // notification timing (default: 1)
         ├── shopping_cleanup_hours: int            // hours before bought items are deleted (default: 6)
-        ├── complaint_send_enabled: bool           // resets to true every Sunday 23:59
-        ├── last_complaint_sent_at: Timestamp?     // null if not yet sent this week
+        ├── issue_send_enabled: bool                // resets to true every Sunday 23:59
+        ├── last_issue_sent_at: Timestamp?         // null if not yet sent this week
         └── created_at: Timestamp
 ```
 

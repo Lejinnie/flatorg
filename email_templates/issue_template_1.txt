@@ -6,7 +6,7 @@ Wir melden uns bei Ihnen bezüglich unserer Wohnung HWB 33. Wir haben in letzter
 
 Damit Sie einen guten Überblick haben, haben wir die aktuellen Punkte hier kurz für Sie aufgelistet:
 
-{{complaints}}
+{{issues}}
 
 Bitte lassen Sie uns wissen, wie wir am besten weiter vorgehen sollen und wann es für Sie oder einen Handwerker zeitlich passen würde, sich das einmal anzusehen.
 

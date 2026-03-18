@@ -4,7 +4,7 @@ Uns in letzter Zeit ein paar Kleinigkeiten aufgefallen, die nicht mehr ganz rund
 
 Hier ist eine kurze Übersicht für Sie:
 
-{{complaints}}
+{{issues}}
 
 Sagen Sie uns doch einfach Bescheid, wann es Ihnen oder einem Handwerker passen würde, kurz vorbeizuschauen.
 
