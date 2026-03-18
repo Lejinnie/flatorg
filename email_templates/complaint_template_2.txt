@@ -1,20 +1,17 @@
 Betreff: Mängelmeldung für die Wohnung HWB 33
 
-Guten Tag {{recipient_last_name}},
+Guten Tag Arben Hajdari,
 
-ich hoffe, Sie haben eine tolle Woche!
-
-Wir fühlen uns in der HWB 33 nach wie vor sehr wohl. Allerdings sind uns in letzter Zeit ein paar Kleinigkeiten aufgefallen, die nicht mehr ganz rund laufen und wahrscheinlich repariert werden müssten.
+Uns in letzter Zeit ein paar Kleinigkeiten aufgefallen, die nicht mehr ganz rund laufen und wahrscheinlich repariert werden müssten.
 
 Hier ist eine kurze Übersicht für Sie:
 
 {{complaints}}
 
-Sagen Sie uns doch einfach Bescheid, wann es Ihnen oder einem Handwerker passen würde, kurz vorbeizuschauen. Wir richten uns da gerne nach Ihnen.
+Sagen Sie uns doch einfach Bescheid, wann es Ihnen oder einem Handwerker passen würde, kurz vorbeizuschauen.
 
-Vielen Dank schon einmal für Ihre Hilfe und einen wunderbaren Tag noch!
+Vielen Dank für Ihre Arbeit bei der Studentvillage!
 
 Liebe Grüsse
 
 {{sender_first_name}} {{sender_last_name}}
-{{sender_phone}}

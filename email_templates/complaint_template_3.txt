@@ -1,6 +1,6 @@
 Betreff: Mängelmeldung für die Wohnung HWB 33
 
-Sehr geehrte(r) Herr/Frau {{recipient_last_name}},
+Sehr geehrte(r) Arben Hajdari,
 
 ich hoffe, es geht Ihnen gut und Sie haben einen angenehmen Tag.
 
@@ -8,11 +8,10 @@ Wir melden uns heute bei Ihnen mit einem Anliegen zu unserer Wohnung (HWB 33). D
 
 {{complaints}}
 
-Wir würden uns sehr freuen, wenn diese Dinge bei Gelegenheit behoben werden könnten. Für eine Terminvereinbarung bezüglich der Reparaturen sind wir flexibel erreichbar.
+Wir würden uns sehr freuen, wenn diese Dinge bei Gelegenheit behoben werden könnten.
 
 Wir bedanken uns herzlich für Ihre Bemühungen und wünschen Ihnen eine schöne restliche Woche!
 
 Freundliche Grüsse
 
 {{sender_first_name}} {{sender_last_name}}
-{{sender_phone}}
