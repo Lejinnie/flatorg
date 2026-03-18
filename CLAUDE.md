@@ -251,6 +251,26 @@ The token-reset Cloud Function is scheduled as a cron at the start of each semes
 
 **TODO:** design and implement the initial assignment UI. On first launch, admin must manually assign all 9 people to all 9 tasks before `reset_for_new_week()` can run. This is a one-time setup screen.
 
+### Flat document (Firestore schema)
+
+Each flat is a single Firestore document containing both identity and admin-configurable settings.
+
+```
+Collection: flats
+  └── Document: {flatId}
+        ├── name: String                          // flat display name
+        ├── admin_uid: String                     // Firebase Auth UID of the admin
+        ├── vacation_threshold_weeks: int          // short vs long vacation cutoff (default: 1)
+        ├── grace_period_hours: int                // hours after last due date before reset runs (default: 1)
+        ├── reminder_hours_before_deadline: int    // notification timing (default: 1)
+        ├── shopping_cleanup_hours: int            // hours before bought items are deleted (default: 6)
+        ├── complaint_send_enabled: bool           // resets to true every Sunday 23:59
+        ├── last_complaint_sent_at: Timestamp?     // null if not yet sent this week
+        └── created_at: Timestamp
+```
+
+All settings are editable by the admin only. Cloud Functions read these values at trigger time.
+
 ### Login
 
 - Firebase Auth with Email/Password
@@ -274,8 +294,6 @@ This is an accepted tradeoff of the priority ordering: Green rewards take preced
 ---
 
 ## Open Questions
-
-**11. Flat settings document schema** — Several admin-configurable values exist: vacation threshold (weeks), grace period (hours), reminder hours before deadline, shopping cleanup hours. These need a defined Firestore document structure. To be discussed.
 
 **15. Complaint email boilerplate** — Subject line and body template for the email to `studentvillage@ch.issworld.com` are unspecified. To be discussed.
  
