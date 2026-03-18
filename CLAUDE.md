@@ -17,12 +17,11 @@
     - [Task class](#task-class)
     - [Person class](#person-class)
     - [EthSemesterCalendar class](#ethsemestercalendar-class)
-    - [Initial Assignment (TODO)](#initial-assignment-todo)
+    - [Initial Assignment](#initial-assignment)
     - [App Settings](#app-settings)
     - [Login](#login)
   - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
     - [Red L1 escape when Green L3 fills L2](#red-l1-escape-when-green-l3-fills-l2)
-  - [Open Questions](#open-questions)
 
 
 FlatOrg is a Flutter app for scheduling and managing household tasks in a co-living area. Built for a 9-person flat.
@@ -46,7 +45,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - All notification triggers run as Cloud Functions
 
 **Authentication: Firebase Auth with Email/Password**
-- Admin shares a flat invite code out-of-band; new members join by entering the code during registration
+- Any flat member can generate and copy an invite code from within the app (via a "Generate & Copy Invite Code" button); the member then shares this code out-of-band (e.g. messaging) with new people who enter it during registration
 - Email verification required on signup before app access is granted
 - Password requirements: minimum 6 characters + at least one number (enforced client-side before submission to Firebase)
 - Password reset: built-in Firebase reset-link flow, wired up in the UI
@@ -259,9 +258,13 @@ A pure utility class (no Firebase dependency) that encapsulates ETH semester bou
 
 The token-reset Cloud Function is scheduled as a cron at the start of each semester using `nextSemesterStart()`.
 
-### Initial Assignment (TODO)
+### Initial Assignment
 
-**TODO:** design and implement the initial assignment UI. On first launch, admin must manually assign all 9 people to all 9 tasks before `reset_for_new_week()` can run. This is a one-time setup screen.
+Initial task assignment is integrated into the flat creation flow as page 2 of "Create a new flat."
+
+**Flow:** After the admin fills in flat details and invites members (page 1), page 2 shows "Let's assign tasks!" with all 9 tasks listed in order (Toilet → Kitchen → Recycling → Shower → Floor(A) → Washing Rags → Bathroom → Floor(B) → Shopping). The admin assigns each of the 9 people to a task before the flat is fully set up. This is a one-time setup step — `reset_for_new_week()` cannot run until all tasks have an initial assignee.
+
+For members who join later (via invite code), the admin assigns them to a vacant task or the system assigns them to the next available slot.
 
 ### Flat document (Firestore schema)
 
@@ -317,8 +320,10 @@ Settings accessible to all members and admin-only settings, consolidated in one 
 
 - Firebase Auth with Email/Password
 - **First launch:** user chooses "Create a new flat" or "Join an existing flat"
-  - **Create a new flat:** admin enters their name, email, password, and optionally the names of initial flatmates
-  - **Join an existing flat:** user enters a flat invite code (shared out-of-band by admin), plus their name, email, and password
+  - **Create a new flat (2-step flow):**
+    - **Page 1:** admin enters flat name, their name, email, password, and optionally the names of initial flatmates (the app generates an invite code the admin can share)
+    - **Page 2:** "Let's assign tasks!" — admin assigns each person to one of the 9 tasks before the flat is active (see Initial Assignment)
+  - **Join an existing flat:** user enters a flat invite code (shared by any existing member), plus their name, email, and password
 - Email verification required before app access is granted
 - Password: minimum 6 characters + at least one number, validated client-side
 - Password reset: Firebase built-in reset-link email, triggered from the login screen
@@ -335,10 +340,3 @@ When all 3 L3 people are Green, they move to L2 in step 2 and fill all 3 L2 slot
 
 This is an accepted tradeoff of the priority ordering: Green rewards take precedence over Red punishments. In practice this only occurs when all L3 people do their tasks in the same week that all L1 people fail theirs, which is unlikely. And Red L1 people staying at L1 (the easiest level) is a mild consequence regardless.
 
----
-
-## Open Questions
-
-**16. UI/UX Conflicts** does UI/UX correspond to the implementation? Or does it have things either missing, or more things, or has conflicts with the docs?
-
-**17. Startup** How is the Flat inititialized? What fields and information does it need? How does the UI look like?
