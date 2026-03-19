@@ -56,7 +56,31 @@ class Person {
   ///
   /// [vacation] — `true` to mark as on vacation, `false` to return.
   void setVacation(bool vacation) {
-    // TODO: implement
+    onVacation = vacation;
+  }
+
+  /// Whether this person has the admin role.
+  bool get isAdmin => role == PersonRole.admin;
+
+  /// Whether this person can request a task swap (has tokens remaining).
+  bool get canSwap => swapTokensRemaining > 0;
+
+  /// Consumes one swap token after an accepted swap.
+  ///
+  /// Throws [StateError] if no tokens remain.
+  void consumeSwapToken() {
+    if (swapTokensRemaining <= 0) {
+      throw StateError('No swap tokens remaining.');
+    }
+    swapTokensRemaining--;
+  }
+
+  /// Resets swap tokens to the per-semester default.
+  ///
+  /// Called by the token-reset Cloud Function at the start of each
+  /// ETH semester.
+  void resetSwapTokens() {
+    swapTokensRemaining = Strings.defaultSwapTokensPerSemester;
   }
 
   // ---------------------------------------------------------------------------
@@ -68,17 +92,26 @@ class Person {
   /// [data] — the `Map<String, dynamic>` from `DocumentSnapshot.data()`.
   /// Expects fields matching [Strings] field name constants.
   factory Person.fromFirestore(Map<String, dynamic> data) {
-    // TODO: implement deserialization
     return Person(
       uid: data[Strings.fieldUid] as String? ?? '',
       name: data[Strings.fieldName] as String? ?? '',
       email: data[Strings.fieldEmail] as String? ?? '',
+      role: PersonRole.fromFirestore(data[Strings.fieldRole] as String?),
+      onVacation: data[Strings.fieldOnVacation] as bool? ?? false,
+      swapTokensRemaining: data[Strings.fieldSwapTokensRemaining] as int? ??
+          Strings.defaultSwapTokensPerSemester,
     );
   }
 
   /// Serializes this [Person] to a `Map<String, dynamic>` for Firestore writes.
   Map<String, dynamic> toFirestore() {
-    // TODO: implement serialization
-    return {};
+    return {
+      Strings.fieldUid: uid,
+      Strings.fieldName: name,
+      Strings.fieldEmail: email,
+      Strings.fieldRole: role.toFirestore(),
+      Strings.fieldOnVacation: onVacation,
+      Strings.fieldSwapTokensRemaining: swapTokensRemaining,
+    };
   }
 }

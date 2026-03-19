@@ -9,5 +9,29 @@ enum PersonRole {
 
   /// Standard member: mark own task done, set vacation, swap tasks,
   /// read/write shopping list and issue list.
-  member,
+  member;
+
+  /// Firestore string representation of this role.
+  String toFirestore() {
+    switch (this) {
+      case PersonRole.admin:
+        return 'admin';
+      case PersonRole.member:
+        return 'member';
+    }
+  }
+
+  /// Parses a Firestore string into a [PersonRole].
+  ///
+  /// Returns [PersonRole.member] if the value is null or unrecognized.
+  static PersonRole fromFirestore(String? value) {
+    switch (value) {
+      case 'admin':
+        return PersonRole.admin;
+      case 'member':
+        return PersonRole.member;
+      default:
+        return PersonRole.member;
+    }
+  }
 }

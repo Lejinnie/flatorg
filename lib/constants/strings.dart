@@ -38,6 +38,23 @@ class Strings {
   static const String difficultyMedium = 'Medium (L2)';
   static const String difficultyEasy = 'Easy (L1)';
 
+  static const int difficultyLevelHard = 3;
+  static const int difficultyLevelMedium = 2;
+  static const int difficultyLevelEasy = 1;
+
+  /// Maps each task name to its difficulty level.
+  static const Map<String, int> taskDifficultyMap = {
+    taskToilet: difficultyLevelHard,
+    taskShower: difficultyLevelHard,
+    taskBathroom: difficultyLevelHard,
+    taskFloorA: difficultyLevelMedium,
+    taskFloorB: difficultyLevelMedium,
+    taskKitchen: difficultyLevelMedium,
+    taskRecycling: difficultyLevelEasy,
+    taskWashingRags: difficultyLevelEasy,
+    taskShopping: difficultyLevelEasy,
+  };
+
   // ---------------------------------------------------------------------------
   // Firestore collection and field names
   // ---------------------------------------------------------------------------

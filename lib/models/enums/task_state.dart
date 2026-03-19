@@ -14,5 +14,37 @@ enum TaskState {
   notDone,
 
   /// Assigned person was removed by admin mid-week. No assignee.
-  vacant,
+  vacant;
+
+  /// Firestore string representation of this state.
+  String toFirestore() {
+    switch (this) {
+      case TaskState.pending:
+        return 'pending';
+      case TaskState.completed:
+        return 'completed';
+      case TaskState.notDone:
+        return 'not_done';
+      case TaskState.vacant:
+        return 'vacant';
+    }
+  }
+
+  /// Parses a Firestore string into a [TaskState].
+  ///
+  /// Returns [TaskState.pending] if the value is null or unrecognized.
+  static TaskState fromFirestore(String? value) {
+    switch (value) {
+      case 'pending':
+        return TaskState.pending;
+      case 'completed':
+        return TaskState.completed;
+      case 'not_done':
+        return TaskState.notDone;
+      case 'vacant':
+        return TaskState.vacant;
+      default:
+        return TaskState.pending;
+    }
+  }
 }
