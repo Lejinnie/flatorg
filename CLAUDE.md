@@ -67,6 +67,10 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Read/write on the shopping list
 - Read/write/send on the issue list
 
+## Git & CI
+
+- When pushing to remote, use the `$GH_TOKEN` environment variable for authentication. Set the remote URL to `https://x-access-token:${GH_TOKEN}@github.com/<owner>/<repo>.git` before pushing.
+
 ## Coding & Design Standards
 
 - https://en.wikipedia.org/wiki/Design_Patterns This book is basically your bible. I want you to explore the page and the links inside, and then implement these principles in this project.
@@ -98,7 +102,7 @@ Our tasks are divided into three difficulties, hard (3), medium(2) and easy(1). 
 
 We want to reward those that do a task by assigning them a task of lower difficulty and those who don't with a task of higher difficulty. We call those who did their task Green Person, and those who didnt Red Person. (If they are on vacation, they are a Blue Person — handled separately.)
 
-`reset_for_new_week()` runs the following steps in order:
+`week_reset()` runs the following steps in order:
 
 1. **Blue short vacation** (`weeks_not_cleaned ≤ X`, admin-configurable, default 1 week) — assigned to tasks starting from L1, filling upward if there are more short-vacation people than L1 slots (L1 → L2 → L3). Among vacation people, those who had harder tasks get the harder available slots. Their slots are protected — Green people jump over them.
 2. **Green L3** — move down to an L2 task. Scan forward from their current position in the task ring to find the next unassigned L2 task. If already taken by a Blue/Green person, continue scanning forward. If no L2 slots are free, stay at L3 (no reward, no punishment).
@@ -117,11 +121,11 @@ People can switch tasks 3 times per semester (3 tokens).
 
 They can switch to a vacation person's slot without asking (the requester's original slot becomes the new vacation slot, and the vacation person is reassigned there). They can also swap with a non-vacation person if that person agrees. The swap lasts one week only.
 
-`reset_for_new_week()` always uses the person's **original** task (pre-swap) to determine their green/red status and next week's assignment. The swap has no lasting effect on the rotation schedule.
+`week_reset()` always uses the person's **original** task (pre-swap) to determine their green/red status and next week's assignment. The swap has no lasting effect on the rotation schedule.
 
 ### Vacation people (blue)
 
-People can mark themselves as being on vacation before `reset_for_new_week()` runs. If they mark vacation after the week has already started, it takes effect the following week — no mid-week recompute.
+People can mark themselves as being on vacation before `week_reset()` runs. If they mark vacation after the week has already started, it takes effect the following week — no mid-week recompute.
 
 Vacation status is tracked via the task's `weeks_not_cleaned` counter (see Task class), which increments each week the task goes uncleaned — whether the assignee is on vacation or the task is vacant.
 
@@ -191,31 +195,31 @@ Each task is a state machine stored as a Firestore document.
 - `description` — list of strings, each representing a subtask or step the assignee should complete
 - `due_date_time` — configurable per task by admin
 - `assigned_to` — person assigned (user ID)
-- `original_assigned_to` — stores the pre-swap assignment when a task swap occurs; empty string when no swap is active. `reset_for_new_week()` uses `effective_assigned_to()` (returns `original_assigned_to` if non-empty, else `assigned_to`) to determine green/red status. Cleared after each weekly reset.
+- `original_assigned_to` — stores the pre-swap assignment when a task swap occurs; empty string when no swap is active. `week_reset()` uses `effective_assigned_to()` (returns `original_assigned_to` if non-empty, else `assigned_to`) to determine green/red status. Cleared after each weekly reset.
 - `state` — enum: `pending | completed | not_done | vacant`
-- `weeks_not_cleaned` — int, increments in `reset_for_new_week()` whenever the task's assignee is on vacation or the task is vacant; resets to 0 when the task is completed normally. Determines short vs. long vacation treatment (same threshold X as `vacation_weeks` was).
+- `weeks_not_cleaned` — int, increments in `week_reset()` whenever the task's assignee is on vacation or the task is vacant; resets to 0 when the task is completed normally. Determines short vs. long vacation treatment (same threshold X as `vacation_weeks` was).
 
 **State transitions:**
 
-- **Pending (Yellow):** initial state set by `reset_for_new_week()`. Task not yet done.
+- **Pending (Yellow):** initial state set by `week_reset()`. Task not yet done.
   - Own deadline passes → transitions to `not_done` (Red)
   - Person marks done → transitions to `completed` (Green)
 - **Completed (Green):** task was done before deadline.
   - Own deadline passes → stays `completed`
-  - `reset_for_new_week()` fires → reassigned, returns to `pending`
+  - `week_reset()` fires → reassigned, returns to `pending`
 - **Not Done (Red):** deadline passed without completion. Person is in grace period.
-  - Holds until `reset_for_new_week()` fires (X hours after the **last** due date across all tasks this week)
-  - `reset_for_new_week()` fires → person is treated as Red for next assignment, task returns to `pending`
+  - Holds until `week_reset()` fires (X hours after the **last** due date across all tasks this week)
+  - `week_reset()` fires → person is treated as Red for next assignment, task returns to `pending`
 - **Vacant:** assigned person was removed by admin mid-week. `assigned_to` is null.
-  - Treated identically to a vacation task in `reset_for_new_week()`: if `weeks_not_cleaned ≤ X` → assigned in step 1 (protected slot); if `weeks_not_cleaned > X` → assigned in step 8 (unprotected).
+  - Treated identically to a vacation task in `week_reset()`: if `weeks_not_cleaned ≤ X` → assigned in step 1 (protected slot); if `weeks_not_cleaned > X` → assigned in step 8 (unprotected).
 
-**Week reset trigger:** A Cloud Function fires X hours (admin-configurable grace period; default 1h) after the latest due date of any task in the current week. At that point `reset_for_new_week()` runs for all tasks.
+**Week reset trigger:** A Cloud Function fires X hours (admin-configurable grace period; default 1h) after the latest due date of any task in the current week. At that point `week_reset()` runs for all tasks.
 
 **Methods:**
 
 `enter_grace_period()` — triggered by Cloud Function when a task's own deadline passes. Transitions `pending → not_done`. UI updates color from yellow to red.
 
-`reset_for_new_week()` — Cloud Function. For each person, calls `effective_assigned_to()` to resolve swap-aware assignment, then determines green/red status from that task's state. Runs the full assignment algorithm (blue → green → red order), writes new `assigned_to`, clears `original_assigned_to`, and resets all states to `pending`.
+`week_reset()` — Cloud Function. For each person, calls `effective_assigned_to()` to resolve swap-aware assignment, then determines green/red status from that task's state. Runs the full assignment algorithm (blue → green → red order), writes new `assigned_to`, clears `original_assigned_to`, and resets all states to `pending`.
 - **Within each step, people are processed in sequential task-ring order** (by their current position in the sequence: Toilet → Kitchen → ... → Shopping). This determines who gets first pick when slots are scarce.
 - **Increments `weeks_not_cleaned`** on every task whose assignee is `on_vacation` or whose state is `vacant`, before running the assignment steps.
 - **Must run as an atomic Firestore transaction** to prevent partial state (e.g. two people assigned to the same task) in the event of a crash or concurrent execution.
@@ -242,7 +246,7 @@ Each person maps to a Firebase Auth user and a Firestore document.
 
 **Methods:**
 
-`set_vacation(bool)` — sets `on_vacation`. Takes effect on the next `reset_for_new_week()` if set before it fires; otherwise takes effect the week after.
+`set_vacation(bool)` — sets `on_vacation`. Takes effect on the next `week_reset()` if set before it fires; otherwise takes effect the week after.
 
 ### EthSemesterCalendar class
 
@@ -263,7 +267,7 @@ The token-reset Cloud Function is scheduled as a cron at the start of each semes
 
 Initial task assignment is integrated into the flat creation flow as page 2 of "Create a new flat."
 
-**Flow:** After the admin fills in flat details and invites members (page 1), page 2 shows "Let's assign tasks!" with all 9 tasks listed in order (Toilet → Kitchen → Recycling → Shower → Floor(A) → Washing Rags → Bathroom → Floor(B) → Shopping). The admin assigns each of the 9 people to a task before the flat is fully set up. This is a one-time setup step — `reset_for_new_week()` cannot run until all tasks have an initial assignee.
+**Flow:** After the admin fills in flat details and invites members (page 1), page 2 shows "Let's assign tasks!" with all 9 tasks listed in order (Toilet → Kitchen → Recycling → Shower → Floor(A) → Washing Rags → Bathroom → Floor(B) → Shopping). The admin assigns each of the 9 people to a task before the flat is fully set up. This is a one-time setup step — `week_reset()` cannot run until all tasks have an initial assignee.
 
 For members who join later (via invite code), the admin assigns them to a vacant task or the system assigns them to the next available slot.
 
@@ -304,7 +308,7 @@ Settings accessible to all members and admin-only settings, consolidated in one 
 
 **Admin-only settings:**
 - `vacation_threshold_weeks` — short vs. long vacation cutoff (default: 1)
-- `grace_period_hours` — hours after the last due date before `reset_for_new_week()` runs (default: 1)
+- `grace_period_hours` — hours after the last due date before `week_reset()` runs (default: 1)
 - `reminder_hours_before_deadline` — how many hours before a task's deadline to send a reminder notification (default: 1)
 - `shopping_cleanup_hours` — hours before bought shopping items are auto-deleted (default: 6)
 - Task configuration: name, description, and `due_date_time` per task

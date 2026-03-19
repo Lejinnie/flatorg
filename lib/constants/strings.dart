@@ -76,6 +76,7 @@ class Strings {
   static const String fieldRole = 'role';
   static const String fieldOnVacation = 'on_vacation';
   static const String fieldSwapTokensRemaining = 'swap_tokens_remaining';
+  static const String fieldVacationThresholdWeeks = 'vacation_threshold_weeks';
 
   // ---------------------------------------------------------------------------
   // Default configuration values

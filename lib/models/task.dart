@@ -12,8 +12,8 @@ import 'package:flatorg/models/person.dart';
 /// State transitions:
 /// - **Pending → Completed**: person marks task done before deadline.
 /// - **Pending → Not Done**: deadline passes without completion.
-/// - **Not Done → Pending**: [WeekResetService.resetForNewWeek] fires.
-/// - **Completed → Pending**: [WeekResetService.resetForNewWeek] fires.
+/// - **Not Done → Pending**: [WeekResetService.weekReset] fires.
+/// - **Completed → Pending**: [WeekResetService.weekReset] fires.
 /// - **Vacant**: admin removed the assigned person mid-week.
 class Task {
   /// Display name of the task (e.g. "Toilet", "Kitchen").
@@ -29,7 +29,7 @@ class Task {
   String assignedTo;
 
   /// Firebase Auth UID of the person assigned before a swap occurred.
-  /// Empty string when no swap is active. [WeekResetService.resetForNewWeek]
+  /// Empty string when no swap is active. [WeekResetService.weekReset]
   /// uses [effectiveAssignedTo] to resolve the swap-aware assignee.
   /// Cleared after each weekly reset.
   String originalAssignedTo;
@@ -55,7 +55,7 @@ class Task {
   /// Returns [originalAssignedTo] if a swap is active (non-empty),
   /// otherwise returns [assignedTo].
   ///
-  /// Used by [WeekResetService.resetForNewWeek] to determine green/red
+  /// Used by [WeekResetService.weekReset] to determine green/red
   /// status based on the pre-swap assignment.
   String get effectiveAssignedTo =>
       originalAssignedTo.isNotEmpty ? originalAssignedTo : assignedTo;

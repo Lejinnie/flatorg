@@ -21,7 +21,7 @@ class Person {
 
   /// Whether this person is currently marked as on vacation.
   ///
-  /// Takes effect on the next [WeekResetService.resetForNewWeek] if set
+  /// Takes effect on the next [WeekResetService.weekReset] if set
   /// before it fires; otherwise takes effect the week after.
   bool onVacation;
 
@@ -58,7 +58,7 @@ class Person {
 
   /// Sets the vacation status for this person.
   ///
-  /// If set before [WeekResetService.resetForNewWeek] fires, the change
+  /// If set before [WeekResetService.weekReset] fires, the change
   /// takes effect that week. If set after, it takes effect the following week.
   ///
   /// When a person completes their assigned task (via [Task.completedTask]),
