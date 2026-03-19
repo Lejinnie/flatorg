@@ -28,9 +28,10 @@ class Task {
   /// Firebase Auth UID of the currently assigned person, or empty if vacant.
   String assignedTo;
 
-  /// Firebase Auth UID of the person assigned before any swap occurred.
-  /// Used by [WeekResetService.resetForNewWeek] to determine green/red status.
-  /// Never updated while the assignee is on vacation.
+  /// Firebase Auth UID of the person assigned before a swap occurred.
+  /// Empty string when no swap is active. [WeekResetService.resetForNewWeek]
+  /// uses [effectiveAssignedTo] to resolve the swap-aware assignee.
+  /// Cleared after each weekly reset.
   String originalAssignedTo;
 
   /// Current state of the task in its lifecycle.
@@ -50,6 +51,14 @@ class Task {
     this.state = TaskState.pending,
     this.weeksNotCleaned = 0,
   });
+
+  /// Returns [originalAssignedTo] if a swap is active (non-empty),
+  /// otherwise returns [assignedTo].
+  ///
+  /// Used by [WeekResetService.resetForNewWeek] to determine green/red
+  /// status based on the pre-swap assignment.
+  String get effectiveAssignedTo =>
+      originalAssignedTo.isNotEmpty ? originalAssignedTo : assignedTo;
 
   /// The difficulty level of this task (1 = easy, 2 = medium, 3 = hard).
   ///
@@ -88,8 +97,6 @@ class Task {
   /// 1. Sets [state] to [TaskState.completed].
   /// 2. Resets [weeksNotCleaned] to 0.
   /// 3. Clears [onVacation] on the assigned [person].
-  /// 4. Updates [originalAssignedTo] to this task's assignee (only if the
-  ///    [person] is not on vacation).
   ///
   /// Throws [StateError] if [state] is not [TaskState.pending].
   void completedTask(Person person) {

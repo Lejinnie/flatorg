@@ -191,7 +191,7 @@ Each task is a state machine stored as a Firestore document.
 - `description` — list of strings, each representing a subtask or step the assignee should complete
 - `due_date_time` — configurable per task by admin
 - `assigned_to` — person assigned (user ID)
-- `original_assigned_to` — person assigned before any swap (used by `reset_for_new_week()`)
+- `original_assigned_to` — stores the pre-swap assignment when a task swap occurs; empty string when no swap is active. `reset_for_new_week()` uses `effective_assigned_to()` (returns `original_assigned_to` if non-empty, else `assigned_to`) to determine green/red status. Cleared after each weekly reset.
 - `state` — enum: `pending | completed | not_done | vacant`
 - `weeks_not_cleaned` — int, increments in `reset_for_new_week()` whenever the task's assignee is on vacation or the task is vacant; resets to 0 when the task is completed normally. Determines short vs. long vacation treatment (same threshold X as `vacation_weeks` was).
 
@@ -215,13 +215,12 @@ Each task is a state machine stored as a Firestore document.
 
 `enter_grace_period()` — triggered by Cloud Function when a task's own deadline passes. Transitions `pending → not_done`. UI updates color from yellow to red.
 
-`reset_for_new_week()` — Cloud Function. Reads each person's `original_assigned_to` task and state, runs the full assignment algorithm (blue → green → red order), writes new `assigned_to` and resets all states to `pending`.
+`reset_for_new_week()` — Cloud Function. For each person, calls `effective_assigned_to()` to resolve swap-aware assignment, then determines green/red status from that task's state. Runs the full assignment algorithm (blue → green → red order), writes new `assigned_to`, clears `original_assigned_to`, and resets all states to `pending`.
 - **Within each step, people are processed in sequential task-ring order** (by their current position in the sequence: Toilet → Kitchen → ... → Shopping). This determines who gets first pick when slots are scarce.
-- **`original_assigned_to` is never updated while a person is on vacation.** It only updates at the end of a normal (non-vacation) week, so returning vacation people re-enter the rotation at their correct difficulty level.
 - **Increments `weeks_not_cleaned`** on every task whose assignee is `on_vacation` or whose state is `vacant`, before running the assignment steps.
 - **Must run as an atomic Firestore transaction** to prevent partial state (e.g. two people assigned to the same task) in the event of a crash or concurrent execution.
 
-`completed_task()` — marks state as `completed` and resets `weeks_not_cleaned` to 0 on the task. Also clears the `on_vacation` flag on the assigned person. Updates `original_assigned_to` to this task only if the person is not on vacation.
+`completed_task()` — marks state as `completed` and resets `weeks_not_cleaned` to 0 on the task. Also clears the `on_vacation` flag on the assigned person. Does not modify `original_assigned_to` (swap tracking is independent of task completion).
 
 `request_change_task()` — fires an event to the target person requesting a task swap. Target person sees a pending request in the notification panel and can accept or decline. On accept: swap `assigned_to` on both tasks (original assignments unchanged). On decline: request is cancelled and shown as declined in the requester's notification tile. Each accepted swap costs one token from the requester's balance.
 
