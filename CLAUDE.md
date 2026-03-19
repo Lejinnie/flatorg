@@ -79,6 +79,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Use docstrings to explain mehthods/fields when it is not obvious from their naming.
 - Use comments to explain why something was coded in a certain way, not to explain how something was coded, or what the code does. 
 - use smoke tests and BDD Tests for backend and frontend.
+- Avoid nullable types where possible: use `String` with `''` (empty string) instead of `String?`, and `int` with `-1` as a sentinel instead of `int?`, wherever it makes sense.
 
 
 ## Functionality
