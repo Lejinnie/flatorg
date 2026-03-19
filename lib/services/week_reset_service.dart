@@ -39,32 +39,44 @@ class WeekResetService {
         .collection(Strings.collectionFlats)
         .doc(flatId);
 
+    // Read collections outside the transaction (transaction.get only
+    // accepts DocumentReference, not CollectionReference).
+    final taskSnaps =
+        await flatRef.collection(Strings.collectionTasks).get();
+    final personSnaps =
+        await flatRef.collection(Strings.collectionPersons).get();
+
+    final taskDocIds = taskSnaps.docs.map((d) => d.id).toList();
+    final personDocIds = personSnaps.docs.map((d) => d.id).toList();
+
     await _firestore.runTransaction((transaction) async {
-      // Read flat settings
+      // Re-read every document inside the transaction for consistency
       final flatSnap = await transaction.get(flatRef);
       final flatData = flatSnap.data() ?? {};
       final vacationThreshold = flatData[Strings.fieldVacationThresholdWeeks]
               as int? ??
           Strings.defaultVacationThresholdWeeks;
 
-      // Read all tasks and persons
-      final taskSnaps =
-          await transaction.get(flatRef.collection(Strings.collectionTasks));
-      final personSnaps =
-          await transaction.get(flatRef.collection(Strings.collectionPersons));
-
       final tasks = <String, Task>{};
       final taskRefs = <String, DocumentReference>{};
-      for (final doc in taskSnaps.docs) {
-        tasks[doc.id] = Task.fromFirestore(doc.data());
-        taskRefs[doc.id] = doc.reference;
+      for (final docId in taskDocIds) {
+        final ref = flatRef.collection(Strings.collectionTasks).doc(docId);
+        final snap = await transaction.get(ref);
+        if (snap.exists) {
+          tasks[docId] = Task.fromFirestore(snap.data() ?? {});
+          taskRefs[docId] = ref;
+        }
       }
 
       final persons = <String, Person>{};
       final personRefs = <String, DocumentReference>{};
-      for (final doc in personSnaps.docs) {
-        persons[doc.id] = Person.fromFirestore(doc.data());
-        personRefs[doc.id] = doc.reference;
+      for (final docId in personDocIds) {
+        final ref = flatRef.collection(Strings.collectionPersons).doc(docId);
+        final snap = await transaction.get(ref);
+        if (snap.exists) {
+          persons[docId] = Person.fromFirestore(snap.data() ?? {});
+          personRefs[docId] = ref;
+        }
       }
 
       // Build lookup: person UID → (taskDocId, task) for effective assignment
