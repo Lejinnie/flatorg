@@ -36,49 +36,49 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 
 **Backend: Firebase (Firestore + Cloud Functions)**
 - Firestore for real-time database
-- Cloud Functions (Blaze plan) for all scheduled/event triggers: week reset, push notifications, grace period transitions, shopping item cleanup
-- Serverless — no dedicated server needed
+- Cloud Functions (Blaze plan) for all scheduled/event triggers: week reset, push notifications, grace period transitions, shopping item cleanup, synching flat issues.
 - Blaze free tier is more than sufficient for 9 users
 
 **Push Notifications: Firebase Cloud Messaging (FCM)**
 - Android: native push via `firebase_messaging` package
-- iOS: in-app notification panel only (no APNs key required)
+- iOS: in-app notification panel only for now because we are broke(no APNs key required)
 - All notification triggers run as Cloud Functions
 
 **Authentication: Firebase Auth with Email/Password**
-- Any flat member can generate and copy an invite code from within the app (via a "Generate & Copy Invite Code" button); the member then shares this code out-of-band (e.g. messaging) with new people who enter it during registration
-- Email verification required on signup before app access is granted
-- Password requirements: minimum 6 characters + at least one number (enforced client-side before submission to Firebase)
-- Password reset: built-in Firebase reset-link flow, wired up in the UI
-- Rate limiting on failed login attempts: handled automatically by Firebase Auth; app must display a clear, user-friendly error message when triggered
+- Any flat member can generate and copy an invite code from within the app (via a "Generate & Copy Invite Code" button); the member then shares this code out-of-band (e.g. messaging) so that new people can use it during registration.
+- Email verification required on signup before app access is granted (TODO_CLAUDE: does this need emailing framework etc.?)
+- Password requirements: minimum 6 characters + at least one number  (enforced client-side before submission to Firebase)
+- Password reset: built-in Firebase reset-link flow, wired up in the UI (TODO_CLAUDE: Also doesn' need extra emailing stuff?)
+- Rate limiting on failed login attempts: handled automatically by Firebase Auth; app must display a clear, user-friendly error message when triggered (e.g. tried too many times, try again later)
 
 ### Roles & Permissions
 
-**Admin** (the flat creator; can transfer admin rights to another member):
+**Admin** (default: the flat creator)
+- can transfer admin rights to another member
 - Remove members from the flat
 - Modify tasks (name, description, due date, etc.)
 - Read/write all tasks and app settings
 - No read/write access to other members' personal data
 
 **Normal Member** (includes admin):
-- Add members to the flat
-- Mark themselves as on vacation
-- Mark their own task as done
-- Read/write on the shopping list
-- Read/write/send on the issue list
+- Add members to the flat (Settings section)
+- Mark themselves as on vacation (Task section)
+- Mark their own task as done (Task section)
+- Read/write on the shopping list (Task section)
+- Read/write/send on the issue list (Task section)
 
 ## Coding & Design Standards
 
 - https://en.wikipedia.org/wiki/Design_Patterns This book is basically your bible. I want you to explore the page and the links inside, and then implement these principles in this project.
 
 - do not use literal strings in code, store them in a seperate file and reference the variables in the file.
-- when using themes, try to have a centralized way of controlling it. Refer to the youtube of designing good UI (TODO myself.)
-  - E.g. 3 types of font sizes that is centralized in a file to be accessed. Or 3 main colorways that are also accessed that way. 
+- when using themes, try to have a centralized way of controlling it. E.g. 
+  - As an example, 3 types of font sizes that is centralized in a file to be accessed. Or 3 main colorways that are also accessed that way, like have a variable background_color = white that you can import and use when needed.
 - Use "speaking" (i.e. self explanatory) names (variables, classes, and methods).
 - Use constants (static final variables) instead of "Magic numbers". 
-- Use docstrings to explain mehthods/fields when it is not obvious from their naming.
-- Use comments to explain why something was coded in a certain way, not to explain how something was coded, or what the code does. 
-- use smoke tests and BDD Tests for backend and frontend.
+- Use docstrings to explain mehthods/fields when it is not obvious from their naming. Abstract their use-case and simplify it so that it is concise. Also add max. two sentences why it was coded this way.
+- Use comments to explain why something was coded in a certain way, NOT to explain how something was coded, or what the code does. 
+- use smoke tests and BDD Tests for backend and frontend. 
 
 
 ## Functionality
@@ -95,7 +95,7 @@ Our tasks are divided into three difficulties, hard (3), medium(2) and easy(1). 
 - Level 2: Floor(A), Floor(B), Kitchen
 - Level 1: Recycling, Washing Rags, Shopping & report to @Livit
 
-We want to reward those that do a task by assigning them a task of lower difficulty and those who don't with a task of higher difficulty. We call those who did their task Green Person, and those who didnt Red Person. (If they are on vacation, they are a Blue Person — handled separately.)
+The general idea is that we want to reward those that do a task by assigning them a task of lower difficulty and those who don't with a task of higher difficulty. For simplicity, we call those who did their task Green Person, and those who didnt Red Person. (If they are on vacation, they are a Blue Person — handled separately.)
 
 `reset_for_new_week()` runs the following steps in order:
 
@@ -107,6 +107,8 @@ We want to reward those that do a task by assigning them a task of lower difficu
 6. **Red L1** — move up to L2. Take any unassigned L2 task. If all L2 slots are full, stay at their current L1 task next week.
 7. **Green L1** — fill whatever slots remain (assigned last to avoid competing with Red people for harder slots).
 8. **Blue long vacation** (`weeks_not_cleaned > X`) — fill whatever slots remain after Green L1. Their slots are not protected and do not block Green people from moving down.
+
+These functions should check if the next state is as their assumptions hold, and if not cause an exception with a proper error message of the current state for good debugging.
 
 **Why Green L3/L2 before Reds:** guarantees that people who did their task get a lighter task next week. Green L3 targets L2 and Green L2 targets L1 — these never compete with Reds who target L3. Only Green L1 ("anywhere") could interfere, so they are moved to the end.
 
