@@ -76,12 +76,9 @@ class Task {
   ///
   /// Throws [StateError] if [state] is not [TaskState.pending].
   void enterGracePeriod() {
-    if (state != TaskState.pending) {
-      throw StateError(
-        'Cannot enter grace period from state $state; expected pending.',
-      );
+    if (state == TaskState.pending) {
+      state = TaskState.notDone;
     }
-    state = TaskState.notDone;
   }
 
   /// Marks this task as completed and resets vacation-related counters.
@@ -104,9 +101,6 @@ class Task {
     state = TaskState.completed;
     weeksNotCleaned = 0;
     person.onVacation = false;
-    if (!person.onVacation) {
-      originalAssignedTo = assignedTo;
-    }
   }
 
   /// Fires a swap request event to the target person.
@@ -162,7 +156,8 @@ class Task {
       ),
       dueDateTime: dueDateTime,
       assignedTo: data[Strings.fieldAssignedTo] as String? ?? '',
-      originalAssignedTo: data[Strings.fieldOriginalAssignedTo] as String? ?? '',
+      originalAssignedTo:
+          data[Strings.fieldOriginalAssignedTo] as String? ?? '',
       state: TaskState.fromFirestore(data[Strings.fieldState] as String?),
       weeksNotCleaned: data[Strings.fieldWeeksNotCleaned] as int? ?? 0,
     );
