@@ -25,13 +25,13 @@ class Task {
   /// When this task is due. Configurable per task by admin.
   final DateTime dueDateTime;
 
-  /// Firebase Auth UID of the currently assigned person, or null if vacant.
-  String? assignedTo;
+  /// Firebase Auth UID of the currently assigned person, or empty if vacant.
+  String assignedTo;
 
   /// Firebase Auth UID of the person assigned before any swap occurred.
   /// Used by [WeekResetService.resetForNewWeek] to determine green/red status.
   /// Never updated while the assignee is on vacation.
-  String? originalAssignedTo;
+  String originalAssignedTo;
 
   /// Current state of the task in its lifecycle.
   TaskState state;
@@ -45,8 +45,8 @@ class Task {
     required this.name,
     required this.description,
     required this.dueDateTime,
-    this.assignedTo,
-    this.originalAssignedTo,
+    this.assignedTo = '',
+    this.originalAssignedTo = '',
     this.state = TaskState.pending,
     this.weeksNotCleaned = 0,
   });
@@ -161,8 +161,8 @@ class Task {
         data[Strings.fieldDescription] as List? ?? [],
       ),
       dueDateTime: dueDateTime,
-      assignedTo: data[Strings.fieldAssignedTo] as String?,
-      originalAssignedTo: data[Strings.fieldOriginalAssignedTo] as String?,
+      assignedTo: data[Strings.fieldAssignedTo] as String? ?? '',
+      originalAssignedTo: data[Strings.fieldOriginalAssignedTo] as String? ?? '',
       state: TaskState.fromFirestore(data[Strings.fieldState] as String?),
       weeksNotCleaned: data[Strings.fieldWeeksNotCleaned] as int? ?? 0,
     );
