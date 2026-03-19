@@ -41,6 +41,17 @@ class Person {
     this.swapTokensRemaining = Strings.defaultSwapTokensPerSemester,
   });
 
+  /// Creates a [Person] with the [PersonRole.admin] role.
+  ///
+  /// Used when creating the flat — the creator becomes the admin.
+  Person.admin({
+    required this.uid,
+    required this.name,
+    required this.email,
+    this.onVacation = false,
+    this.swapTokensRemaining = Strings.defaultSwapTokensPerSemester,
+  }) : role = PersonRole.admin;
+
   // ---------------------------------------------------------------------------
   // Methods
   // ---------------------------------------------------------------------------
