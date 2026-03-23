@@ -1,7 +1,25 @@
-/// FlatOrg — household task scheduling app for co-living.
-///
-/// Entry point for the Flutter application.
-/// Initializes Firebase and launches the root widget.
+import 'package:flutter/material.dart';
+
 void main() {
-  // TODO: implement Firebase initialization and app startup
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'FlatOrg',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const Scaffold(
+        body: Center(
+          child: Text('FlatOrg'),
+        ),
+      ),
+    );
+  }
 }
