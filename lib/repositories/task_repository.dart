@@ -26,7 +26,7 @@ class TaskRepository {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => Task.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+              .map((doc) => Task.fromFirestore(doc))
               .toList(),
         );
   }
@@ -35,7 +35,7 @@ class TaskRepository {
   Stream<Task?> watchTask(String flatId, String taskId) {
     return _tasksCollection(flatId).doc(taskId).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return Task.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      return Task.fromFirestore(doc);
     });
   }
 
@@ -45,7 +45,7 @@ class TaskRepository {
         .orderBy(fieldTaskRingIndex)
         .get();
     return snapshot.docs
-        .map((doc) => Task.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+        .map((doc) => Task.fromFirestore(doc))
         .toList();
   }
 
@@ -53,7 +53,7 @@ class TaskRepository {
   Future<Task?> fetchTask(String flatId, String taskId) async {
     final doc = await _tasksCollection(flatId).doc(taskId).get();
     if (!doc.exists) return null;
-    return Task.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+    return Task.fromFirestore(doc);
   }
 
   /// Creates a task document (used during initial flat setup).

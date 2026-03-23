@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PersonRepository } from '../repository/personRepository';
-import { FlatRepository } from '../repository/flatRepository';
 import { EthSemesterCalendar } from '../services/ethSemesterCalendar';
 import { COLLECTION_FLATS } from '../constants/strings';
 import { LOG_TOKEN_RESET } from '../constants/strings';
@@ -32,7 +31,6 @@ export const tokenResetScheduled = functions.pubsub
     }
 
     const db = getFirestore();
-    const flatRepo = new FlatRepository(db);
     const personRepo = new PersonRepository(db);
 
     // Iterate all flats

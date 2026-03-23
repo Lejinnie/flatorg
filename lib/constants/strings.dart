@@ -1,5 +1,5 @@
-/// All user-facing strings and Firestore field/collection names.
-/// No inline string literals appear elsewhere in the codebase.
+// All user-facing strings and Firestore field/collection names.
+// No inline string literals appear elsewhere in the codebase.
 
 // ── Firestore collection names ────────────────────────────────────────────────
 

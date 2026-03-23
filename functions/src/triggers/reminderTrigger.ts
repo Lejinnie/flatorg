@@ -1,7 +1,6 @@
 import * as functions from 'firebase-functions';
 import { getFirestore } from 'firebase-admin/firestore';
 import { TaskRepository } from '../repository/taskRepository';
-import { PersonRepository } from '../repository/personRepository';
 import { FlatRepository } from '../repository/flatRepository';
 import { NotificationService } from '../services/notificationService';
 import { effectiveAssignedTo } from '../models/task';

@@ -20,7 +20,7 @@ class PersonRepository {
   Stream<List<Person>> watchMembers(String flatId) {
     return _membersCollection(flatId).snapshots().map(
           (snapshot) => snapshot.docs
-              .map((doc) => Person.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+              .map((doc) => Person.fromFirestore(doc))
               .toList(),
         );
   }
@@ -29,7 +29,7 @@ class PersonRepository {
   Stream<Person?> watchMember(String flatId, String uid) {
     return _membersCollection(flatId).doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return Person.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+      return Person.fromFirestore(doc);
     });
   }
 
@@ -37,7 +37,7 @@ class PersonRepository {
   Future<Person?> fetchMember(String flatId, String uid) async {
     final doc = await _membersCollection(flatId).doc(uid).get();
     if (!doc.exists) return null;
-    return Person.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>);
+    return Person.fromFirestore(doc);
   }
 
   /// Creates a member document (used during signup / flat join flow).
