@@ -1,4 +1,4 @@
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/task_constants.dart';
 import 'package:flatorg/models/enums/task_state.dart';
 import 'package:flatorg/models/person.dart';
 import 'package:flatorg/models/task.dart';
@@ -56,7 +56,7 @@ class WeekResetAlgorithm {
     // Step 2: Green L3 → move to L2
     assignGreenDown(
       buckets.greenL3,
-      Strings.difficultyLevelMedium,
+      TaskConstants.difficultyLevelMedium,
       tasksByRing,
       personTaskMap,
       assignedTaskIds,
@@ -66,7 +66,7 @@ class WeekResetAlgorithm {
     // Step 3: Green L2 → move to L1
     assignGreenDown(
       buckets.greenL2,
-      Strings.difficultyLevelEasy,
+      TaskConstants.difficultyLevelEasy,
       tasksByRing,
       personTaskMap,
       assignedTaskIds,
@@ -76,7 +76,7 @@ class WeekResetAlgorithm {
     // Step 4: Red L3 → stay at L3
     assignRedSameLevel(
       buckets.redL3,
-      Strings.difficultyLevelHard,
+      TaskConstants.difficultyLevelHard,
       tasksByRing,
       personTaskMap,
       assignedTaskIds,
@@ -86,8 +86,8 @@ class WeekResetAlgorithm {
     // Step 5: Red L2 → move up to L3
     assignRedUp(
       buckets.redL2,
-      Strings.difficultyLevelHard,
-      Strings.difficultyLevelMedium,
+      TaskConstants.difficultyLevelHard,
+      TaskConstants.difficultyLevelMedium,
       tasksByRing,
       personTaskMap,
       assignedTaskIds,
@@ -97,16 +97,16 @@ class WeekResetAlgorithm {
     // Step 6: Red L1 → move up to L2
     assignRedUp(
       buckets.redL1,
-      Strings.difficultyLevelMedium,
-      Strings.difficultyLevelEasy,
+      TaskConstants.difficultyLevelMedium,
+      TaskConstants.difficultyLevelEasy,
       tasksByRing,
       personTaskMap,
       assignedTaskIds,
       newAssignments,
     );
 
-    // Step 7: Green L1 → fill remaining
-    assignToRemaining(
+    // Step 7: Green L1 → fill remaining by shortest ring distance
+    assignByShortestRingDistance(
       buckets.greenL1,
       tasksByRing,
       assignedTaskIds,
@@ -200,18 +200,18 @@ class WeekResetAlgorithm {
 
       if (isGreen) {
         switch (level) {
-          case Strings.difficultyLevelHard:
+          case TaskConstants.difficultyLevelHard:
             buckets.greenL3.add(PersonWithRing(person, task));
-          case Strings.difficultyLevelMedium:
+          case TaskConstants.difficultyLevelMedium:
             buckets.greenL2.add(PersonWithRing(person, task));
           default:
             buckets.greenL1.add(PersonWithRing(person, task));
         }
       } else {
         switch (level) {
-          case Strings.difficultyLevelHard:
+          case TaskConstants.difficultyLevelHard:
             buckets.redL3.add(PersonWithRing(person, task));
-          case Strings.difficultyLevelMedium:
+          case TaskConstants.difficultyLevelMedium:
             buckets.redL2.add(PersonWithRing(person, task));
           default:
             buckets.redL1.add(PersonWithRing(person, task));
@@ -260,9 +260,9 @@ class WeekResetAlgorithm {
 
     final availableSlots = <MapEntry<String, Task>>[];
     for (final level in [
-      Strings.difficultyLevelEasy,
-      Strings.difficultyLevelMedium,
-      Strings.difficultyLevelHard,
+      TaskConstants.difficultyLevelEasy,
+      TaskConstants.difficultyLevelMedium,
+      TaskConstants.difficultyLevelHard,
     ]) {
       for (final entry in tasksByRing) {
         if (entry.value.difficultyLevel == level &&
@@ -373,7 +373,54 @@ class WeekResetAlgorithm {
     }
   }
 
-  /// Steps 7 & 8: Fill whatever slots remain.
+  /// Step 7: Assign Green L1 people to remaining slots by shortest forward
+  /// ring distance.
+  ///
+  /// Repeatedly picks the (person, slot) pair with the smallest forward
+  /// distance in the task ring, assigns it, and removes both from
+  /// consideration. This ensures each person gets the task closest to
+  /// their current position rather than an arbitrary leftover.
+  void assignByShortestRingDistance(
+    List<PersonWithRing> people,
+    List<MapEntry<String, Task>> tasksByRing,
+    Set<String> assignedTaskIds,
+    Map<String, String> newAssignments,
+  ) {
+    final ringSize = TaskConstants.taskRingOrder.length;
+    final unassignedPeople = [
+      for (final pw in people)
+        if (!newAssignments.containsKey(pw.person.uid)) pw,
+    ];
+
+    while (unassignedPeople.isNotEmpty) {
+      int bestDistance = ringSize + 1;
+      int bestPersonIdx = -1;
+      String? bestTaskDocId;
+
+      for (var i = 0; i < unassignedPeople.length; i++) {
+        final personRingIdx = unassignedPeople[i].task.taskRingIndex;
+        for (final entry in tasksByRing) {
+          if (assignedTaskIds.contains(entry.key)) continue;
+          final slotRingIdx = entry.value.taskRingIndex;
+          final forwardDist =
+              (slotRingIdx - personRingIdx + ringSize) % ringSize;
+          if (forwardDist < bestDistance) {
+            bestDistance = forwardDist;
+            bestPersonIdx = i;
+            bestTaskDocId = entry.key;
+          }
+        }
+      }
+
+      if (bestTaskDocId == null) break;
+
+      final pw = unassignedPeople.removeAt(bestPersonIdx);
+      newAssignments[pw.person.uid] = bestTaskDocId;
+      assignedTaskIds.add(bestTaskDocId);
+    }
+  }
+
+  /// Step 8: Fill whatever slots remain (simple ring-order assignment).
   void assignToRemaining(
     List<PersonWithRing> people,
     List<MapEntry<String, Task>> tasksByRing,
@@ -404,7 +451,7 @@ class WeekResetAlgorithm {
     List<MapEntry<String, Task>> tasksByRing,
     Set<String> assignedTaskIds,
   ) {
-    final ringSize = Strings.taskRingOrder.length;
+    final ringSize = TaskConstants.taskRingOrder.length;
     for (var offset = 1; offset <= ringSize; offset++) {
       final ringIdx = (startRingIdx + offset) % ringSize;
       for (final entry in tasksByRing) {

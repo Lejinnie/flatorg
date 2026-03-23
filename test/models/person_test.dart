@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/setting_constants.dart';
 import 'package:flatorg/models/enums/person_role.dart';
 import 'package:flatorg/models/person.dart';
 
@@ -23,7 +23,7 @@ void main() {
       test('default swap tokens is 3', () {
         expect(
           person.swapTokensRemaining,
-          Strings.defaultSwapTokensPerSemester,
+          SettingConstants.defaultSwapTokensPerSemester,
         );
       });
     });
@@ -100,7 +100,7 @@ void main() {
         person.resetSwapTokens();
         expect(
           person.swapTokensRemaining,
-          Strings.defaultSwapTokensPerSemester,
+          SettingConstants.defaultSwapTokensPerSemester,
         );
       });
     });
@@ -134,7 +134,7 @@ void main() {
         expect(person.onVacation, false);
         expect(
           person.swapTokensRemaining,
-          Strings.defaultSwapTokensPerSemester,
+          SettingConstants.defaultSwapTokensPerSemester,
         );
       });
 

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/string_constants.dart';
+import 'package:flatorg/constants/task_constants.dart';
 import 'package:flatorg/models/enums/task_state.dart';
 import 'package:flatorg/models/person.dart';
 
@@ -67,12 +68,12 @@ class Task {
   /// - L2 (medium): Floor (A), Floor (B), Kitchen
   /// - L1 (easy): Recycling, Washing Rags, Shopping
   int get difficultyLevel =>
-      Strings.taskDifficultyMap[name] ?? Strings.difficultyLevelEasy;
+      TaskConstants.taskDifficultyMap[name] ?? TaskConstants.difficultyLevelEasy;
 
   /// The zero-based index of this task in the task ring order.
   ///
   /// Returns -1 if the task name is not in the canonical ring.
-  int get taskRingIndex => Strings.taskRingOrder.indexOf(name);
+  int get taskRingIndex => TaskConstants.taskRingOrder.indexOf(name);
 
   // ---------------------------------------------------------------------------
   // State transition methods
@@ -146,7 +147,7 @@ class Task {
   /// [data] — the `Map<String, dynamic>` from `DocumentSnapshot.data()`.
   /// Expects fields matching [Strings] field name constants.
   factory Task.fromFirestore(Map<String, dynamic> data) {
-    final rawDueDate = data[Strings.fieldDueDateTime];
+    final rawDueDate = data[StringConstants.fieldDueDateTime];
     DateTime dueDateTime;
     if (rawDueDate is Timestamp) {
       dueDateTime = rawDueDate.toDate();
@@ -157,29 +158,29 @@ class Task {
     }
 
     return Task(
-      name: data[Strings.fieldName] as String? ?? '',
+      name: data[StringConstants.fieldName] as String? ?? '',
       description: List<String>.from(
-        data[Strings.fieldDescription] as List? ?? [],
+        data[StringConstants.fieldDescription] as List? ?? [],
       ),
       dueDateTime: dueDateTime,
-      assignedTo: data[Strings.fieldAssignedTo] as String? ?? '',
+      assignedTo: data[StringConstants.fieldAssignedTo] as String? ?? '',
       originalAssignedTo:
-          data[Strings.fieldOriginalAssignedTo] as String? ?? '',
-      state: TaskState.fromFirestore(data[Strings.fieldState] as String?),
-      weeksNotCleaned: data[Strings.fieldWeeksNotCleaned] as int? ?? 0,
+          data[StringConstants.fieldOriginalAssignedTo] as String? ?? '',
+      state: TaskState.fromFirestore(data[StringConstants.fieldState] as String?),
+      weeksNotCleaned: data[StringConstants.fieldWeeksNotCleaned] as int? ?? 0,
     );
   }
 
   /// Serializes this [Task] to a `Map<String, dynamic>` for Firestore writes.
   Map<String, dynamic> toFirestore() {
     return {
-      Strings.fieldName: name,
-      Strings.fieldDescription: description,
-      Strings.fieldDueDateTime: Timestamp.fromDate(dueDateTime),
-      Strings.fieldAssignedTo: assignedTo,
-      Strings.fieldOriginalAssignedTo: originalAssignedTo,
-      Strings.fieldState: state.toFirestore(),
-      Strings.fieldWeeksNotCleaned: weeksNotCleaned,
+      StringConstants.fieldName: name,
+      StringConstants.fieldDescription: description,
+      StringConstants.fieldDueDateTime: Timestamp.fromDate(dueDateTime),
+      StringConstants.fieldAssignedTo: assignedTo,
+      StringConstants.fieldOriginalAssignedTo: originalAssignedTo,
+      StringConstants.fieldState: state.toFirestore(),
+      StringConstants.fieldWeeksNotCleaned: weeksNotCleaned,
     };
   }
 }

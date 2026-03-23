@@ -3,6 +3,7 @@
 - [FlatOrg](#flatorg)
   - [Tech Stack](#tech-stack)
     - [Roles \& Permissions](#roles--permissions)
+  - [Git \& CI](#git--ci)
   - [Coding \& Design Standards](#coding--design-standards)
   - [Functionality](#functionality)
     - [Core Function](#core-function)
@@ -23,6 +24,7 @@
     - [Login](#login)
   - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
     - [Red L1 escape when Green L3 fills L2](#red-l1-escape-when-green-l3-fills-l2)
+  - [Noteworthy](#noteworthy)
 
 
 FlatOrg is a Flutter app for scheduling and managing household tasks in a co-living area. Built for a 9-person flat.
@@ -110,7 +112,7 @@ We want to reward those that do a task by assigning them a task of lower difficu
 4. **Red L3** — stay at L3. Take their same task if unassigned, otherwise take another unassigned L3 task.
 5. **Red L2** — move up to L3. Take any unassigned L3 task. If all L3 slots are full, stay at their current L2 task next week.
 6. **Red L1** — move up to L2. Take any unassigned L2 task. If all L2 slots are full, stay at their current L1 task next week.
-7. **Green L1** — fill whatever slots remain (assigned last to avoid competing with Red people for harder slots).
+7. **Green L1** — fill whatever slots remain, using **shortest ring distance** matching. For each remaining unassigned slot, find the Green L1 person with the shortest forward distance to it in the task ring and assign them to it. This ensures each person gets the task closest to their current position rather than an arbitrary leftover. Assigned last to avoid competing with Red people for harder slots.
 8. **Blue long vacation** (`weeks_not_cleaned > X`) — fill whatever slots remain after Green L1. Their slots are not protected and do not block Green people from moving down.
 
 **Why Green L3/L2 before Reds:** guarantees that people who did their task get a lighter task next week. Green L3 targets L2 and Green L2 targets L1 — these never compete with Reds who target L3. Only Green L1 ("anywhere") could interfere, so they are moved to the end.
@@ -345,3 +347,6 @@ When all 3 L3 people are Green, they move to L2 in step 2 and fill all 3 L2 slot
 
 This is an accepted tradeoff of the priority ordering: Green rewards take precedence over Red punishments. In practice this only occurs when all L3 people do their tasks in the same week that all L1 people fail theirs, which is unlikely. And Red L1 people staying at L1 (the easiest level) is a mild consequence regardless.
 
+
+## Noteworthy
+- maybe shuffle through the tasks on the L3? So that they get assigned another person?

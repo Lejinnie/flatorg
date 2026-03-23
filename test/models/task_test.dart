@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/string_constants.dart';
+import 'package:flatorg/constants/task_constants.dart';
 import 'package:flatorg/models/enums/task_state.dart';
 import 'package:flatorg/models/person.dart';
 import 'package:flatorg/models/task.dart';
@@ -10,7 +11,7 @@ void main() {
 
     setUp(() {
       task = Task(
-        name: Strings.taskToilet,
+        name: StringConstants.taskToilet,
         description: ['Clean bowl', 'Mop floor'],
         dueDateTime: DateTime(2026, 3, 22, 18, 0),
         assignedTo: 'user1',
@@ -35,79 +36,79 @@ void main() {
 
     group('difficultyLevel', () {
       test('Toilet is L3 (hard)', () {
-        expect(task.difficultyLevel, Strings.difficultyLevelHard);
+        expect(task.difficultyLevel, TaskConstants.difficultyLevelHard);
       });
 
       test('Shower is L3 (hard)', () {
         final t = Task(
-          name: Strings.taskShower,
+          name: StringConstants.taskShower,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelHard);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelHard);
       });
 
       test('Bathroom is L3 (hard)', () {
         final t = Task(
-          name: Strings.taskBathroom,
+          name: StringConstants.taskBathroom,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelHard);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelHard);
       });
 
       test('Kitchen is L2 (medium)', () {
         final t = Task(
-          name: Strings.taskKitchen,
+          name: StringConstants.taskKitchen,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelMedium);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelMedium);
       });
 
       test('Floor (A) is L2 (medium)', () {
         final t = Task(
-          name: Strings.taskFloorA,
+          name: StringConstants.taskFloorA,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelMedium);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelMedium);
       });
 
       test('Floor (B) is L2 (medium)', () {
         final t = Task(
-          name: Strings.taskFloorB,
+          name: StringConstants.taskFloorB,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelMedium);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelMedium);
       });
 
       test('Recycling is L1 (easy)', () {
         final t = Task(
-          name: Strings.taskRecycling,
+          name: StringConstants.taskRecycling,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelEasy);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelEasy);
       });
 
       test('Washing Rags is L1 (easy)', () {
         final t = Task(
-          name: Strings.taskWashingRags,
+          name: StringConstants.taskWashingRags,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelEasy);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelEasy);
       });
 
       test('Shopping is L1 (easy)', () {
         final t = Task(
-          name: Strings.taskShopping,
+          name: StringConstants.taskShopping,
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelEasy);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelEasy);
       });
 
       test('unknown task defaults to L1', () {
@@ -116,15 +117,15 @@ void main() {
           description: [],
           dueDateTime: DateTime(2026, 3, 22),
         );
-        expect(t.difficultyLevel, Strings.difficultyLevelEasy);
+        expect(t.difficultyLevel, TaskConstants.difficultyLevelEasy);
       });
     });
 
     group('taskRingIndex', () {
       test('returns correct index for each task in ring order', () {
-        for (var i = 0; i < Strings.taskRingOrder.length; i++) {
+        for (var i = 0; i < TaskConstants.taskRingOrder.length; i++) {
           final t = Task(
-            name: Strings.taskRingOrder[i],
+            name: TaskConstants.taskRingOrder[i],
             description: [],
             dueDateTime: DateTime(2026, 3, 22),
           );
@@ -235,7 +236,7 @@ void main() {
     group('Firestore serialization', () {
       test('round-trip preserves all fields', () {
         final original = Task(
-          name: Strings.taskKitchen,
+          name: StringConstants.taskKitchen,
           description: ['Wipe counters', 'Clean sink'],
           dueDateTime: DateTime(2026, 3, 22, 18, 0),
           assignedTo: 'user1',
@@ -247,7 +248,7 @@ void main() {
         // toFirestore uses Timestamp which needs Firebase — test fromFirestore
         // with a plain map instead
         final data = {
-          'name': Strings.taskKitchen,
+          'name': StringConstants.taskKitchen,
           'description': ['Wipe counters', 'Clean sink'],
           'due_date_time': DateTime(2026, 3, 22, 18, 0),
           'assigned_to': 'user1',

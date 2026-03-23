@@ -2,8 +2,8 @@
 ///
 /// All user-facing and domain-specific strings are defined here
 /// to avoid literal strings scattered throughout the codebase.
-class Strings {
-  Strings._();
+class StringConstants {
+  StringConstants._();
 
   // ---------------------------------------------------------------------------
   // Task names (in sequential task-ring order)
@@ -18,42 +18,12 @@ class Strings {
   static const String taskFloorB = 'Floor (B)';
   static const String taskShopping = 'Shopping & report to @Livit';
 
-  /// All task names in task-ring order, used for sequential processing.
-  static const List<String> taskRingOrder = [
-    taskToilet,
-    taskKitchen,
-    taskRecycling,
-    taskShower,
-    taskFloorA,
-    taskWashingRags,
-    taskBathroom,
-    taskFloorB,
-    taskShopping,
-  ];
-
   // ---------------------------------------------------------------------------
-  // Task difficulty levels
+  // Task difficulty display names
   // ---------------------------------------------------------------------------
   static const String difficultyHard = 'Hard (L3)';
   static const String difficultyMedium = 'Medium (L2)';
   static const String difficultyEasy = 'Easy (L1)';
-
-  static const int difficultyLevelHard = 3;
-  static const int difficultyLevelMedium = 2;
-  static const int difficultyLevelEasy = 1;
-
-  /// Maps each task name to its difficulty level.
-  static const Map<String, int> taskDifficultyMap = {
-    taskToilet: difficultyLevelHard,
-    taskShower: difficultyLevelHard,
-    taskBathroom: difficultyLevelHard,
-    taskFloorA: difficultyLevelMedium,
-    taskFloorB: difficultyLevelMedium,
-    taskKitchen: difficultyLevelMedium,
-    taskRecycling: difficultyLevelEasy,
-    taskWashingRags: difficultyLevelEasy,
-    taskShopping: difficultyLevelEasy,
-  };
 
   // ---------------------------------------------------------------------------
   // Firestore collection and field names
@@ -78,13 +48,4 @@ class Strings {
   static const String fieldSwapTokensRemaining = 'swap_tokens_remaining';
   static const String fieldVacationThresholdWeeks = 'vacation_threshold_weeks';
 
-  // ---------------------------------------------------------------------------
-  // Default configuration values
-  // ---------------------------------------------------------------------------
-  static const int defaultVacationThresholdWeeks = 1;
-  static const int defaultGracePeriodHours = 1;
-  static const int defaultReminderHoursBeforeDeadline = 1;
-  static const int defaultShoppingCleanupHours = 6;
-  static const int defaultSwapTokensPerSemester = 3;
-  static const int issueCooldownDays = 5;
 }

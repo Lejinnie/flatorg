@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/setting_constants.dart';
+import 'package:flatorg/constants/string_constants.dart';
 import 'package:flatorg/models/enums/task_state.dart';
 import 'package:flatorg/models/person.dart';
 import 'package:flatorg/models/task.dart';
@@ -24,34 +25,40 @@ class WeekResetService {
   ///
   /// Reads all tasks and persons from Firestore, runs the assignment
   /// algorithm, and writes the new assignments atomically.
+  /// TODO: Perhaps do this isomorphic? But this only runs once a week... What to do if it fails?
   ///
   /// [flatId] — the Firestore document ID of the flat to reset.
   Future<void> weekReset(String flatId) async {
+    // Get the flat from database.
     final flatRef =
-        _firestore.collection(Strings.collectionFlats).doc(flatId);
+        _firestore.collection(StringConstants.collectionFlats).doc(flatId);
 
     // Read collections outside the transaction (transaction.get only
     // accepts DocumentReference, not CollectionReference).
+    // here we get the tasks and people inside the db.
     final taskSnaps =
-        await flatRef.collection(Strings.collectionTasks).get();
+        await flatRef.collection(StringConstants.collectionTasks).get();
     final personSnaps =
-        await flatRef.collection(Strings.collectionPersons).get();
+        await flatRef.collection(StringConstants.collectionPersons).get();
 
+    // here we transform the ... to a list?
     final taskDocIds = taskSnaps.docs.map((d) => d.id).toList();
     final personDocIds = personSnaps.docs.map((d) => d.id).toList();
 
     await _firestore.runTransaction((transaction) async {
       // Re-read every document inside the transaction for consistency
+      // Wait is this for atomicity?
       final flatSnap = await transaction.get(flatRef);
       final flatData = flatSnap.data() ?? {};
       final vacationThreshold =
-          flatData[Strings.fieldVacationThresholdWeeks] as int? ??
-              Strings.defaultVacationThresholdWeeks;
+          flatData[StringConstants.fieldVacationThresholdWeeks] as int? ??
+              SettingConstants.defaultVacationThresholdWeeks;
 
       final tasks = <String, Task>{};
       final taskRefs = <String, DocumentReference>{};
       for (final docId in taskDocIds) {
-        final ref = flatRef.collection(Strings.collectionTasks).doc(docId);
+        final ref =
+            flatRef.collection(StringConstants.collectionTasks).doc(docId);
         final snap = await transaction.get(ref);
         if (snap.exists) {
           tasks[docId] = Task.fromFirestore(snap.data() ?? {});
@@ -63,7 +70,7 @@ class WeekResetService {
       final personRefs = <String, DocumentReference>{};
       for (final docId in personDocIds) {
         final ref =
-            flatRef.collection(Strings.collectionPersons).doc(docId);
+            flatRef.collection(StringConstants.collectionPersons).doc(docId);
         final snap = await transaction.get(ref);
         if (snap.exists) {
           persons[docId] = Person.fromFirestore(snap.data() ?? {});
@@ -108,10 +115,10 @@ class WeekResetService {
       final newUid = taskToPersonUid[taskDocId] ?? '';
 
       transaction.update(taskRefs[taskDocId]!, {
-        Strings.fieldAssignedTo: newUid,
-        Strings.fieldOriginalAssignedTo: '',
-        Strings.fieldState: TaskState.pending.toFirestore(),
-        Strings.fieldWeeksNotCleaned: task.weeksNotCleaned,
+        StringConstants.fieldAssignedTo: newUid,
+        StringConstants.fieldOriginalAssignedTo: '',
+        StringConstants.fieldState: TaskState.pending.toFirestore(),
+        StringConstants.fieldWeeksNotCleaned: task.weeksNotCleaned,
       });
     }
   }

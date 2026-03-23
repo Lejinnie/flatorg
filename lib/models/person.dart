@@ -1,4 +1,5 @@
-import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/constants/setting_constants.dart';
+import 'package:flatorg/constants/string_constants.dart';
 import 'package:flatorg/models/enums/person_role.dart';
 
 /// A flat member, mapped to a Firebase Auth user and a Firestore document.
@@ -28,7 +29,7 @@ class Person {
   /// Number of task-swap tokens remaining this semester.
   ///
   /// Each accepted swap costs one token. Resets to
-  /// [Strings.defaultSwapTokensPerSemester] (3) at the start of each
+  /// [SettingConstants.defaultSwapTokensPerSemester] (3) at the start of each
   /// ETH semester, computed by [EthSemesterCalendar].
   int swapTokensRemaining;
 
@@ -38,7 +39,7 @@ class Person {
     required this.email,
     this.role = PersonRole.member,
     this.onVacation = false,
-    this.swapTokensRemaining = Strings.defaultSwapTokensPerSemester,
+    this.swapTokensRemaining = SettingConstants.defaultSwapTokensPerSemester,
   });
 
   /// Creates a [Person] with the [PersonRole.admin] role.
@@ -49,7 +50,7 @@ class Person {
     required this.name,
     required this.email,
     this.onVacation = false,
-    this.swapTokensRemaining = Strings.defaultSwapTokensPerSemester,
+    this.swapTokensRemaining = SettingConstants.defaultSwapTokensPerSemester,
   }) : role = PersonRole.admin;
 
   // ---------------------------------------------------------------------------
@@ -91,7 +92,7 @@ class Person {
   /// Called by the token-reset Cloud Function at the start of each
   /// ETH semester.
   void resetSwapTokens() {
-    swapTokensRemaining = Strings.defaultSwapTokensPerSemester;
+    swapTokensRemaining = SettingConstants.defaultSwapTokensPerSemester;
   }
 
   // ---------------------------------------------------------------------------
@@ -104,25 +105,25 @@ class Person {
   /// Expects fields matching [Strings] field name constants.
   factory Person.fromFirestore(Map<String, dynamic> data) {
     return Person(
-      uid: data[Strings.fieldUid] as String? ?? '',
-      name: data[Strings.fieldName] as String? ?? '',
-      email: data[Strings.fieldEmail] as String? ?? '',
-      role: PersonRole.fromFirestore(data[Strings.fieldRole] as String?),
-      onVacation: data[Strings.fieldOnVacation] as bool? ?? false,
-      swapTokensRemaining: data[Strings.fieldSwapTokensRemaining] as int? ??
-          Strings.defaultSwapTokensPerSemester,
+      uid: data[StringConstants.fieldUid] as String? ?? '',
+      name: data[StringConstants.fieldName] as String? ?? '',
+      email: data[StringConstants.fieldEmail] as String? ?? '',
+      role: PersonRole.fromFirestore(data[StringConstants.fieldRole] as String?),
+      onVacation: data[StringConstants.fieldOnVacation] as bool? ?? false,
+      swapTokensRemaining: data[StringConstants.fieldSwapTokensRemaining] as int? ??
+          SettingConstants.defaultSwapTokensPerSemester,
     );
   }
 
   /// Serializes this [Person] to a `Map<String, dynamic>` for Firestore writes.
   Map<String, dynamic> toFirestore() {
     return {
-      Strings.fieldUid: uid,
-      Strings.fieldName: name,
-      Strings.fieldEmail: email,
-      Strings.fieldRole: role.toFirestore(),
-      Strings.fieldOnVacation: onVacation,
-      Strings.fieldSwapTokensRemaining: swapTokensRemaining,
+      StringConstants.fieldUid: uid,
+      StringConstants.fieldName: name,
+      StringConstants.fieldEmail: email,
+      StringConstants.fieldRole: role.toFirestore(),
+      StringConstants.fieldOnVacation: onVacation,
+      StringConstants.fieldSwapTokensRemaining: swapTokensRemaining,
     };
   }
 }
