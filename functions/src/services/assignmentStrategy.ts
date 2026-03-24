@@ -188,9 +188,11 @@ export class BlueShortVacationStrategy implements AssignmentStrategy {
     const { blueShort } = categorisePersons(ctx);
     if (blueShort.length === 0) return;
 
-    // Sort by original task level descending so harder-task people pick first
+    // Sort ascending by original task level so easier-task people pick first and claim L1.
+    // Harder-task people pick last, meaning they land on the overflow slots (L2, L3) —
+    // satisfying the spec: "those who had harder tasks get the harder available slots."
     const sorted = blueShort.slice().sort(
-      (a, b) => levelWeight(levelOfSlot(b.task.ring_index)) - levelWeight(levelOfSlot(a.task.ring_index)),
+      (a, b) => levelWeight(levelOfSlot(a.task.ring_index)) - levelWeight(levelOfSlot(b.task.ring_index)),
     );
 
     // Preferred fill order: L1 → L2 → L3

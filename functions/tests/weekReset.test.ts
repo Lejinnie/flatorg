@@ -645,3 +645,183 @@ describe('Scenario: swap does not affect rotation (effectiveAssignedTo)', () => 
     expect([2, 5, 8]).toContain(p1Slot);
   });
 });
+
+// ── Multi-vacation edge cases ─────────────────────────────────────────────────
+
+describe('Scenario: two short-vacation people both receive L1 slots', () => {
+  it('two L1 vacation people are each assigned a protected L1 slot', () => {
+    /**
+     * Initial:  0:Toilet(L3)-p0[✗]   1:Kitchen(L2)-p1[✗]   2:Recycling(L1)-p2[~S,wnc=0]
+     *           3:Shower(L3)-p3[✗]   4:FloorA(L2)-p4[✗]    5:WashRags(L1)-p5[~S,wnc=0]
+     *           6:Bathroom(L3)-p6[✗] 7:FloorB(L2)-p7[✗]    8:Shopping(L1)-p8[✗]
+     * Pre-step: p2 wnc 0→1 (≤ threshold) → blueShort; p5 wnc 0→1 → blueShort
+     *
+     * Step 1 (Blue short): p2→Recycling(2), p5→WashRags(5)
+     * Step 4 (Red L3):     p0→Toilet(0), p3→Shower(3), p6→Bathroom(6)
+     * Step 5 (Red L2):     no free L3 → p1→Kitchen(1), p4→FloorA(4), p7→FloorB(7)
+     * Step 6 (Red L1):     no free L2 → p8→Shopping(8)
+     *
+     * Result:   0:Toilet(L3)-p0   1:Kitchen(L2)-p1   2:Recycling(L1)-p2
+     *           3:Shower(L3)-p3   4:FloorA(L2)-p4    5:WashRags(L1)-p5
+     *           6:Bathroom(L3)-p6 7:FloorB(L2)-p7    8:Shopping(L1)-p8
+     */
+    const ids = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const taskStates: Record<number, TaskState> = {};
+    for (let i = 0; i <= 8; i++) taskStates[i] = TaskState.NotDone;
+
+    const onVacation = { p2: true, p5: true };
+    const weeksNotCleaned = { 2: 0, 5: 0 };
+
+    const { tasks, persons } = buildFullScenario(ids, taskStates, onVacation, weeksNotCleaned);
+    const result = runWeekResetAlgorithm(tasks, persons, DEFAULT_FLAT);
+
+    expect([2, 5, 8]).toContain(result.indexOf('p2'));
+    expect([2, 5, 8]).toContain(result.indexOf('p5'));
+    expect(new Set(result.filter((uid) => uid !== '')).size).toBe(9);
+  });
+});
+
+describe('Scenario: short-vacation overflow — L3 person gets L2 slot, not L1', () => {
+  it('with 4 short-vacation people (3 L1 + 1 L3), the L3 person overflows to L2', () => {
+    /**
+     * 3 L1 vacation people fill all L1 slots; the L3 vacation person overflows to L2.
+     * The spec says "those who had harder tasks get the harder available slots", so
+     * the L3 person (harder) must land on the L2 overflow slot, not the L1 slots.
+     *
+     * Initial:  0:Toilet(L3)-p0[~S,wnc=0]  1:Kitchen(L2)-p1[✗]   2:Recycling(L1)-p2[~S,wnc=0]
+     *           3:Shower(L3)-p3[✗]          4:FloorA(L2)-p4[✗]    5:WashRags(L1)-p5[~S,wnc=0]
+     *           6:Bathroom(L3)-p6[✗]        7:FloorB(L2)-p7[✗]    8:Shopping(L1)-p8[~S,wnc=0]
+     * Pre-step: p0,p2,p5,p8 wnc 0→1 → all blueShort (4 people, 3 L1 slots → 1 overflow)
+     *
+     * Step 1 (sort ASC: easier picks L1 first):
+     *   p2(L1)→Recycling(2), p5(L1)→WashRags(5), p8(L1)→Shopping(8)  [L1 full]
+     *   p0(L3)→Kitchen(1)  [overflow to first free L2]
+     * Step 4 (Red L3): p3→Shower(3), p6→Bathroom(6)
+     * Step 5 (Red L2): p1 takes freed Toilet(0), p4→FloorA(4), p7→FloorB(7)
+     *
+     * Result:   0:Toilet(L3)-p1   1:Kitchen(L2)-p0   2:Recycling(L1)-p2
+     *           3:Shower(L3)-p3   4:FloorA(L2)-p4    5:WashRags(L1)-p5
+     *           6:Bathroom(L3)-p6 7:FloorB(L2)-p7    8:Shopping(L1)-p8
+     */
+    const ids = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const taskStates: Record<number, TaskState> = {};
+    for (let i = 0; i <= 8; i++) taskStates[i] = TaskState.NotDone;
+
+    const onVacation = { p0: true, p2: true, p5: true, p8: true };
+    const weeksNotCleaned = { 0: 0, 2: 0, 5: 0, 8: 0 };
+
+    const { tasks, persons } = buildFullScenario(ids, taskStates, onVacation, weeksNotCleaned);
+    const result = runWeekResetAlgorithm(tasks, persons, DEFAULT_FLAT);
+
+    // p0 (originally L3) must get an L2 overflow slot — not a cheaper L1 slot
+    expect([1, 4, 7]).toContain(result.indexOf('p0'));
+
+    // The three L1 vacation people stay at L1 slots
+    for (const uid of ['p2', 'p5', 'p8']) {
+      expect([2, 5, 8]).toContain(result.indexOf(uid));
+    }
+
+    expect(new Set(result.filter((uid) => uid !== '')).size).toBe(9);
+  });
+});
+
+describe('Scenario: short-vacation overflow fills all L2 slots, blocking Green L3 reward', () => {
+  it('Green L3 person stays at L3 when all L2 slots are claimed by vacation overflow', () => {
+    /**
+     * 6 short-vacation people fill all 3 L1 + all 3 L2 slots.
+     * The remaining Green L3 person (p6) scans for a free L2 and finds none → stays at L3.
+     * With the corrected sort order (ASC), L3 vacation people get L2 overflow slots
+     * and L1 vacation people get L1 slots — consistent with the spec.
+     *
+     * Initial:  0:Toilet(L3)-p0[~S,wnc=0]  1:Kitchen(L2)-p1[~S,wnc=0]  2:Recycling(L1)-p2[~S,wnc=0]
+     *           3:Shower(L3)-p3[~S,wnc=0]  4:FloorA(L2)-p4[✗]           5:WashRags(L1)-p5[~S,wnc=0]
+     *           6:Bathroom(L3)-p6[✓]       7:FloorB(L2)-p7[✗]           8:Shopping(L1)-p8[~S,wnc=0]
+     * Pre-step: p0,p1,p2,p3,p5,p8 wnc 0→1 → blueShort (6 people)
+     *
+     * Step 1 (sort ASC: L1 easiest picks first):
+     *   p2(L1)→2, p5(L1)→5, p8(L1)→8  [L1 full]
+     *   p1(L2)→Kitchen(1), p0(L3)→FloorA(4), p3(L3)→FloorB(7)  [L2 full]
+     * Step 2 (Green L3): p6 scans for free L2 → none → stays at Bathroom(6)
+     * Step 5 (Red L2):   p4→Toilet(0), p7→Shower(3)
+     *
+     * Result:   0:Toilet(L3)-p4   1:Kitchen(L2)-p1   2:Recycling(L1)-p2
+     *           3:Shower(L3)-p7   4:FloorA(L2)-p0    5:WashRags(L1)-p5
+     *           6:Bathroom(L3)-p6 7:FloorB(L2)-p3    8:Shopping(L1)-p8
+     */
+    const ids = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const taskStates: Record<number, TaskState> = {
+      0: TaskState.Pending,   // vacation — state doesn't affect blueShort categorisation
+      1: TaskState.Pending,
+      2: TaskState.Pending,
+      3: TaskState.Pending,
+      4: TaskState.NotDone,   // Red L2 → goes to L3
+      5: TaskState.Pending,
+      6: TaskState.Completed, // Green L3 → tries to move to L2 but blocked
+      7: TaskState.NotDone,   // Red L2 → goes to L3
+      8: TaskState.Pending,
+    };
+    const onVacation = { p0: true, p1: true, p2: true, p3: true, p5: true, p8: true };
+    const weeksNotCleaned = { 0: 0, 1: 0, 2: 0, 3: 0, 5: 0, 8: 0 };
+
+    const { tasks, persons } = buildFullScenario(ids, taskStates, onVacation, weeksNotCleaned);
+    const result = runWeekResetAlgorithm(tasks, persons, DEFAULT_FLAT);
+
+    // p6 (Green L3) must stay at an L3 slot — all L2 were taken by vacation overflow
+    expect([0, 3, 6]).toContain(result.indexOf('p6'));
+
+    // L3 vacation people (p0, p3) must be at L2 overflow slots (harder → harder slot)
+    expect([1, 4, 7]).toContain(result.indexOf('p0'));
+    expect([1, 4, 7]).toContain(result.indexOf('p3'));
+
+    // L1 vacation people must be at L1 slots
+    for (const uid of ['p2', 'p5', 'p8']) {
+      expect([2, 5, 8]).toContain(result.indexOf(uid));
+    }
+
+    expect(new Set(result.filter((uid) => uid !== '')).size).toBe(9);
+  });
+});
+
+describe('Scenario: short and long vacation coexist — short is protected, long fills last', () => {
+  it('short-vacation person gets a protected L1 slot; long-vacation person fills a remaining slot', () => {
+    /**
+     * p2 is on short vacation (wnc=0→1, protected).
+     * p5 is on long vacation (wnc=2→3, unprotected — assigned last).
+     * Everyone else is Red (NotDone), so they fill L3/L2/L1 through steps 4–6,
+     * leaving exactly one slot for the long-vacation p5.
+     *
+     * Initial:  0:Toilet(L3)-p0[✗]   1:Kitchen(L2)-p1[✗]   2:Recycling(L1)-p2[~S,wnc=0]
+     *           3:Shower(L3)-p3[✗]   4:FloorA(L2)-p4[✗]    5:WashRags(L1)-p5[~L,wnc=2]
+     *           6:Bathroom(L3)-p6[✗] 7:FloorB(L2)-p7[✗]    8:Shopping(L1)-p8[✗]
+     * Pre-step: p2 wnc 0→1 (≤ threshold) → blueShort; p5 wnc 2→3 (> threshold) → blueLong
+     *
+     * Step 1 (Blue short): p2→Recycling(2)
+     * Step 4 (Red L3):     p0→Toilet(0), p3→Shower(3), p6→Bathroom(6)
+     * Step 5 (Red L2):     no free L3 → p1→Kitchen(1), p4→FloorA(4), p7→FloorB(7)
+     * Step 6 (Red L1):     no free L2 → p8→Shopping(8)
+     * Step 8 (Blue long):  p5→WashRags(5)  [last remaining slot]
+     *
+     * Result:   0:Toilet(L3)-p0   1:Kitchen(L2)-p1   2:Recycling(L1)-p2
+     *           3:Shower(L3)-p3   4:FloorA(L2)-p4    5:WashRags(L1)-p5
+     *           6:Bathroom(L3)-p6 7:FloorB(L2)-p7    8:Shopping(L1)-p8
+     */
+    const ids = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    const taskStates: Record<number, TaskState> = {};
+    for (let i = 0; i <= 8; i++) taskStates[i] = TaskState.NotDone;
+
+    const onVacation = { p2: true, p5: true };
+    const weeksNotCleaned = { 2: 0, 5: 2 }; // p2: 0→1 (short), p5: 2→3 (long)
+
+    const { tasks, persons } = buildFullScenario(ids, taskStates, onVacation, weeksNotCleaned);
+    const result = runWeekResetAlgorithm(tasks, persons, DEFAULT_FLAT);
+
+    // p2 (short vacation) gets a protected L1 slot
+    expect([2, 5, 8]).toContain(result.indexOf('p2'));
+
+    // p5 (long vacation) is assigned last but still gets a slot
+    expect(result.includes('p5')).toBe(true);
+    expect(result[5]).toBe('p5'); // specifically WashRags — the only slot left after all others
+
+    expect(new Set(result.filter((uid) => uid !== '')).size).toBe(9);
+  });
+});
