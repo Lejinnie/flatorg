@@ -218,7 +218,7 @@ export class WeekResetService {
   ): Promise<string> {
     const { Timestamp } = await import('firebase-admin/firestore');
     const { COLLECTION_FLATS, COLLECTION_SWAP_REQUESTS } = await import('../constants/strings');
-    const { SwapRequestStatus } = await import('../models/issue');
+    const { SwapRequestStatus } = await import('../models/swapRequest');
 
     const swapRef = db
       .collection(COLLECTION_FLATS)
@@ -246,8 +246,7 @@ export class WeekResetService {
   async acceptSwap(flatId: string, swapRequestId: string, db: Firestore): Promise<void> {
     const { COLLECTION_FLATS, COLLECTION_SWAP_REQUESTS, ERROR_SWAP_NOT_PENDING, ERROR_INSUFFICIENT_SWAP_TOKENS } =
       await import('../constants/strings');
-    const { SwapRequestStatus } = await import('../models/issue');
-    const { swapRequestFromFirestore } = await import('../models/issue');
+    const { SwapRequestStatus, swapRequestFromFirestore } = await import('../models/swapRequest');
 
     await db.runTransaction(async (transaction) => {
       const swapRef = db
