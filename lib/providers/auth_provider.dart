@@ -71,7 +71,9 @@ class AuthProvider extends ChangeNotifier {
 
   /// Sends an email-verification link to the current user's address.
   Future<void> sendVerificationEmail() async {
-    await _currentUser?.sendEmailVerification();
+    // _currentUser is set via the async authStateChanges() stream and may still
+    // be null immediately after registration; _auth.currentUser is synchronous.
+    await (_currentUser ?? _auth.currentUser)?.sendEmailVerification();
   }
 
   /// Reloads the current user's auth state from Firebase.
