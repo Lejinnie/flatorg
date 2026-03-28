@@ -15,7 +15,6 @@ These are things visible in the wireframe but not fully specified, or things imp
 The wireframe shows the first card (Shower) has **both** a ✓ (done) icon and a vacation/person icon, while the other cards only have a ↺ (swap) icon. That implies:
 - ✓ and vacation icon are only shown on **your own** task — is that correct?
 - Is the ↺ (swap request) shown on **all** tasks, or only on tasks that are not yours?
-- If you are on vacation, do any of these icons change or disappear?
 
 ### Notifications section
 - Can there be **multiple** notifications stacked? Or only the most recent one?
