@@ -14,6 +14,16 @@
     - [Shopping list](#shopping-list)
     - [Issue List](#issue-list)
   - [UI/UX](#uiux)
+    - [UI Principles](#ui-principles)
+    - [Login page](#login-page)
+    - [Entry page](#entry-page)
+    - [Join flat page](#join-flat-page)
+    - [Create a new flat](#create-a-new-flat)
+    - [Flat Settings](#flat-settings)
+    - [Default Flat page (Tasks page)](#default-flat-page-tasks-page)
+    - [Navigation:](#navigation)
+    - [Shopping page:](#shopping-page)
+    - [Issue page:](#issue-page)
   - [Implementation Details](#implementation-details)
     - [Task class](#task-class)
     - [Person class](#person-class)
@@ -173,17 +183,76 @@ A list of issues to be sent to Livit, on a separate tab.
 
 ## UI/UX
 
-![image](./wireframe.png)
+### UI Principles
+- reuse components where possible. Confirmation window, a entry in a list that can be removed (or not) are examples that can be seen.
+- color scheme that supports light/dark theme.
+- public sans for font. 
+- use variables to store primary secodnary and base color.
+- Use 2-3 different centralized font sizes and 2-3 different centralized grayscale colors.
+- for selection, try not to use normal string text input fields, but try to use selection, or date picker whereever possible. If we have a list of tasks, they should be displayed in a dropout selection for example.
 
-**Navigation:** 3 bottom tabs:
+### Login page
+<img src="./wireframes/login.png" width="300px">
+
+Very simple login page. Typical login and register. Single Sign on is future feature, not currently needed.
+
+### Entry page
+<img src="./wireframes/entry.png" width="300px">
+
+Simple, only has two big buttons to select from. Only enters the page when the application doesn't find a flatorg that it has joined. (If there is a way to store which flat the person has joined, this would be used.)
+
+### Join flat page
+<img src="./wireframes/join_flat.png" width="300px">
+
+Join a flat page shows information that the user needs to provide to access a flat. Specifically:
+- Flat code shared by a member of flat
+- Your name
+- Your email
+- Your Password
+
+### Create a new flat
+<img src="./wireframes/create_flat.png" width="300px">
+
+Page when you are creating a new flat. Going back goes to the entry page.
+- Flat name
+- your name
+- your email
+- password
+- list of tasks in the flat. The red minus button enables removal of said task.
+- Below is a button "add more" that adds an empty entry with placeholders 
+  
+### Flat Settings
+<img src="./wireframes/settings.png" width="300px">
+
+The list of members + "Generate & copy invite code" is available to all members of the flat, but only admin can press-hold on any member to go into remove move which means the members turn red and have a trashcan icon on the right of each of them. Exit this mode by pressing anywhere outside of the members. Clicking while on remove shows a confirmation window. Also, all settings below the button is only admin-read and writeable. Add a "admin" keyword next to the admin name.
+
+### Default Flat page (Tasks page)
+<img src="./wireframes/tasks.png" width="300px">
+
+The first page to greet you if you have logged into the flat already. There shouldn't be any need to relogin if you already did once.
+1. **Notifications** This is a button that opens up a notification page. ALso shows current number of notifications. Click on it, and it opens a popup with all the current notifications as a list. If it contains a decision "Yes" or "No", then there doesn't need to be a dismiss button. Only if they cannot take an action upon it e.g. a reminder to do a task, is there a button for "dismiss" and they can click on it to remove it from the list. Otherwise any decision normally also removes the notification.
+2. **Tasks** By default always shows Name, until when its due, the task status via the bar on the top using color (blue for vacation + vacant) ,and who is assigned to the task. The subtasks are blended out and they can be shown if "show more" is pressed. Meaning the card just expands downwards. If the assignee is the user, they will see a checkmark and a palmtree icon each for completing task and going on a vacation. The button for vacation is grayed out if they are currently on vacation. It would be nice if the confirmation page has "[...] mark as COMPLETED/ON VACATION" with Green and Blue to let them know that e.g. this is not the completion task button that they pressed. For other tasks, they only see the change tasks button to change tasks to them. This is grayed out if they have 0 tokens remaining. But if not, it opens a confirmation popup that displays the number of tokens remaining vs how much they had e.g. 1/3 remaining.
+
+
+### Navigation:
+Not available if no flat is loaded.
 1. **Tasks** — home screen with task cards and inline notifications at top
 2. **Shopping List** — shared shopping list
 3. **Issue List** — flat issues to report to Livit
 
-**Interaction patterns:**
-- Tapping an issue opens a detail view showing the full title and description.
-- Long-press on an issue to select it for sending. Multiple issues can be selected this way. A "Deselect all" button clears the selection.
-- Swap request confirmation popup shows remaining swap tokens (e.g. "2/3 Left").
+### Shopping page:
+<img src="./wireframes/shopping.png" width="300px">
+
+Very simple shopping page. Every member has write/read access.
+Add a new item with "add item" which opens a new item at the top with a textfield which we add type into. Remove item by clicking on the empty checkmark to mark it as done. The items will be grayed out and moved to the bottom under the line.
+
+### Issue page:
+<img src="./wireframes/issue.png" width="300px">
+
+- Tapping an issue opens a detail view popup showing the full title and description.
+- Long-press on an issue to select it for sending. It also enters selection mode, where all the other issues get a selection button on the right that can be clicked. Normal clicking on issue still opens detailed view. Exits selection mode when going "backwards" or pressing a cancel button on the left (left of the select all button.) Select All button becomes deselect all if eveyrthing is selected. 
+- We can also have a horizontal bar, under which there are the issues that have been sent, and the timer for resending it (X time, defined by admin) has not been crossed. Just like how items in shopping are grayed out. We can still access them though. 
+- The send and resolved button (resolved removes the issues from the list) are only visible in selection mode. Send only becomes enabled if there is at least one sendable issue selected, and resolved is enabled if at least one issue in general is selected.
 
 ## Implementation Details
 
