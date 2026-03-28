@@ -247,7 +247,7 @@ Very simple shopping page. Every member has write/read access.
 Add a new item with "add item" which opens a new item at the top with a textfield which we add type into. Remove item by clicking on the empty checkmark to mark it as done. The items will be grayed out and moved to the bottom under the line.
 
 ### Issue page:
-<img src="./wireframes/issue.png" width="300px">
+<img src="./wireframes/issues.png" width="300px">
 
 - Tapping an issue opens a detail view popup showing the full title and description.
 - Long-press on an issue to select it for sending. It also enters selection mode, where all the other issues get a selection button on the right that can be clicked. Normal clicking on issue still opens detailed view. Exits selection mode when going "backwards" or pressing a cancel button on the left (left of the select all button.) Select All button becomes deselect all if eveyrthing is selected. 
