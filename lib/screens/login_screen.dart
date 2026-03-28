@@ -85,7 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError(auth.errorMessage);
       return;
     }
-    await auth.sendVerificationEmail();
+    final emailError = await auth.sendVerificationEmail();
+    if (emailError.isNotEmpty && mounted) _showError(emailError);
     // Router redirect will move to /verify-email.
   }
 

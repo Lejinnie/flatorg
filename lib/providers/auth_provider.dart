@@ -70,10 +70,26 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Sends an email-verification link to the current user's address.
-  Future<void> sendVerificationEmail() async {
-    // _currentUser is set via the async authStateChanges() stream and may still
-    // be null immediately after registration; _auth.currentUser is synchronous.
-    await (_currentUser ?? _auth.currentUser)?.sendEmailVerification();
+  ///
+  /// Returns an empty string on success, or a human-readable error message on
+  /// failure (e.g. rate-limited, no network). Never throws.
+  Future<String> sendVerificationEmail() async {
+    try {
+      // _currentUser is set via the async authStateChanges() stream and may
+      // still be null immediately after registration; _auth.currentUser is
+      // updated synchronously by Firebase after account creation.
+      final user = _currentUser ?? _auth.currentUser;
+      if (user == null) return 'No signed-in user found. Please sign in again.';
+      await user.sendEmailVerification();
+      debugPrint('[AuthProvider] Verification email sent to ${user.email}');
+      return '';
+    } on FirebaseAuthException catch (e) {
+      debugPrint('[AuthProvider] sendEmailVerification error: ${e.code} — ${e.message}');
+      return _humaniseAuthError(e);
+    } catch (e) {
+      debugPrint('[AuthProvider] sendEmailVerification unexpected error: $e');
+      return 'Failed to send verification email. Please try again.';
+    }
   }
 
   /// Reloads the current user's auth state from Firebase.

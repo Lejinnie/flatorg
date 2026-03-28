@@ -67,7 +67,8 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
         _showError(authProvider.errorMessage);
         return;
       }
-      await authProvider.sendVerificationEmail();
+      final emailError = await authProvider.sendVerificationEmail();
+      if (emailError.isNotEmpty && mounted) _showError(emailError);
 
       // 3. Write Person document.
       final person = Person(

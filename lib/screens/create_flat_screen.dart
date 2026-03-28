@@ -96,7 +96,8 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
         _showError(authProvider.errorMessage);
         return;
       }
-      await authProvider.sendVerificationEmail();
+      final emailError = await authProvider.sendVerificationEmail();
+      if (emailError.isNotEmpty && mounted) _showError(emailError);
 
       // 2. Build Firestore documents.
       final flatId     = _db.collection(collectionFlats).doc().id;
