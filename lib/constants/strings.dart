@@ -145,6 +145,11 @@ const String buttonJoinFlat   = 'Join an existing flat';
 // ── Flat setup ────────────────────────────────────────────────────────────────
 
 const String hintFlatCode         = 'Flat code';
+const String labelYourFlatName    = 'Your flat name';
+const String labelYourName        = 'Your name';
+const String labelYourEmail       = 'Your email';
+const String labelYourPassword    = 'Your password';
+const String labelFlatCode        = 'Flat code';
 const String labelWhatTasks       = 'What tasks?';
 const String buttonAddMore        = 'Add more';
 const String buttonRemoveTask     = '−';

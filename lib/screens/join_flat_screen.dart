@@ -117,7 +117,7 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
               const SizedBox(height: AppTheme.spacingMd),
               TextFormField(
                 controller: _codeCtrl,
-                decoration: const InputDecoration(hintText: hintFlatCode),
+                decoration: const InputDecoration(labelText: labelFlatCode),
                 textCapitalization: TextCapitalization.characters,
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Flat code is required' : null,
@@ -126,7 +126,7 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
               const SizedBox(height: AppTheme.spacingSm),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(hintText: hintEnterName),
+                decoration: const InputDecoration(labelText: labelYourName),
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Name is required' : null,
                 textInputAction: TextInputAction.next,
@@ -135,7 +135,7 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
               TextFormField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: hintEnterEmail),
+                decoration: const InputDecoration(labelText: labelYourEmail),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Email is required';
                   if (!v.contains('@')) return 'Enter a valid email';
@@ -148,7 +148,7 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
                 controller: _passwordCtrl,
                 obscureText: !_passwordVisible,
                 decoration: InputDecoration(
-                  hintText: hintEnterPassword,
+                  labelText: labelYourPassword,
                   suffixIcon: IconButton(
                     icon: Icon(
                       _passwordVisible
