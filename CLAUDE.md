@@ -22,8 +22,9 @@
     - [Flat document (Firestore schema)](#flat-document-firestore-schema)
     - [App Settings](#app-settings)
     - [Login](#login)
-  - [Known Algorithm Tradeoffs](#known-algorithm-tradeoffs)
-    - [Red L1 escape when Green L3 fills L2](#red-l1-escape-when-green-l3-fills-l2)
+  - [Accepted Tradeoffs](#accepted-tradeoffs)
+    - [Red L1 escape (worst case)](#red-l1-escape-worst-case)
+    - [Vacation overflow blocking Green reward](#vacation-overflow-blocking-green-reward)
   - [Noteworthy](#noteworthy)
 
 
@@ -107,15 +108,15 @@ We want to reward those that do a task by assigning them a task of lower difficu
 `week_reset()` runs the following steps in order:
 
 1. **Blue short vacation** (`weeks_not_cleaned ≤ X`, admin-configurable, default 1 week) — assigned to tasks starting from L1, filling upward if there are more short-vacation people than L1 slots (L1 → L2 → L3). Among vacation people, those who had harder tasks get the harder available slots. Their slots are protected — Green people jump over them.
-2. **Green L3** — move down to an L2 task. Scan forward from their current position in the task ring to find the next unassigned L2 task. If already taken by a Blue/Green person, continue scanning forward. If no L2 slots are free, stay at L3 (no reward, no punishment).
-3. **Green L2** — move down to an L1 task. Scan forward from their current position in the task ring to find the next unassigned L1 task. If already taken, continue scanning forward. If no L1 slots are free, stay at L2 (no reward, no punishment).
+2. **Green L3** — scan forward in the task ring from their current position. Take the first free slot at any lower difficulty (L2 or L1), skipping slots at the same difficulty (L3). If no lower slot is free, stay at L3 (no reward, no punishment).
+3. **Green L2** — scan forward in the task ring. Take the first free L1 slot (the only lower level), skipping L2 and L3. If no L1 slot is free, stay at L2 (no reward, no punishment).
 4. **Red L3** — stay at L3. Take their same task if unassigned, otherwise take another unassigned L3 task.
-5. **Red L2** — move up to L3. Take any unassigned L3 task. If all L3 slots are full, stay at their current L2 task next week.
-6. **Red L1** — move up to L2. Take any unassigned L2 task. If all L2 slots are full, stay at their current L1 task next week.
+5. **Red L2** — scan backward in the task ring from their current position for the nearest free L3 slot, skipping L2 and L1 slots. If no L3 slot is free, stay at their current L2 task.
+6. **Red L1** — scan backward in the ring: first check the nearest L2 (ring−1), then the nearest L3 (ring−2). If neither is free, try any free L3 slot (harder punishment preferred), then any free L2 slot. Reds do not cycle back to L1 during the search. If nothing is found, stay at L1.
 7. **Green L1** — fill whatever slots remain, using **shortest ring distance** matching. For each remaining unassigned slot, find the Green L1 person with the shortest forward distance to it in the task ring and assign them to it. This ensures each person gets the task closest to their current position rather than an arbitrary leftover. Assigned last to avoid competing with Red people for harder slots.
 8. **Blue long vacation** (`weeks_not_cleaned > X`) — fill whatever slots remain after Green L1. Their slots are not protected and do not block Green people from moving down.
 
-**Why Green L3/L2 before Reds:** guarantees that people who did their task get a lighter task next week. Green L3 targets L2 and Green L2 targets L1 — these never compete with Reds who target L3. Only Green L1 ("anywhere") could interfere, so they are moved to the end.
+**Why Green L3/L2 before Reds:** guarantees that people who did their task get a lighter task next week. Green L3 scans forward for any lower slot (L2 or L1) and Green L2 targets L1 — these never compete with Reds who scan backward for higher-level slots. Only Green L1 ("anywhere remaining") could interfere, so they are moved to the end.
 
 ### Switching Tasks
 
@@ -339,13 +340,19 @@ Settings accessible to all members and admin-only settings, consolidated in one 
 
 ---
 
-## Known Algorithm Tradeoffs
+## Accepted Tradeoffs
 
-### Red L1 escape when Green L3 fills L2
+### Red L1 escape (worst case)
 
-When all 3 L3 people are Green, they move to L2 in step 2 and fill all 3 L2 slots. Red L1 people in step 6 then find no free L2 slots and stay at L1 — escaping punishment for that week.
+When all 3 L3 are Green (they fill all 3 L2 slots in step 2) and all 3 L2 are Red (they fill all 3 L3 slots via backward scan in step 5), Red L1 people in step 6 find no free L2 or L3 slots and stay at L1.
 
-This is an accepted tradeoff of the priority ordering: Green rewards take precedence over Red punishments. In practice this only occurs when all L3 people do their tasks in the same week that all L1 people fail theirs, which is unlikely. And Red L1 people staying at L1 (the easiest level) is a mild consequence regardless.
+This worst case requires all L3 Green + all L2 Red + all L1 Red simultaneously — an unlikely coincidence. Red L1 remaining at the easiest level is a mild consequence, and the priority ordering (Green rewards before Red punishments) is the right default.
+
+### Vacation overflow blocking Green reward
+
+When 6 or more people are simultaneously on short vacation, Blue Short fills all L1 and L2 slots in step 1 (3 L1 + 3 L2 = 6 slots), leaving no lower slot for a Green L3 person. Their scan finds nothing and they stay at L3 with no reward.
+
+This can only happen when all L1 and L2 people completed their tasks one week and then all go on vacation the following week — an extremely unlikely coincidence. The affected person can use their semester swap tokens to recover a fair assignment.
 
 
 ## Noteworthy

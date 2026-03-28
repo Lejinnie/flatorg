@@ -166,6 +166,57 @@ export function forwardRingDistance(fromIndex: number, toIndex: number): number 
   return ((toIndex - fromIndex + TOTAL_TASKS) % TOTAL_TASKS) || TOTAL_TASKS;
 }
 
+/**
+ * Scans forward in the task ring from `startRingIndex`.
+ * Returns the first free slot at ANY level strictly lower than `currentLevel`.
+ * Skips slots at the same or higher level.
+ * Returns -1 if no eligible free slot exists.
+ */
+export function scanForwardForLowerFreeSlot(
+  ctx: WeekResetContext,
+  startRingIndex: number,
+  currentLevel: TaskLevel,
+): number {
+  const currentWeight = levelWeight(currentLevel);
+  for (let offset = 1; offset <= TOTAL_TASKS; offset++) {
+    const candidate = (startRingIndex + offset) % TOTAL_TASKS;
+    if (
+      levelWeight(levelOfSlot(candidate)) < currentWeight &&
+      ctx.nextAssignments[candidate] === ''
+    ) {
+      return candidate;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Scans backward in the task ring from `startRingIndex`.
+ * Returns the first free slot at ANY level strictly higher than `currentLevel`.
+ * Skips slots at the same or lower level.
+ * Returns -1 if no eligible free slot exists.
+ *
+ * Note: double-modulo `((x - n) % 9 + 9) % 9` is required because JS `%`
+ * returns negative values for negative operands.
+ */
+export function scanBackwardForHigherFreeSlot(
+  ctx: WeekResetContext,
+  startRingIndex: number,
+  currentLevel: TaskLevel,
+): number {
+  const currentWeight = levelWeight(currentLevel);
+  for (let offset = 1; offset <= TOTAL_TASKS; offset++) {
+    const candidate = ((startRingIndex - offset) % TOTAL_TASKS + TOTAL_TASKS) % TOTAL_TASKS;
+    if (
+      levelWeight(levelOfSlot(candidate)) > currentWeight &&
+      ctx.nextAssignments[candidate] === ''
+    ) {
+      return candidate;
+    }
+  }
+  return -1;
+}
+
 // ── Strategy interface ────────────────────────────────────────────────────────
 
 /**
@@ -218,8 +269,12 @@ export class BlueShortVacationStrategy implements AssignmentStrategy {
 // ── Step 2: Green L3 ──────────────────────────────────────────────────────────
 
 /**
- * Green L3 people scan forward for the next free L2 slot.
- * If no L2 slot is available, they stay at L3.
+ * Green L3 people scan forward in the ring for the first free slot at any lower
+ * difficulty (L2 or L1), skipping same-level (L3) slots.
+ * If no lower slot is free, they stay at L3.
+ *
+ * In the current L3,L2,L1 repeating ring, L2 is always immediately forward of L3,
+ * so the scan only falls through to L1 if that L2 is already taken.
  */
 export class GreenL3Strategy implements AssignmentStrategy {
   execute(ctx: WeekResetContext): void {
@@ -227,11 +282,11 @@ export class GreenL3Strategy implements AssignmentStrategy {
     const greenL3 = green.filter((p) => levelOfSlot(p.task.ring_index) === TaskLevel.L3);
 
     for (const { person, task } of greenL3) {
-      const targetSlot = scanForwardForFreeSlot(ctx, task.ring_index, TaskLevel.L2);
+      const targetSlot = scanForwardForLowerFreeSlot(ctx, task.ring_index, TaskLevel.L3);
       if (targetSlot !== -1) {
         assignSlot(ctx, targetSlot, person.uid);
       } else {
-        // No free L2 — stay at L3 (same or another free L3)
+        // No free lower slot — stay at L3 (same or another free L3)
         const freeL3 = freeSlotsByLevel(ctx, TaskLevel.L3);
         if (freeL3.length > 0) {
           assignSlot(ctx, freeL3[0], person.uid);
@@ -295,8 +350,9 @@ export class RedL3Strategy implements AssignmentStrategy {
 // ── Step 5: Red L2 ────────────────────────────────────────────────────────────
 
 /**
- * Red L2 people move up to any free L3.
- * If all L3 slots are full, they stay at their current L2 task.
+ * Red L2 people scan backward in the ring for the nearest free L3 slot.
+ * The backward scan finds the closest higher-level slot first (locality-aware).
+ * If no L3 slot is free anywhere, they stay at their current L2 task.
  */
 export class RedL2Strategy implements AssignmentStrategy {
   execute(ctx: WeekResetContext): void {
@@ -304,11 +360,11 @@ export class RedL2Strategy implements AssignmentStrategy {
     const redL2 = red.filter((p) => levelOfSlot(p.task.ring_index) === TaskLevel.L2);
 
     for (const { person, task } of redL2) {
-      const freeL3 = freeSlotsByLevel(ctx, TaskLevel.L3);
-      if (freeL3.length > 0) {
-        assignSlot(ctx, freeL3[0], person.uid);
+      const backwardSlot = scanBackwardForHigherFreeSlot(ctx, task.ring_index, TaskLevel.L2);
+      if (backwardSlot !== -1) {
+        assignSlot(ctx, backwardSlot, person.uid);
       } else {
-        // Stay at L2 — re-use same slot if free, else any free L2
+        // No free L3 anywhere — stay at L2
         if (ctx.nextAssignments[task.ring_index] === '') {
           assignSlot(ctx, task.ring_index, person.uid);
         } else {
@@ -325,10 +381,15 @@ export class RedL2Strategy implements AssignmentStrategy {
 // ── Step 6: Red L1 ────────────────────────────────────────────────────────────
 
 /**
- * Red L1 people move up to any free L2.
- * If all L2 slots are full, they stay at their current L1 task.
- * Edge case: if L1 is also full (e.g. all Green L2 took L1 slots), the person
- * falls through to whichever slot remains — ensuring no one is left unassigned.
+ * Red L1 people scan backward in the ring to find a harder task (punishment).
+ *
+ * Phase 1 — nearest L2 (ring−1, always L2 in the L3,L2,L1 pattern): if free, take it.
+ * Phase 2 — nearest L3 (ring−2, always L3 in the pattern): if free, take it.
+ * Phase 3 — any free L3 (harder punishment preferred over L2).
+ * Phase 4 — any free L2.
+ * Phase 5 — stay at L1 (no higher slot available).
+ *
+ * Reds do NOT cycle back to L1 during the search.
  */
 export class RedL1Strategy implements AssignmentStrategy {
   execute(ctx: WeekResetContext): void {
@@ -336,25 +397,41 @@ export class RedL1Strategy implements AssignmentStrategy {
     const redL1 = red.filter((p) => levelOfSlot(p.task.ring_index) === TaskLevel.L1);
 
     for (const { person, task } of redL1) {
+      // Phase 1: nearest L2 (ring - 1)
+      const nearestL2 = ((task.ring_index - 1) % TOTAL_TASKS + TOTAL_TASKS) % TOTAL_TASKS;
+      if (levelOfSlot(nearestL2) === TaskLevel.L2 && ctx.nextAssignments[nearestL2] === '') {
+        assignSlot(ctx, nearestL2, person.uid);
+        continue;
+      }
+
+      // Phase 2: nearest L3 (ring - 2)
+      const nearestL3 = ((task.ring_index - 2) % TOTAL_TASKS + TOTAL_TASKS) % TOTAL_TASKS;
+      if (levelOfSlot(nearestL3) === TaskLevel.L3 && ctx.nextAssignments[nearestL3] === '') {
+        assignSlot(ctx, nearestL3, person.uid);
+        continue;
+      }
+
+      // Phase 3: any free L3 (harder punishment preferred)
+      const freeL3 = freeSlotsByLevel(ctx, TaskLevel.L3);
+      if (freeL3.length > 0) {
+        assignSlot(ctx, freeL3[0], person.uid);
+        continue;
+      }
+
+      // Phase 4: any free L2
       const freeL2 = freeSlotsByLevel(ctx, TaskLevel.L2);
       if (freeL2.length > 0) {
         assignSlot(ctx, freeL2[0], person.uid);
+        continue;
+      }
+
+      // Phase 5: stay at L1
+      if (ctx.nextAssignments[task.ring_index] === '') {
+        assignSlot(ctx, task.ring_index, person.uid);
       } else {
-        // Stay at L1: prefer same task, then any other L1
-        if (ctx.nextAssignments[task.ring_index] === '') {
-          assignSlot(ctx, task.ring_index, person.uid);
-        } else {
-          const freeL1 = freeSlotsByLevel(ctx, TaskLevel.L1);
-          if (freeL1.length > 0) {
-            assignSlot(ctx, freeL1[0], person.uid);
-          } else {
-            // L1 also full (edge case: Green L2 filled all L1 slots).
-            // Fall through to any free slot so no one is left unassigned.
-            const anyFree = ctx.nextAssignments.findIndex((uid) => uid === '');
-            if (anyFree !== -1) {
-              assignSlot(ctx, anyFree, person.uid);
-            }
-          }
+        const freeL1 = freeSlotsByLevel(ctx, TaskLevel.L1);
+        if (freeL1.length > 0) {
+          assignSlot(ctx, freeL1[0], person.uid);
         }
       }
     }
@@ -434,7 +511,7 @@ export class BlueLongVacationStrategy implements AssignmentStrategy {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Numeric weight of a level (higher = harder) for sorting comparisons. */
-function levelWeight(level: TaskLevel): number {
+export function levelWeight(level: TaskLevel): number {
   switch (level) {
     case TaskLevel.L3: return 3;
     case TaskLevel.L2: return 2;
