@@ -97,6 +97,8 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Use comments to explain why something was coded in a certain way, not to explain how something was coded, or what the code does. 
 - use smoke tests and BDD Tests for backend and frontend.
 - Avoid nullable types where possible: use `String` with `''` (empty string) instead of `String?`, and `int` with `-1` as a sentinel instead of `int?`, wherever it makes sense.
+- When writing functions, write down what is expected of the function, what attributes should be valid etc. If some attribute is not valid, do not replace with a placeholder value or try to handle the problem. If there is a problem, it should be shouting "This is wrong!!!" via duebug message or something similar. If we fail, we fail loud so that we can fix it.
+- Additionally, when writing anything that shows errors or logs it, please be detailed and use the underlying objects (excpetion objects as example) to show the error as best as possible.
 
 
 ## Functionality
