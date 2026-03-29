@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
@@ -20,12 +21,10 @@ class TasksScreen extends StatelessWidget {
   const TasksScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MainScaffold(
-      currentIndex: 0,
-      child: _TasksBody(),
-    );
-  }
+  Widget build(BuildContext context) => const MainScaffold(
+    currentIndex: 0,
+    child: _TasksBody(),
+  );
 }
 
 class _TasksBody extends StatelessWidget {
@@ -45,7 +44,11 @@ class _TasksBody extends StatelessWidget {
         title: Text('$welcomePrefix$flatName!'),
         actions: [
           // Notification bell with badge
-          _NotificationBadge(flatId: flatId, currentUid: currentUid, currentPersonName: currentPerson?.name ?? ''),
+          _NotificationBadge(
+            flatId: flatId,
+            currentUid: currentUid,
+            currentPersonName: currentPerson?.name ?? '',
+          ),
           // Settings gear
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -80,7 +83,9 @@ class _TasksBody extends StatelessWidget {
                   if (m is Map<String, dynamic>) {
                     final uid  = m['uid'] as String? ?? '';
                     final name = m['name'] as String? ?? '';
-                    if (uid.isNotEmpty) memberMap[uid] = name;
+                    if (uid.isNotEmpty) {
+                      memberMap[uid] = name;
+                    }
                   }
                 }
               }
@@ -111,18 +116,17 @@ class _TasksBody extends StatelessWidget {
     );
   }
 
-  Stream<List<dynamic>> _membersStream(String flatId) {
-    return FirebaseFirestore.instance
-        .collection('flats')
-        .doc(flatId)
-        .collection('members')
-        .snapshots()
-        .map((snap) => snap.docs.map((d) {
-              final data = d.data();
-              data['uid'] = d.id;
-              return data;
-            }).toList());
-  }
+  Stream<List<dynamic>> _membersStream(String flatId) =>
+      FirebaseFirestore.instance
+          .collection('flats')
+          .doc(flatId)
+          .collection('members')
+          .snapshots()
+          .map((snap) => snap.docs.map((d) {
+                final data = d.data();
+                data['uid'] = d.id;
+                return data;
+              }).toList());
 
   Future<void> _completeTask(
     BuildContext context,

@@ -97,6 +97,8 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 - Use comments to explain why something was coded in a certain way, not to explain how something was coded, or what the code does. 
 - use smoke tests and BDD Tests for backend and frontend.
 - Avoid nullable types where possible: use `String` with `''` (empty string) instead of `String?`, and `int` with `-1` as a sentinel instead of `int?`, wherever it makes sense.
+- When writing functions, write down what is expected of the function, what attributes should be valid etc. If some attribute is not valid, do not replace with a placeholder value or try to handle the problem. If there is a problem, it should be shouting "This is wrong!!!" via duebug message or something similar. If we fail, we fail loud so that we can fix it.
+- Additionally, when writing anything that shows errors or logs it, please be detailed and use the underlying objects (excpetion objects as example) to show the error as best as possible.
 
 
 ## Functionality
@@ -206,25 +208,19 @@ Simple, only has two big buttons to select from. Only enters the page when the a
 
 Join a flat page shows information that the user needs to provide to access a flat. Specifically:
 - Flat code shared by a member of flat
-- Your name
-- Your email
-- Your Password
 
 ### Create a new flat
 <img src="./wireframes/create_flat.png" width="300px">
 
 Page when you are creating a new flat. Going back goes to the entry page.
 - Flat name
-- your name
-- your email
-- password
-- list of tasks in the flat. The red minus button enables removal of said task.
+- list of tasks in the flat. The red minus button enables removal of said task. We can add name, subtasks, and due date
 - Below is a button "add more" that adds an empty entry with placeholders 
   
 ### Flat Settings
 <img src="./wireframes/settings.png" width="300px">
 
-The list of members + "Generate & copy invite code" is available to all members of the flat, but only admin can press-hold on any member to go into remove move which means the members turn red and have a trashcan icon on the right of each of them. Exit this mode by pressing anywhere outside of the members. Clicking while on remove shows a confirmation window. Also, all settings below the button is only admin-read and writeable. Add a "admin" keyword next to the admin name.
+The list of members + "Generate & copy invite code" is available to all members of the flat, but only admin can delete members and access all the settings below. Press-hold on any member to go into remove mode which makes the buttons turn red and have a trashcan icon on the right of each of them.As mentioned, not possible if not admin. Exit this mode by pressing anywhere outside of the members. Clicking while on remove shows a confirmation window. Also, all settings below the button is only admin-read and writeable. Add a "admin" keyword next to the admin name.
 
 ### Default Flat page (Tasks page)
 <img src="./wireframes/tasks.png" width="300px">

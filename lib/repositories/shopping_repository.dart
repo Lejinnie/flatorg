@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/issue.dart';
+
 import '../constants/strings.dart';
+import '../models/issue.dart';
 
 /// Repository for ShoppingItem documents under flats/{flatId}/shoppingItems.
 class ShoppingRepository {
@@ -8,21 +9,19 @@ class ShoppingRepository {
 
   ShoppingRepository({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> _shoppingCollection(String flatId) {
-    return _db
-        .collection(collectionFlats)
-        .doc(flatId)
-        .collection(collectionShoppingItems);
-  }
+  CollectionReference<Map<String, dynamic>> _shoppingCollection(String flatId) =>
+      _db
+          .collection(collectionFlats)
+          .doc(flatId)
+          .collection(collectionShoppingItems);
 
   /// Returns a real-time stream of all shopping items.
   /// Unbought items are returned before bought ones (Firestore orderBy on bool not supported;
   /// ordering is done client-side in the UI).
-  Stream<List<ShoppingItem>> watchShoppingItems(String flatId) {
-    return _shoppingCollection(flatId)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => ShoppingItem.fromFirestore(d)).toList());
-  }
+  Stream<List<ShoppingItem>> watchShoppingItems(String flatId) =>
+      _shoppingCollection(flatId)
+          .snapshots()
+          .map((snap) => snap.docs.map(ShoppingItem.fromFirestore).toList());
 
   /// Adds a new shopping item.
   Future<void> addShoppingItem(String flatId, ShoppingItem item) async {

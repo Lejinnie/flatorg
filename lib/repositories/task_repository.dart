@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/task.dart';
+
 import '../constants/strings.dart';
+import '../models/task.dart';
 
 /// Repository for Task documents under flats/{flatId}/tasks.
 /// All Firestore access for tasks goes through this class (Repository pattern).
@@ -11,33 +12,32 @@ class TaskRepository {
   TaskRepository({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   /// Returns the Firestore collection reference for tasks in a flat.
-  CollectionReference<Map<String, dynamic>> _tasksCollection(String flatId) {
-    return _db
-        .collection(collectionFlats)
-        .doc(flatId)
-        .collection(collectionTasks);
-  }
+  CollectionReference<Map<String, dynamic>> _tasksCollection(String flatId) =>
+      _db
+          .collection(collectionFlats)
+          .doc(flatId)
+          .collection(collectionTasks);
 
   /// Returns a real-time stream of all tasks for a flat, sorted by ring_index.
   /// The UI uses this via StreamBuilder to reactively rebuild on changes.
-  Stream<List<Task>> watchTasks(String flatId) {
-    return _tasksCollection(flatId)
-        .orderBy(fieldTaskRingIndex)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Task.fromFirestore(doc))
-              .toList(),
-        );
-  }
+  Stream<List<Task>> watchTasks(String flatId) =>
+      _tasksCollection(flatId)
+          .orderBy(fieldTaskRingIndex)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map(Task.fromFirestore)
+                .toList(),
+          );
 
   /// Returns a real-time stream of a single task.
-  Stream<Task?> watchTask(String flatId, String taskId) {
-    return _tasksCollection(flatId).doc(taskId).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return Task.fromFirestore(doc);
-    });
-  }
+  Stream<Task?> watchTask(String flatId, String taskId) =>
+      _tasksCollection(flatId).doc(taskId).snapshots().map((doc) {
+        if (!doc.exists) {
+          return null;
+        }
+        return Task.fromFirestore(doc);
+      });
 
   /// Fetches all tasks once (non-streaming).
   Future<List<Task>> fetchTasks(String flatId) async {
@@ -45,14 +45,16 @@ class TaskRepository {
         .orderBy(fieldTaskRingIndex)
         .get();
     return snapshot.docs
-        .map((doc) => Task.fromFirestore(doc))
+        .map(Task.fromFirestore)
         .toList();
   }
 
   /// Fetches a single task once.
   Future<Task?> fetchTask(String flatId, String taskId) async {
     final doc = await _tasksCollection(flatId).doc(taskId).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      return null;
+    }
     return Task.fromFirestore(doc);
   }
 
@@ -89,8 +91,12 @@ class TaskRepository {
     List<String>? description,
   }) async {
     final updates = <String, dynamic>{};
-    if (name != null) updates[fieldTaskName] = name;
-    if (description != null) updates[fieldTaskDescription] = description;
+    if (name != null) {
+      updates[fieldTaskName] = name;
+    }
+    if (description != null) {
+      updates[fieldTaskDescription] = description;
+    }
     if (updates.isNotEmpty) {
       await updateTask(flatId, taskId, updates);
     }

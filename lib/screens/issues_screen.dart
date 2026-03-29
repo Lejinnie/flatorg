@@ -1,8 +1,10 @@
 import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
@@ -23,12 +25,10 @@ class IssuesScreen extends StatelessWidget {
   const IssuesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MainScaffold(
-      currentIndex: 2,
-      child: _IssuesBody(),
-    );
-  }
+  Widget build(BuildContext context) => const MainScaffold(
+    currentIndex: 2,
+    child: _IssuesBody(),
+  );
 }
 
 class _IssuesBody extends StatefulWidget {
@@ -39,7 +39,7 @@ class _IssuesBody extends StatefulWidget {
 }
 
 class _IssuesBodyState extends State<_IssuesBody> {
-  bool _selectionMode = false;
+  var _selectionMode = false;
   final Set<String> _selectedIds = {};
 
   void _enterSelection(String firstId) {
@@ -113,10 +113,14 @@ class _IssuesBodyState extends State<_IssuesBody> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true) {
+      return;
+    }
     final title = titleCtrl.text.trim();
     final desc  = descCtrl.text.trim();
-    if (title.isEmpty) return;
+    if (title.isEmpty) {
+      return;
+    }
 
     final issueId = FirebaseFirestore.instance
         .collection('flats')
@@ -155,7 +159,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
       message: confirmSendMessage,
       confirmLabel: confirmSendLabel,
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     // Pick a random email template.
     final templateIndex = Random().nextInt(3) + 1;
@@ -165,7 +171,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
     String template;
     try {
       template = await assetBundle.loadString(templatePath);
-    } catch (_) {
+    } on Exception {
       template = '{{issues}}';
     }
 
@@ -219,7 +225,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
       message: confirmResolvedMessage,
       confirmLabel: confirmResolvedLabel,
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     final repo = IssueRepository();
     for (final issue in selected) {
@@ -369,8 +377,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
     );
   }
 
-  AppBar _selectionAppBar(BuildContext context, String flatId) {
-    return AppBar(
+  AppBar _selectionAppBar(BuildContext context, String flatId) =>
+      AppBar(
       leading: TextButton(
         onPressed: _exitSelection,
         child: const Text(buttonCancel),
@@ -381,8 +389,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
         StreamBuilder<List<Issue>>(
           stream: IssueRepository().watchIssues(flatId),
           builder: (ctx, snap) {
-            final all          = snap.data ?? [];
-            final allSelected  = all.every((i) => _selectedIds.contains(i.id));
+            final all         = snap.data ?? [];
+            final allSelected = all.every((i) => _selectedIds.contains(i.id));
 
             return TextButton(
               onPressed: () {
@@ -401,8 +409,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
           },
         ),
       ],
-    );
-  }
+      );
 }
 
 /// The "Send" + "Resolved" bottom bar shown during selection mode.
@@ -463,4 +470,4 @@ class _SelectionActionBar extends StatelessWidget {
 }
 
 /// Ring index for the Shopping task (last in the ring).
-const int shoppingRingIndex = 8;
+const shoppingRingIndex = 8;

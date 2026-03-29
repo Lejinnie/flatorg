@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'constants/app_theme.dart';
@@ -21,11 +24,7 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Request notification permission (Android 13+, iOS).
-  await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  await FirebaseMessaging.instance.requestPermission();
 
   runApp(const FlatOrgApp());
 }
@@ -34,15 +33,13 @@ class FlatOrgApp extends StatelessWidget {
   const FlatOrgApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => FlatProvider()),
-      ],
-      child: const _RouterInitialiser(),
-    );
-  }
+  Widget build(BuildContext context) => MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ChangeNotifierProvider(create: (_) => FlatProvider()),
+    ],
+    child: const _RouterInitialiser(),
+  );
 }
 
 /// Initialises [FlatProvider] once the auth state is known, then mounts the
@@ -57,12 +54,12 @@ class _RouterInitialiser extends StatefulWidget {
 
 class _RouterInitialiserState extends State<_RouterInitialiser> {
   late final GoRouterWrapper _routerWrapper;
-  bool _initialised = false;
+  var _initialised = false;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    unawaited(_init());
   }
 
   Future<void> _init() async {
@@ -97,7 +94,6 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
       title: 'FlatOrg',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
       routerConfig: _routerWrapper.router,
       debugShowCheckedModeBanner: false,
     );
@@ -106,7 +102,7 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
 
 /// Thin wrapper that builds and holds the [GoRouter] instance.
 class GoRouterWrapper {
-  late final router = buildAppRouter(_context);
-  final BuildContext _context;
   GoRouterWrapper(this._context);
+  late final GoRouter router = buildAppRouter(_context);
+  final BuildContext _context;
 }

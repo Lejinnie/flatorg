@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../constants/task_constants.dart';
-import '../models/task.dart';
 import '../models/person.dart';
+import '../models/task.dart';
 import 'confirmation_dialog.dart';
 
 /// A card displaying one household task.
@@ -14,7 +15,6 @@ import 'confirmation_dialog.dart';
 /// bottom differ depending on whether the viewing user is the assignee.
 class TaskCard extends StatefulWidget {
   const TaskCard({
-    super.key,
     required this.task,
     required this.assigneeName,
     required this.isCurrentUserAssignee,
@@ -22,6 +22,7 @@ class TaskCard extends StatefulWidget {
     required this.onComplete,
     required this.onVacation,
     required this.onRequestSwap,
+    super.key,
   });
 
   final Task task;
@@ -49,14 +50,20 @@ class TaskCard extends StatefulWidget {
 }
 
 class _TaskCardState extends State<TaskCard> {
-  bool _expanded = false;
+  var _expanded = false;
 
   Color get _stateColor {
     final task = widget.task;
-    if (task.state == TaskState.vacant) return AppTheme.stateVacant;
+    if (task.state == TaskState.vacant) {
+      return AppTheme.stateVacant;
+    }
     // A person on vacation shows as blue regardless of task state.
-    if (task.state == TaskState.completed) return AppTheme.stateCompleted;
-    if (task.state == TaskState.notDone)   return AppTheme.stateNotDone;
+    if (task.state == TaskState.completed) {
+      return AppTheme.stateCompleted;
+    }
+    if (task.state == TaskState.notDone) {
+      return AppTheme.stateNotDone;
+    }
     return AppTheme.statePending;
   }
 
@@ -284,7 +291,9 @@ class _TaskCardState extends State<TaskCard> {
       confirmColor: AppTheme.stateCompleted,
       confirmTextColor: Colors.white,
     );
-    if (confirmed) widget.onComplete();
+    if (confirmed) {
+      widget.onComplete();
+    }
   }
 
   Future<void> _confirmVacation(BuildContext context) async {
@@ -296,7 +305,9 @@ class _TaskCardState extends State<TaskCard> {
       confirmColor: AppTheme.stateVacant,
       confirmTextColor: Colors.white,
     );
-    if (confirmed) widget.onVacation();
+    if (confirmed) {
+      widget.onVacation();
+    }
   }
 
   Future<void> _confirmSwap(BuildContext context, int tokens) async {
@@ -310,6 +321,8 @@ class _TaskCardState extends State<TaskCard> {
       message: msg,
       confirmLabel: confirmSwapLabel,
     );
-    if (confirmed) widget.onRequestSwap();
+    if (confirmed) {
+      widget.onRequestSwap();
+    }
   }
 }

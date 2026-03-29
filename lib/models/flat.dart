@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../constants/strings.dart';
 import '../constants/task_constants.dart';
 
@@ -65,18 +66,16 @@ class Flat {
   }
 
   /// Converts this flat to a Firestore-compatible map (excludes [id]).
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldFlatName: name,
-      fieldFlatAdminUid: adminUid,
-      fieldFlatInviteCode: inviteCode,
-      fieldFlatVacationThreshold: vacationThresholdWeeks,
-      fieldFlatGracePeriodHours: gracePeriodHours,
-      fieldFlatReminderHours: reminderHoursBeforeDeadline,
-      fieldFlatShoppingCleanupHours: shoppingCleanupHours,
-      fieldFlatCreatedAt: createdAt,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldFlatName: name,
+    fieldFlatAdminUid: adminUid,
+    fieldFlatInviteCode: inviteCode,
+    fieldFlatVacationThreshold: vacationThresholdWeeks,
+    fieldFlatGracePeriodHours: gracePeriodHours,
+    fieldFlatReminderHours: reminderHoursBeforeDeadline,
+    fieldFlatShoppingCleanupHours: shoppingCleanupHours,
+    fieldFlatCreatedAt: createdAt,
+  };
 
   /// Returns a copy of this flat with the specified fields replaced.
   Flat copyWith({
@@ -89,17 +88,15 @@ class Flat {
     int? reminderHoursBeforeDeadline,
     int? shoppingCleanupHours,
     Timestamp? createdAt,
-  }) {
-    return Flat(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      adminUid: adminUid ?? this.adminUid,
-      inviteCode: inviteCode ?? this.inviteCode,
-      vacationThresholdWeeks: vacationThresholdWeeks ?? this.vacationThresholdWeeks,
-      gracePeriodHours: gracePeriodHours ?? this.gracePeriodHours,
-      reminderHoursBeforeDeadline: reminderHoursBeforeDeadline ?? this.reminderHoursBeforeDeadline,
-      shoppingCleanupHours: shoppingCleanupHours ?? this.shoppingCleanupHours,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  }) => Flat(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    adminUid: adminUid ?? this.adminUid,
+    inviteCode: inviteCode ?? this.inviteCode,
+    vacationThresholdWeeks: vacationThresholdWeeks ?? this.vacationThresholdWeeks,
+    gracePeriodHours: gracePeriodHours ?? this.gracePeriodHours,
+    reminderHoursBeforeDeadline: reminderHoursBeforeDeadline ?? this.reminderHoursBeforeDeadline,
+    shoppingCleanupHours: shoppingCleanupHours ?? this.shoppingCleanupHours,
+    createdAt: createdAt ?? this.createdAt,
+  );
 }

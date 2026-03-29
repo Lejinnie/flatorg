@@ -1,0 +1,56 @@
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+# TYPE_CHECKING guards are used to defer Firestore imports to static analysis
+# only; mypy handles this pattern correctly out of the box.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM",    # trailing-comma rules — too noisy
+    "FBT",    # boolean-trap — not enforced in this project
+    "FIX",    # flake8-fixme — keep TODO comments
+    "TD",     # flake8-todos — keep TODO comments
+    "D104",   # Missing docstring in public package
+    "D107",   # Missing docstring in __init__
+    "D205",   # 1 blank line required between summary line and description
+    "TC001",  # typing-only-first-party-import — conflicts with TYPE_CHECKING pattern
+    "TC002",  # typing-only-third-party-import — same
+    "TC003",  # typing-only-standard-library-import — same
+    "PT013",  # pytest-incorrect-pytest-import
+    "PYI034", # non-self-return-type — clashes with mypy
+    "PGH003", # blanket-type-ignore
+    "ISC001", # single-line-implicit-string-concatenation — conflicts with formatter
+    "S603",   # subprocess-without-shell-equals-true — intentional
+    "BLE001", # blind exception catch — appropriate for Cloud Function error boundaries
+    "PLC0415", # import-outside-toplevel — intentional lazy Firestore import pattern
+    "TRY003", # raise-vanilla-args — exception messages are fine inline here
+    "EM102",  # f-string-in-exception — readable inline messages preferred
+    "ANN401", # dynamically-typed-expression — Any is legitimate for Firestore data
+    "RUF002", # docstring-ambiguous-unicode-escape
+    "RUF003", # comment-ambiguous-unicode-escape
+    "S105",   # hardcoded-password-string — false positive on Firestore field names
+    "TRY400", # error-instead-of-exception — logging.error is fine in trigger handlers
+    "D400",   # ends-in-period — docstring period enforcement too strict
+    "D415",   # ends-in-punctuation — same
+    "D101",   # undocumented-public-class — repo classes are self-documenting
+    "D102",   # undocumented-public-method — test methods are self-documenting
+    "D103",   # undocumented-public-function — trigger top-level functions
+    "PLR0913", # too-many-arguments — _write_reset_results legitimately needs all params
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "ARG",     # unused arguments in test fixtures/functions
+    "ANN401",  # Avoid using `Any` in type annotations
+    "S101",    # assert keyword used in tests
+    "PLR2004", # magic-value-comparison
+    "PLR0915", # too-many-statements
+    "SLF001",  # private-member-access
+    "INP001",  # implicit-namespace-package for test files
+]

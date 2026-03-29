@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../constants/app_theme.dart';
 import '../models/issue.dart';
 
@@ -11,13 +12,13 @@ import '../models/issue.dart';
 /// opens the detail view while the checkbox toggles selection.
 class IssueTile extends StatelessWidget {
   const IssueTile({
-    super.key,
     required this.issue,
     required this.isSelectionMode,
     required this.isSelected,
     required this.onTap,
     required this.onLongPress,
     required this.onToggleSelect,
+    super.key,
   });
 
   final Issue issue;

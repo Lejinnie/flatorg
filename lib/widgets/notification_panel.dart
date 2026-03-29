@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
@@ -11,10 +14,10 @@ import '../repositories/swap_request_repository.dart';
 /// (the Firestore stream will confirm).
 class NotificationPanel extends StatelessWidget {
   const NotificationPanel({
-    super.key,
     required this.flatId,
     required this.currentUid,
     required this.getRequesterName,
+    super.key,
   });
 
   final String flatId;
@@ -29,7 +32,7 @@ class NotificationPanel extends StatelessWidget {
     required String currentUid,
     required String Function(String uid) getRequesterName,
   }) {
-    showModalBottomSheet<void>(
+    unawaited(showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -41,7 +44,7 @@ class NotificationPanel extends StatelessWidget {
         currentUid: currentUid,
         getRequesterName: getRequesterName,
       ),
-    );
+    ));
   }
 
   @override

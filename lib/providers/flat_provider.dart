@@ -1,13 +1,15 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/flat.dart';
 import '../models/person.dart';
 import '../repositories/flat_repository.dart';
 import '../repositories/person_repository.dart';
 
 /// Key used to persist the joined flat ID in SharedPreferences.
-const String _prefKeyFlatId = 'flat_id';
+const _prefKeyFlatId = 'flat_id';
 
 /// Holds the current flat and the signed-in user's Person document.
 ///
@@ -19,7 +21,7 @@ class FlatProvider extends ChangeNotifier {
   final FlatRepository _flatRepo;
   final PersonRepository _personRepo;
 
-  String _flatId = '';
+  var _flatId = '';
   Flat? _flat;
   Person? _currentPerson;
 
@@ -92,8 +94,9 @@ class FlatProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _flatSub?.cancel();
-    _personSub?.cancel();
+    // Cancel subscriptions; ignore the returned futures as dispose is sync.
+    unawaited(_flatSub?.cancel() ?? Future.value());
+    unawaited(_personSub?.cancel() ?? Future.value());
     super.dispose();
   }
 }

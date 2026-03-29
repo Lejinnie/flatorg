@@ -3,14 +3,14 @@ import 'package:flutter/foundation.dart';
 
 /// Wraps Firebase Auth and exposes auth state to the widget tree.
 ///
-/// Subscribes to [FirebaseAuth.instance.authStateChanges] on construction
+/// Subscribes to `FirebaseAuth.instance.authStateChanges` on construction
 /// and calls [notifyListeners] whenever the signed-in user changes.
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth;
 
   User? _currentUser;
-  bool _isLoading = false;
-  String _errorMessage = '';
+  var _isLoading = false;
+  var _errorMessage = '';
 
   AuthProvider({FirebaseAuth? auth})
       : _auth = auth ?? FirebaseAuth.instance {
@@ -69,9 +69,35 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Saves [name] as the Firebase Auth display name for the current user.
+  /// Called once after registration so create/join flat screens can read it.
+  Future<void> saveDisplayName(String name) async {
+    await (_currentUser ?? _auth.currentUser)?.updateDisplayName(name);
+  }
+
   /// Sends an email-verification link to the current user's address.
-  Future<void> sendVerificationEmail() async {
-    await _currentUser?.sendEmailVerification();
+  ///
+  /// Returns an empty string on success, or a human-readable error message on
+  /// failure (e.g. rate-limited, no network). Never throws.
+  Future<String> sendVerificationEmail() async {
+    try {
+      // _currentUser is set via the async authStateChanges() stream and may
+      // still be null immediately after registration; _auth.currentUser is
+      // updated synchronously by Firebase after account creation.
+      final user = _currentUser ?? _auth.currentUser;
+      if (user == null) {
+        return 'No signed-in user found. Please sign in again.';
+      }
+      await user.sendEmailVerification();
+      debugPrint('[AuthProvider] Verification email sent to ${user.email}');
+      return '';
+    } on FirebaseAuthException catch (e) {
+      debugPrint('[AuthProvider] sendEmailVerification error: ${e.code} — ${e.message}');
+      return _humaniseAuthError(e);
+    } on Exception catch (e) {
+      debugPrint('[AuthProvider] sendEmailVerification unexpected error: $e');
+      return 'Failed to send verification email. Please try again.';
+    }
   }
 
   /// Reloads the current user's auth state from Firebase.

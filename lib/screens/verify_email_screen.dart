@@ -67,10 +67,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               ElevatedButton(
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
-                  await context.read<AuthProvider>().sendVerificationEmail();
-                  if (!mounted) return;
+                  final error = await context.read<AuthProvider>().sendVerificationEmail();
+                  if (!mounted) {
+                    return;
+                  }
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Verification email resent!')),
+                    SnackBar(
+                      content: Text(error.isEmpty ? 'Verification email resent!' : error),
+                      backgroundColor: error.isEmpty ? null : AppTheme.stateNotDone,
+                    ),
                   );
                 },
                 child: const Text(buttonResendEmail),
