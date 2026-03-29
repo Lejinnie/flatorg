@@ -85,6 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError(auth.errorMessage);
       return;
     }
+    // Persist name in Firebase Auth so create/join flat screens can read it.
+    await auth.saveDisplayName(_regNameCtrl.text.trim());
     final emailError = await auth.sendVerificationEmail();
     if (emailError.isNotEmpty && mounted) _showError(emailError);
     // Router redirect will move to /verify-email.

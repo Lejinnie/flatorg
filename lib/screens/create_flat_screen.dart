@@ -19,12 +19,9 @@ import '../router/app_router.dart';
 
 /// Flat creation screen.
 ///
-/// Collects flat name, admin details, and the initial 9 task definitions.
-/// On submit it:
-///   1. Creates a Firebase Auth account for the admin.
-///   2. Generates a random invite code.
-///   3. Writes the Flat, Person, and Task documents to Firestore.
-///   4. Saves the flatId and navigates to /tasks.
+/// The user is already registered and verified at this point. Collects only
+/// the flat name and the initial 9 task definitions. Admin identity comes from
+/// the signed-in Firebase Auth user.
 class CreateFlatScreen extends StatefulWidget {
   const CreateFlatScreen({super.key});
 
@@ -35,10 +32,6 @@ class CreateFlatScreen extends StatefulWidget {
 class _CreateFlatScreenState extends State<CreateFlatScreen> {
   final _formKey      = GlobalKey<FormState>();
   final _flatNameCtrl = TextEditingController();
-  final _nameCtrl     = TextEditingController();
-  final _emailCtrl    = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  bool _passwordVisible = false;
   bool _isLoading = false;
 
   // One entry per task: (nameController, subtasksController, dueDate)
@@ -59,9 +52,6 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
   @override
   void dispose() {
     _flatNameCtrl.dispose();
-    _nameCtrl.dispose();
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
     for (final e in _taskEntries) {
       e.dispose();
     }
@@ -87,19 +77,14 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
       final authProvider = context.read<AuthProvider>();
       final flatProvider = context.read<FlatProvider>();
 
-      // 1. Create Firebase Auth account.
-      final user = await authProvider.register(
-        _emailCtrl.text,
-        _passwordCtrl.text,
-      );
+      // User is already signed in and verified at this point.
+      final user = authProvider.currentUser;
       if (user == null) {
-        _showError(authProvider.errorMessage);
+        _showError(errorGeneric);
         return;
       }
-      final emailError = await authProvider.sendVerificationEmail();
-      if (emailError.isNotEmpty && mounted) _showError(emailError);
 
-      // 2. Build Firestore documents.
+      // Build Firestore documents.
       final flatId     = _db.collection(collectionFlats).doc().id;
       final inviteCode = _generateInviteCode();
 
@@ -117,8 +102,8 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 
       final adminPerson = Person(
         uid: user.uid,
-        name: _nameCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
+        name: user.displayName ?? user.email ?? '',
+        email: user.email ?? '',
         role: PersonRole.admin,
         onVacation: false,
         swapTokensRemaining: swapTokensPerSemester,
@@ -126,7 +111,7 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 
       final tasks = <Task>[];
       for (int i = 0; i < _taskEntries.length; i++) {
-        final entry = _taskEntries[i];
+        final entry  = _taskEntries[i];
         final taskId = _db.collection(collectionTasks).doc().id;
         tasks.add(Task(
           id: taskId,
@@ -145,7 +130,7 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
         ));
       }
 
-      // 3. Write to Firestore.
+      // Write to Firestore.
       final flatRepo   = FlatRepository();
       final personRepo = PersonRepository();
       final taskRepo   = TaskRepository();
@@ -156,7 +141,7 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
         await taskRepo.createTask(flatId, task);
       }
 
-      // 4. Persist flatId and navigate.
+      // Persist flatId and navigate.
       await flatProvider.setFlatId(flatId, user.uid);
       if (mounted) context.go(routeTasks);
     } catch (e) {
@@ -222,55 +207,12 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           children: [
-            // ── Flat details ───────────────────────────────────────────
+            // ── Flat name ──────────────────────────────────────────────
             TextFormField(
               controller: _flatNameCtrl,
               decoration: const InputDecoration(labelText: labelYourFlatName),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Flat name is required' : null,
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: labelYourName),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'Your name is required' : null,
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            TextFormField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: labelYourEmail),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Email is required';
-                if (!v.contains('@')) return 'Enter a valid email';
-                return null;
-              },
-              textInputAction: TextInputAction.next,
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            TextFormField(
-              controller: _passwordCtrl,
-              obscureText: !_passwordVisible,
-              decoration: InputDecoration(
-                labelText: labelYourPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _passwordVisible ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () =>
-                      setState(() => _passwordVisible = !_passwordVisible),
-                ),
-              ),
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Password is required';
-                if (v.length < 6 || !v.contains(RegExp(r'\d'))) {
-                  return errorWeakPassword;
-                }
-                return null;
-              },
               textInputAction: TextInputAction.next,
             ),
 
@@ -340,7 +282,7 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
               Expanded(
                 child: TextFormField(
                   controller: entry.nameCtrl,
-                  decoration: const InputDecoration(hintText: 'Task name'),
+                  decoration: const InputDecoration(hintText: hintTaskName),
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? 'Name required' : null,
                   style: theme.textTheme.titleMedium,
