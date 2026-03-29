@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/issue.dart';
+
 import '../constants/strings.dart';
+import '../models/issue.dart';
 
 /// Repository for Issue documents under flats/{flatId}/issues.
 class IssueRepository {
@@ -8,20 +9,18 @@ class IssueRepository {
 
   IssueRepository({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> _issuesCollection(String flatId) {
-    return _db
-        .collection(collectionFlats)
-        .doc(flatId)
-        .collection(collectionIssues);
-  }
+  CollectionReference<Map<String, dynamic>> _issuesCollection(String flatId) =>
+      _db
+          .collection(collectionFlats)
+          .doc(flatId)
+          .collection(collectionIssues);
 
   /// Returns a real-time stream of all issues for a flat, newest first.
-  Stream<List<Issue>> watchIssues(String flatId) {
-    return _issuesCollection(flatId)
-        .orderBy(fieldIssueCreatedAt, descending: true)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => Issue.fromFirestore(d)).toList());
-  }
+  Stream<List<Issue>> watchIssues(String flatId) =>
+      _issuesCollection(flatId)
+          .orderBy(fieldIssueCreatedAt, descending: true)
+          .snapshots()
+          .map((snap) => snap.docs.map(Issue.fromFirestore).toList());
 
   /// Creates a new issue document.
   Future<void> createIssue(String flatId, Issue issue) async {

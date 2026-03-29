@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../constants/task_constants.dart';
@@ -26,7 +27,7 @@ class JoinFlatScreen extends StatefulWidget {
 class _JoinFlatScreenState extends State<JoinFlatScreen> {
   final _formKey  = GlobalKey<FormState>();
   final _codeCtrl = TextEditingController();
-  bool _isLoading = false;
+  var _isLoading = false;
 
   @override
   void dispose() {
@@ -35,7 +36,9 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -71,11 +74,15 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
 
       // 4. Persist flat and navigate.
       await flatProvider.setFlatId(flat.id, user.uid);
-      if (mounted) context.go(routeTasks);
-    } catch (_) {
+      if (mounted) {
+        context.go(routeTasks);
+      }
+    } on Exception {
       _showError(errorJoiningFlat);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -89,44 +96,43 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(headingJoinFlat),
-        leading: BackButton(onPressed: () => context.pop()),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: AppTheme.spacingMd),
-              TextFormField(
-                controller: _codeCtrl,
-                decoration: const InputDecoration(labelText: labelFlatCode),
-                textCapitalization: TextCapitalization.characters,
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Flat code is required' : null,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: AppTheme.spacingXl),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(headingJoinFlat),
-              ),
-            ],
+  Widget build(BuildContext context) =>
+      Scaffold(
+        appBar: AppBar(
+          title: const Text(headingJoinFlat),
+          leading: BackButton(onPressed: () => context.pop()),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppTheme.spacingMd),
+                TextFormField(
+                  controller: _codeCtrl,
+                  decoration: const InputDecoration(labelText: labelFlatCode),
+                  textCapitalization: TextCapitalization.characters,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Flat code is required' : null,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(headingJoinFlat),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

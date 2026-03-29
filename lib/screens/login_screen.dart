@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../providers/auth_provider.dart';
@@ -20,14 +21,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginEmailCtrl    = TextEditingController();
   final _loginPasswordCtrl = TextEditingController();
   final _loginFormKey      = GlobalKey<FormState>();
-  bool _loginPasswordVisible = false;
+  var _loginPasswordVisible = false;
 
   // Register form
   final _regNameCtrl     = TextEditingController();
   final _regEmailCtrl    = TextEditingController();
   final _regPasswordCtrl = TextEditingController();
   final _regFormKey      = GlobalKey<FormState>();
-  bool _regPasswordVisible = false;
+  var _regPasswordVisible = false;
 
   @override
   void dispose() {
@@ -42,27 +43,41 @@ class _LoginScreenState extends State<LoginScreen> {
   // ── Validators ────────────────────────────────────────────────────────────
 
   String? _validateEmail(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Email is required';
-    if (!v.contains('@')) return 'Enter a valid email';
+    if (v == null || v.trim().isEmpty) {
+      return 'Email is required';
+    }
+    if (!v.contains('@')) {
+      return 'Enter a valid email';
+    }
     return null;
   }
 
   String? _validatePassword(String? v) {
-    if (v == null || v.isEmpty) return 'Password is required';
-    if (v.length < 6) return errorWeakPassword;
-    if (!v.contains(RegExp(r'\d'))) return errorWeakPassword;
+    if (v == null || v.isEmpty) {
+      return 'Password is required';
+    }
+    if (v.length < 6) {
+      return errorWeakPassword;
+    }
+    if (!v.contains(RegExp(r'\d'))) {
+      return errorWeakPassword;
+    }
     return null;
   }
 
   String? _validateName(String? v) {
-    if (v == null || v.trim().isEmpty) return 'Name is required';
+    if (v == null || v.trim().isEmpty) {
+      return 'Name is required';
+    }
     return null;
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
   Future<void> _login() async {
-    if (!_loginFormKey.currentState!.validate()) return;
+    if (!_loginFormKey.currentState!.validate()) {
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final user = await auth.signIn(
       _loginEmailCtrl.text,
@@ -75,7 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _register() async {
-    if (!_regFormKey.currentState!.validate()) return;
+    if (!_regFormKey.currentState!.validate()) {
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final user = await auth.register(
       _regEmailCtrl.text,
@@ -88,7 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
     // Persist name in Firebase Auth so create/join flat screens can read it.
     await auth.saveDisplayName(_regNameCtrl.text.trim());
     final emailError = await auth.sendVerificationEmail();
-    if (emailError.isNotEmpty && mounted) _showError(emailError);
+    if (emailError.isNotEmpty && mounted) {
+      _showError(emailError);
+    }
     // Router redirect will move to /verify-email.
   }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../constants/strings.dart';
 
 /// Difficulty level of a task in the rotation ring.
@@ -143,18 +144,16 @@ class Task {
   }
 
   /// Converts this task to a Firestore-compatible map (excludes [id]).
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldTaskName: name,
-      fieldTaskDescription: description,
-      fieldTaskDueDateTime: dueDateTime,
-      fieldTaskAssignedTo: assignedTo,
-      fieldTaskOriginalAssignedTo: originalAssignedTo,
-      fieldTaskState: state.toJson(),
-      fieldTaskWeeksNotCleaned: weeksNotCleaned,
-      fieldTaskRingIndex: ringIndex,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldTaskName: name,
+    fieldTaskDescription: description,
+    fieldTaskDueDateTime: dueDateTime,
+    fieldTaskAssignedTo: assignedTo,
+    fieldTaskOriginalAssignedTo: originalAssignedTo,
+    fieldTaskState: state.toJson(),
+    fieldTaskWeeksNotCleaned: weeksNotCleaned,
+    fieldTaskRingIndex: ringIndex,
+  };
 
   /// Returns a copy of this task with the specified fields replaced.
   Task copyWith({
@@ -167,17 +166,15 @@ class Task {
     TaskState? state,
     int? weeksNotCleaned,
     int? ringIndex,
-  }) {
-    return Task(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      dueDateTime: dueDateTime ?? this.dueDateTime,
-      assignedTo: assignedTo ?? this.assignedTo,
-      originalAssignedTo: originalAssignedTo ?? this.originalAssignedTo,
-      state: state ?? this.state,
-      weeksNotCleaned: weeksNotCleaned ?? this.weeksNotCleaned,
-      ringIndex: ringIndex ?? this.ringIndex,
-    );
-  }
+  }) => Task(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    dueDateTime: dueDateTime ?? this.dueDateTime,
+    assignedTo: assignedTo ?? this.assignedTo,
+    originalAssignedTo: originalAssignedTo ?? this.originalAssignedTo,
+    state: state ?? this.state,
+    weeksNotCleaned: weeksNotCleaned ?? this.weeksNotCleaned,
+    ringIndex: ringIndex ?? this.ringIndex,
+  );
 }

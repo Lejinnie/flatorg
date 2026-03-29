@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../constants/strings.dart';
 import '../constants/task_constants.dart';
 
@@ -20,7 +21,9 @@ extension PersonRoleJson on PersonRole {
   }
 
   static PersonRole fromJson(String value) {
-    if (value == 'admin') return PersonRole.admin;
+    if (value == 'admin') {
+      return PersonRole.admin;
+    }
     return PersonRole.member;
   }
 }
@@ -77,15 +80,13 @@ class Person {
   }
 
   /// Converts this person to a Firestore-compatible map (excludes [uid]).
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldPersonName: name,
-      fieldPersonEmail: email,
-      fieldPersonRole: role.toJson(),
-      fieldPersonOnVacation: onVacation,
-      fieldPersonSwapTokens: swapTokensRemaining,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldPersonName: name,
+    fieldPersonEmail: email,
+    fieldPersonRole: role.toJson(),
+    fieldPersonOnVacation: onVacation,
+    fieldPersonSwapTokens: swapTokensRemaining,
+  };
 
   /// Returns a copy of this person with the specified fields replaced.
   Person copyWith({
@@ -95,14 +96,12 @@ class Person {
     PersonRole? role,
     bool? onVacation,
     int? swapTokensRemaining,
-  }) {
-    return Person(
-      uid: uid ?? this.uid,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      onVacation: onVacation ?? this.onVacation,
-      swapTokensRemaining: swapTokensRemaining ?? this.swapTokensRemaining,
-    );
-  }
+  }) => Person(
+    uid: uid ?? this.uid,
+    name: name ?? this.name,
+    email: email ?? this.email,
+    role: role ?? this.role,
+    onVacation: onVacation ?? this.onVacation,
+    swapTokensRemaining: swapTokensRemaining ?? this.swapTokensRemaining,
+  );
 }

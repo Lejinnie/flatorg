@@ -1,14 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
 
 /// Full-screen detail popup for a single issue.
 void showIssueDetailDialog(BuildContext context, Issue issue) {
-  showDialog<void>(
+  unawaited(showDialog<void>(
     context: context,
     builder: (_) => _IssueDetailDialog(issue: issue),
-  );
+  ));
 }
 
 class _IssueDetailDialog extends StatelessWidget {

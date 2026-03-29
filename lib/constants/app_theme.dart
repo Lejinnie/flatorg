@@ -11,82 +11,81 @@ class AppTheme {
   // ── Background colours ────────────────────────────────────────────────────
 
   /// Page/scaffold background — light mode.
-  static const Color bgLight = Color(0xFFEEEEEE);
+  static const bgLight = Color(0xFFEEEEEE);
 
   /// Page/scaffold background — dark mode.
-  static const Color bgDark = Color(0xFF262626);
+  static const bgDark = Color(0xFF262626);
 
   // ── Brand palette ─────────────────────────────────────────────────────────
 
   /// Muted sage green — buttons, navigation highlights, primary actions.
-  static const Color featureColor = Color(0xFFACBFA4);
+  static const featureColor = Color(0xFFACBFA4);
 
   /// Light sage — card surfaces, input backgrounds, secondary highlights.
-  static const Color accentColor = Color(0xFFE2E8CE);
+  static const accentColor = Color(0xFFE2E8CE);
 
   // ── Task-state colours (ONLY for the 4 px top bar on task cards) ──────────
 
-  static const Color stateCompleted = Color(0xFF10B981); // green
-  static const Color statePending   = Color(0xFFF59E0B); // amber
-  static const Color stateNotDone   = Color(0xFFEF4444); // red
-  static const Color stateVacant    = Color(0xFF3B82F6); // blue
+  static const stateCompleted = Color(0xFF10B981); // green
+  static const statePending   = Color(0xFFF59E0B); // amber
+  static const stateNotDone   = Color(0xFFEF4444); // red
+  static const stateVacant    = Color(0xFF3B82F6); // blue
 
   // ── Destructive colour (remove member, irreversible confirm dialogs) ───────
 
-  static const Color destructiveRed = Color(0xFF991B1B);
+  static const destructiveRed = Color(0xFF991B1B);
 
   // ── Greyscale (3 shades) ──────────────────────────────────────────────────
 
   /// Subtle dividers and disabled backgrounds.
-  static const Color grayLight = Color(0xFFD1D5DB);
+  static const grayLight = Color(0xFFD1D5DB);
 
   /// Secondary / hint text.
-  static const Color grayMid = Color(0xFF6B7280);
+  static const grayMid = Color(0xFF6B7280);
 
   /// Primary body text (light mode).
-  static const Color grayDark = Color(0xFF374151);
+  static const grayDark = Color(0xFF374151);
 
   // ── Font sizes (3 centralised values) ────────────────────────────────────
 
-  static const double fontSmall  = 12.0;
-  static const double fontMedium = 16.0;
-  static const double fontLarge  = 24.0;
+  static const fontSmall  = 12.0;
+  static const fontMedium = 16.0;
+  static const fontLarge  = 24.0;
 
   // ── Spacing ───────────────────────────────────────────────────────────────
 
-  static const double spacingXs = 4.0;
-  static const double spacingSm = 8.0;
-  static const double spacingMd = 16.0;
-  static const double spacingLg = 24.0;
-  static const double spacingXl = 32.0;
+  static const spacingXs = 4.0;
+  static const spacingSm = 8.0;
+  static const spacingMd = 16.0;
+  static const spacingLg = 24.0;
+  static const spacingXl = 32.0;
 
   // ── Border radius ─────────────────────────────────────────────────────────
 
-  static const double radiusSm = 8.0;
-  static const double radiusMd = 12.0;
-  static const double radiusLg = 16.0;
+  static const radiusSm = 8.0;
+  static const radiusMd = 12.0;
+  static const radiusLg = 16.0;
 
   // ── Task-state colour bar height ──────────────────────────────────────────
 
-  static const double taskStateBarHeight = 4.0;
+  static const taskStateBarHeight = 4.0;
 
   // ── Public Sans text theme ────────────────────────────────────────────────
 
-  static TextTheme _buildTextTheme(Color bodyColor, Color displayColor) {
-    return GoogleFonts.publicSansTextTheme(
-      TextTheme(
-        displayLarge:  TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w700, color: displayColor),
-        titleLarge:    TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w600, color: displayColor),
-        titleMedium:   TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w600, color: displayColor),
-        bodyLarge:     TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-        bodyMedium:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-        bodySmall:     TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w400, color: bodyColor),
-        labelSmall:    TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-        labelMedium:   TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-        labelLarge:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w500, color: bodyColor),
-      ),
-    );
-  }
+  static TextTheme _buildTextTheme(Color bodyColor, Color displayColor) =>
+      GoogleFonts.publicSansTextTheme(
+        TextTheme(
+          displayLarge:  TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w700, color: displayColor),
+          titleLarge:    TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w600, color: displayColor),
+          titleMedium:   TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w600, color: displayColor),
+          bodyLarge:     TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
+          bodyMedium:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
+          bodySmall:     TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w400, color: bodyColor),
+          labelSmall:    TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
+          labelMedium:   TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
+          labelLarge:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w500, color: bodyColor),
+        ),
+      );
 
   // ── Light theme ───────────────────────────────────────────────────────────
 

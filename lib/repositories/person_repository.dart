@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/person.dart';
+
 import '../constants/strings.dart';
+import '../models/person.dart';
 
 /// Repository for Person documents under flats/{flatId}/members.
 /// All Firestore access for members goes through this class (Repository pattern).
@@ -9,34 +10,35 @@ class PersonRepository {
 
   PersonRepository({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-  CollectionReference<Map<String, dynamic>> _membersCollection(String flatId) {
-    return _db
-        .collection(collectionFlats)
-        .doc(flatId)
-        .collection(collectionMembers);
-  }
+  CollectionReference<Map<String, dynamic>> _membersCollection(String flatId) =>
+      _db
+          .collection(collectionFlats)
+          .doc(flatId)
+          .collection(collectionMembers);
 
   /// Returns a real-time stream of all members in a flat.
-  Stream<List<Person>> watchMembers(String flatId) {
-    return _membersCollection(flatId).snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Person.fromFirestore(doc))
-              .toList(),
-        );
-  }
+  Stream<List<Person>> watchMembers(String flatId) =>
+      _membersCollection(flatId).snapshots().map(
+            (snapshot) => snapshot.docs
+                .map(Person.fromFirestore)
+                .toList(),
+          );
 
   /// Returns a real-time stream of a single member.
-  Stream<Person?> watchMember(String flatId, String uid) {
-    return _membersCollection(flatId).doc(uid).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return Person.fromFirestore(doc);
-    });
-  }
+  Stream<Person?> watchMember(String flatId, String uid) =>
+      _membersCollection(flatId).doc(uid).snapshots().map((doc) {
+        if (!doc.exists) {
+          return null;
+        }
+        return Person.fromFirestore(doc);
+      });
 
   /// Fetches a single member once.
   Future<Person?> fetchMember(String flatId, String uid) async {
     final doc = await _membersCollection(flatId).doc(uid).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      return null;
+    }
     return Person.fromFirestore(doc);
   }
 

@@ -4,27 +4,27 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/flat_provider.dart';
-import '../screens/login_screen.dart';
-import '../screens/verify_email_screen.dart';
-import '../screens/entry_screen.dart';
 import '../screens/create_flat_screen.dart';
-import '../screens/join_flat_screen.dart';
-import '../screens/tasks_screen.dart';
-import '../screens/shopping_screen.dart';
+import '../screens/entry_screen.dart';
 import '../screens/issues_screen.dart';
+import '../screens/join_flat_screen.dart';
+import '../screens/login_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/shopping_screen.dart';
+import '../screens/tasks_screen.dart';
+import '../screens/verify_email_screen.dart';
 
 // ── Route path constants ──────────────────────────────────────────────────────
 
-const String routeLogin       = '/login';
-const String routeVerifyEmail = '/verify-email';
-const String routeEntry       = '/entry';
-const String routeCreateFlat  = '/create-flat';
-const String routeJoinFlat    = '/join-flat';
-const String routeTasks       = '/tasks';
-const String routeShopping    = '/shopping';
-const String routeIssues      = '/issues';
-const String routeSettings    = '/settings';
+const routeLogin       = '/login';
+const routeVerifyEmail = '/verify-email';
+const routeEntry       = '/entry';
+const routeCreateFlat  = '/create-flat';
+const routeJoinFlat    = '/join-flat';
+const routeTasks       = '/tasks';
+const routeShopping    = '/shopping';
+const routeIssues      = '/issues';
+const routeSettings    = '/settings';
 
 /// Builds a [GoRouter] that reads auth and flat state from providers and
 /// redirects accordingly.
@@ -91,7 +91,7 @@ GoRouter buildAppRouter(BuildContext context) {
   );
 }
 
-/// Combines multiple [Listenable]s into one so [GoRouter.refreshListenable]
+/// Combines multiple [Listenable]s into one so `GoRouter.refreshListenable`
 /// reacts to any provider change.
 class _CombinedListenable extends ChangeNotifier {
   final List<Listenable> _listenables;

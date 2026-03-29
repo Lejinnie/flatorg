@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../constants/app_theme.dart';
 import '../models/issue.dart';
 
@@ -8,9 +9,9 @@ import '../models/issue.dart';
 /// with a grey strike-through style.
 class ShoppingItemTile extends StatelessWidget {
   const ShoppingItemTile({
-    super.key,
     required this.item,
     required this.onToggleBought,
+    super.key,
   });
 
   final ShoppingItem item;

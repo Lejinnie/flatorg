@@ -1,7 +1,7 @@
 import '../models/task.dart';
 
 /// The canonical ordered ring of all 9 household tasks.
-const List<String> taskRingNames = [
+const taskRingNames = [
   'Toilet',
   'Kitchen',
   'Recycling',
@@ -14,7 +14,7 @@ const List<String> taskRingNames = [
 ];
 
 /// Total number of tasks (and flat members).
-const int totalTasks = 9;
+const totalTasks = 9;
 
 /// Maps each ring index (0–8) to its difficulty level.
 const List<TaskLevel> taskLevelByRingIndex = [
@@ -30,30 +30,30 @@ const List<TaskLevel> taskLevelByRingIndex = [
 ];
 
 /// Ring indices of all L3 (hard) tasks.
-const List<int> l3RingIndices = [0, 3, 6];
+const l3RingIndices = [0, 3, 6];
 
 /// Ring indices of all L2 (medium) tasks.
-const List<int> l2RingIndices = [1, 4, 7];
+const l2RingIndices = [1, 4, 7];
 
 /// Ring indices of all L1 (easy) tasks.
-const List<int> l1RingIndices = [2, 5, 8];
+const l1RingIndices = [2, 5, 8];
 
 // ── Default admin-configurable settings ──────────────────────────────────────
 
 /// Default short-vacation threshold in weeks.
-const int defaultVacationThresholdWeeks = 1;
+const defaultVacationThresholdWeeks = 1;
 
 /// Default grace period hours after the last task deadline.
-const int defaultGracePeriodHours = 1;
+const defaultGracePeriodHours = 1;
 
 /// Default hours before task deadline to send a reminder.
-const int defaultReminderHoursBeforeDeadline = 1;
+const defaultReminderHoursBeforeDeadline = 1;
 
 /// Default hours before bought shopping items are deleted.
-const int defaultShoppingCleanupHours = 6;
+const defaultShoppingCleanupHours = 6;
 
 /// Swap tokens each member receives at the start of every ETH semester.
-const int swapTokensPerSemester = 3;
+const swapTokensPerSemester = 3;
 
 /// Cooldown in days before the same issue can be sent to Livit again.
-const int issueSendCooldownDays = 5;
+const issueSendCooldownDays = 5;

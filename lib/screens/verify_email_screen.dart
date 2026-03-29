@@ -68,7 +68,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 onPressed: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final error = await context.read<AuthProvider>().sendVerificationEmail();
-                  if (!mounted) return;
+                  if (!mounted) {
+                    return;
+                  }
                   messenger.showSnackBar(
                     SnackBar(
                       content: Text(error.isEmpty ? 'Verification email resent!' : error),

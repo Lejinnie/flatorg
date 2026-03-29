@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
@@ -19,12 +20,10 @@ class ShoppingScreen extends StatelessWidget {
   const ShoppingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MainScaffold(
-      currentIndex: 1,
-      child: _ShoppingBody(),
-    );
-  }
+  Widget build(BuildContext context) => const MainScaffold(
+    currentIndex: 1,
+    child: _ShoppingBody(),
+  );
 }
 
 class _ShoppingBody extends StatefulWidget {
@@ -35,7 +34,7 @@ class _ShoppingBody extends StatefulWidget {
 }
 
 class _ShoppingBodyState extends State<_ShoppingBody> {
-  bool _showAddField = false;
+  var _showAddField = false;
   final _addCtrl = TextEditingController();
 
   @override

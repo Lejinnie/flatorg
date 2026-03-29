@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../constants/strings.dart';
 
 /// An issue to be reported to the landlord (Livit).
@@ -21,7 +22,7 @@ class Issue {
 
   /// Timestamp of the most recent send to Livit.
   /// Null when the issue has never been sent.
-  /// Enforces the 5-day cooldown ([issueSendCooldownDays]).
+  /// Enforces the 5-day cooldown (issueSendCooldownDays).
   final Timestamp? lastSentAt;
 
   const Issue({
@@ -35,7 +36,9 @@ class Issue {
 
   /// Returns true when the issue is on cooldown and cannot be sent.
   bool get isOnCooldown {
-    if (lastSentAt == null) return false;
+    if (lastSentAt == null) {
+      return false;
+    }
     final cooldownEnd = lastSentAt!.toDate().add(const Duration(days: 5));
     return DateTime.now().isBefore(cooldownEnd);
   }
@@ -54,15 +57,13 @@ class Issue {
   }
 
   /// Converts this issue to a Firestore-compatible map (excludes [id]).
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldIssueTitle: title,
-      fieldIssueDescription: description,
-      fieldIssueCreatedBy: createdBy,
-      fieldIssueCreatedAt: createdAt,
-      fieldIssueLastSentAt: lastSentAt,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldIssueTitle: title,
+    fieldIssueDescription: description,
+    fieldIssueCreatedBy: createdBy,
+    fieldIssueCreatedAt: createdAt,
+    fieldIssueLastSentAt: lastSentAt,
+  };
 
   Issue copyWith({
     String? id,
@@ -71,16 +72,14 @@ class Issue {
     String? createdBy,
     Timestamp? createdAt,
     Timestamp? lastSentAt,
-  }) {
-    return Issue(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      createdBy: createdBy ?? this.createdBy,
-      createdAt: createdAt ?? this.createdAt,
-      lastSentAt: lastSentAt ?? this.lastSentAt,
-    );
-  }
+  }) => Issue(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    createdBy: createdBy ?? this.createdBy,
+    createdAt: createdAt ?? this.createdAt,
+    lastSentAt: lastSentAt ?? this.lastSentAt,
+  );
 }
 
 /// Status of a task-swap request.
@@ -121,15 +120,13 @@ class SwapRequest {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldSwapRequesterUid: requesterUid,
-      fieldSwapTargetTaskId: targetTaskId,
-      fieldSwapRequesterTaskId: requesterTaskId,
-      fieldSwapStatus: _swapStatusToString(status),
-      fieldSwapCreatedAt: createdAt,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldSwapRequesterUid: requesterUid,
+    fieldSwapTargetTaskId: targetTaskId,
+    fieldSwapRequesterTaskId: requesterTaskId,
+    fieldSwapStatus: _swapStatusToString(status),
+    fieldSwapCreatedAt: createdAt,
+  };
 
   static SwapRequestStatus _swapStatusFromString(String value) {
     switch (value) {
@@ -184,14 +181,12 @@ class ShoppingItem {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
-    return {
-      fieldShoppingText: text,
-      fieldShoppingAddedBy: addedBy,
-      fieldShoppingIsBought: isBought,
-      fieldShoppingBoughtAt: boughtAt,
-    };
-  }
+  Map<String, dynamic> toFirestore() => {
+    fieldShoppingText: text,
+    fieldShoppingAddedBy: addedBy,
+    fieldShoppingIsBought: isBought,
+    fieldShoppingBoughtAt: boughtAt,
+  };
 
   ShoppingItem copyWith({
     String? id,
@@ -199,13 +194,11 @@ class ShoppingItem {
     String? addedBy,
     bool? isBought,
     Timestamp? boughtAt,
-  }) {
-    return ShoppingItem(
-      id: id ?? this.id,
-      text: text ?? this.text,
-      addedBy: addedBy ?? this.addedBy,
-      isBought: isBought ?? this.isBought,
-      boughtAt: boughtAt ?? this.boughtAt,
-    );
-  }
+  }) => ShoppingItem(
+    id: id ?? this.id,
+    text: text ?? this.text,
+    addedBy: addedBy ?? this.addedBy,
+    isBought: isBought ?? this.isBought,
+    boughtAt: boughtAt ?? this.boughtAt,
+  );
 }

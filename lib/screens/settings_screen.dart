@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/person.dart';
@@ -26,7 +29,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   /// Whether the admin is currently in "remove member" mode.
-  bool _removeMode = false;
+  var _removeMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +41,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       // Tapping outside the member list exits remove mode.
       onTap: () {
-        if (_removeMode) setState(() => _removeMode = false);
+        if (_removeMode) {
+          setState(() => _removeMode = false);
+        }
       },
       behavior: HitTestBehavior.translucent,
       child: Scaffold(
@@ -83,8 +88,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _copyInviteCode(BuildContext context, String code) {
-    if (code.isEmpty) return;
-    Clipboard.setData(ClipboardData(text: code));
+    if (code.isEmpty) {
+      return;
+    }
+    unawaited(Clipboard.setData(ClipboardData(text: code)));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text(inviteCodeCopied)),
     );
@@ -98,15 +105,13 @@ class _SectionHeader extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
+    child: Text(
+      label,
+      style: Theme.of(context).textTheme.titleMedium,
+    ),
+  );
 }
 
 // ── Members section ───────────────────────────────────────────────────────────
@@ -129,9 +134,9 @@ class _MembersSection extends StatelessWidget {
   final VoidCallback onExitRemoveMode;
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<Person>>(
-      stream: PersonRepository().watchMembers(flatId),
+  Widget build(BuildContext context) =>
+      StreamBuilder<List<Person>>(
+        stream: PersonRepository().watchMembers(flatId),
       builder: (ctx, snap) {
         final members = snap.data ?? [];
         return Column(
@@ -141,7 +146,7 @@ class _MembersSection extends StatelessWidget {
 
             return GestureDetector(
               onLongPress: isAdmin && !isSelf
-                  ? () => onEnterRemoveMode()
+                  ? onEnterRemoveMode
                   : null,
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
@@ -211,8 +216,7 @@ class _MembersSection extends StatelessWidget {
           }).toList(),
         );
       },
-    );
-  }
+      );
 
   Future<void> _confirmRemove(
     BuildContext context,
@@ -229,7 +233,9 @@ class _MembersSection extends StatelessWidget {
       confirmColor: AppTheme.destructiveRed,
       confirmTextColor: Colors.white,
     );
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
     await PersonRepository().removeMember(flatId, member.uid);
     onExit();
   }
@@ -253,7 +259,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
   late int _cleanupHours;
   late int _reminderHours;
 
-  bool _settingsInitialised = false;
+  var _settingsInitialised = false;
 
   void _initSettings() {
     final flat = widget.flatProvider.flat;
@@ -274,7 +280,9 @@ class _AdminSettingsState extends State<_AdminSettings> {
   Widget build(BuildContext context) {
     _initSettings();
     final flat = widget.flatProvider.flat;
-    if (flat == null) return const SizedBox.shrink();
+    if (flat == null) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +294,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
           unit: labelUnitWeeks,
           onChanged: (v) {
             setState(() => _vacationWeeks = v);
-            _saveSetting('vacation_threshold_weeks', v);
+            unawaited(_saveSetting('vacation_threshold_weeks', v));
           },
         ),
         const Divider(),
@@ -298,7 +306,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
           unit: labelUnitHours,
           onChanged: (v) {
             setState(() => _gracePeriodHours = v);
-            _saveSetting('grace_period_hours', v);
+            unawaited(_saveSetting('grace_period_hours', v));
           },
         ),
         const Divider(),
@@ -310,7 +318,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
           unit: labelUnitHours,
           onChanged: (v) {
             setState(() => _cleanupHours = v);
-            _saveSetting('shopping_cleanup_hours', v);
+            unawaited(_saveSetting('shopping_cleanup_hours', v));
           },
         ),
         const Divider(),
@@ -322,7 +330,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
           unit: labelUnitHours,
           onChanged: (v) {
             setState(() => _reminderHours = v);
-            _saveSetting('reminder_hours_before_deadline', v);
+            unawaited(_saveSetting('reminder_hours_before_deadline', v));
           },
         ),
         const Divider(),
@@ -354,86 +362,88 @@ class _AdminSettingsState extends State<_AdminSettings> {
   }
 
   Future<void> _showTransferAdminDialog(BuildContext outerCtx) async {
-    // Capture context before any await.
-    final dialogCtx = context;
-
     final members = await PersonRepository().watchMembers(widget.flatId).first;
     final eligible = members
         .where((m) => m.uid != widget.flatProvider.currentPerson?.uid)
         .toList();
 
-    if (eligible.isEmpty || !mounted) return;
+    if (eligible.isEmpty || !mounted) {
+      return;
+    }
 
     String? selectedUid = eligible.first.uid;
 
-    // dialogCtx was captured before any await; mounted is checked above.
-    // ignore: use_build_context_synchronously
+    if (!mounted) {
+      return;
+    }
     final confirmed = await showDialog<bool>(
-      context: dialogCtx,
+      context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            ),
-            title: const Text(labelTransferAdmin),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  labelSelectMember,
-                  style: Theme.of(ctx).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: AppTheme.spacingSm),
-                DropdownButton<String>(
-                  value: selectedUid,
-                  isExpanded: true,
-                  items: eligible
-                      .map((m) => DropdownMenuItem(
-                            value: m.uid,
-                            child: Text(m.name),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setDialogState(() => selectedUid = v),
-                ),
-              ],
-            ),
-            actions: [
-              OutlinedButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text(buttonCancel),
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          ),
+          title: const Text(labelTransferAdmin),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                labelSelectMember,
+                style: Theme.of(ctx).textTheme.bodyMedium,
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.destructiveRed,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text(confirmAdminLabel),
+              const SizedBox(height: AppTheme.spacingSm),
+              DropdownButton<String>(
+                value: selectedUid,
+                isExpanded: true,
+                items: eligible
+                    .map((m) => DropdownMenuItem(
+                          value: m.uid,
+                          child: Text(m.name),
+                        ))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => selectedUid = v),
               ),
             ],
-          );
-        },
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(buttonCancel),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.destructiveRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text(confirmAdminLabel),
+            ),
+          ],
+        ),
       ),
     );
 
-    if (confirmed != true || selectedUid == null) return;
+    if (confirmed != true || selectedUid == null) {
+      return;
+    }
 
     final newAdmin   = eligible.firstWhere((m) => m.uid == selectedUid);
     final confirmMsg = confirmAdminMessage.replaceFirst('{name}', newAdmin.name);
-    if (!mounted) return;
-    // dialogCtx was captured before any await; mounted is checked above.
-    // ignore: use_build_context_synchronously
+    if (!mounted) {
+      return;
+    }
     final doubleConfirmed = await showConfirmationDialog(
-      dialogCtx,
+      context,
       title: confirmAdminTitle,
       message: confirmMsg,
       confirmLabel: confirmAdminLabel,
       confirmColor: AppTheme.destructiveRed,
       confirmTextColor: Colors.white,
     );
-    if (!doubleConfirmed) return;
+    if (!doubleConfirmed) {
+      return;
+    }
 
     final currentAdminUid = widget.flatProvider.currentPerson?.uid ?? '';
 
@@ -471,20 +481,19 @@ class _TasksAdminSection extends StatefulWidget {
 
 class _TasksAdminSectionState extends State<_TasksAdminSection> {
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<List<Task>>(
-      stream: TaskRepository().watchTasks(widget.flatId),
-      builder: (ctx, snap) {
-        final tasks = snap.data ?? [];
-        return Column(
-          children: tasks.map((task) => _TaskEditTile(
-            flatId: widget.flatId,
-            task: task,
-          )).toList(),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) =>
+      StreamBuilder<List<Task>>(
+        stream: TaskRepository().watchTasks(widget.flatId),
+        builder: (ctx, snap) {
+          final tasks = snap.data ?? [];
+          return Column(
+            children: tasks.map((task) => _TaskEditTile(
+              flatId: widget.flatId,
+              task: task,
+            )).toList(),
+          );
+        },
+      );
 }
 
 class _TaskEditTile extends StatefulWidget {
@@ -497,7 +506,7 @@ class _TaskEditTile extends StatefulWidget {
 }
 
 class _TaskEditTileState extends State<_TaskEditTile> {
-  bool _expanded = false;
+  var _expanded = false;
   late TextEditingController _nameCtrl;
   late TextEditingController _subtasksCtrl;
   late DateTime _dueDate;
@@ -526,12 +535,16 @@ class _TaskEditTileState extends State<_TaskEditTile> {
       firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null || !mounted) return;
+    if (date == null || !mounted) {
+      return;
+    }
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_dueDate),
     );
-    if (time == null || !mounted) return;
+    if (time == null || !mounted) {
+      return;
+    }
     setState(() {
       _dueDate = DateTime(
         date.year, date.month, date.day, time.hour, time.minute,

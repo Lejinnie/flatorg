@@ -1,9 +1,11 @@
 import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../constants/task_constants.dart';
@@ -32,7 +34,7 @@ class CreateFlatScreen extends StatefulWidget {
 class _CreateFlatScreenState extends State<CreateFlatScreen> {
   final _formKey      = GlobalKey<FormState>();
   final _flatNameCtrl = TextEditingController();
-  bool _isLoading = false;
+  var _isLoading = false;
 
   // One entry per task: (nameController, subtasksController, dueDate)
   late final List<_TaskEntry> _taskEntries;
@@ -70,7 +72,9 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
@@ -110,7 +114,7 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
       );
 
       final tasks = <Task>[];
-      for (int i = 0; i < _taskEntries.length; i++) {
+      for (var i = 0; i < _taskEntries.length; i++) {
         final entry  = _taskEntries[i];
         final taskId = _db.collection(collectionTasks).doc().id;
         tasks.add(Task(
@@ -143,11 +147,15 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 
       // Persist flatId and navigate.
       await flatProvider.setFlatId(flatId, user.uid);
-      if (mounted) context.go(routeTasks);
-    } catch (e) {
+      if (mounted) {
+        context.go(routeTasks);
+      }
+    } on Exception {
       _showError(errorCreatingFlat);
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -172,13 +180,17 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null || !mounted) return;
+    if (date == null || !mounted) {
+      return;
+    }
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(entry.dueDate),
     );
-    if (time == null || !mounted) return;
+    if (time == null || !mounted) {
+      return;
+    }
 
     setState(() {
       _taskEntries[index].dueDate = DateTime(

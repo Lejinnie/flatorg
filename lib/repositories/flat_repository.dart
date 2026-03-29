@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/flat.dart';
+
 import '../constants/strings.dart';
+import '../models/flat.dart';
 
 /// Repository for Flat documents in the top-level 'flats' collection.
 class FlatRepository {
@@ -8,22 +9,24 @@ class FlatRepository {
 
   FlatRepository({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
-  DocumentReference<Map<String, dynamic>> _flatRef(String flatId) {
-    return _db.collection(collectionFlats).doc(flatId);
-  }
+  DocumentReference<Map<String, dynamic>> _flatRef(String flatId) =>
+      _db.collection(collectionFlats).doc(flatId);
 
   /// Returns a real-time stream of the flat document.
-  Stream<Flat?> watchFlat(String flatId) {
-    return _flatRef(flatId).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return Flat.fromFirestore(doc);
-    });
-  }
+  Stream<Flat?> watchFlat(String flatId) =>
+      _flatRef(flatId).snapshots().map((doc) {
+        if (!doc.exists) {
+          return null;
+        }
+        return Flat.fromFirestore(doc);
+      });
 
   /// Fetches the flat document once.
   Future<Flat?> fetchFlat(String flatId) async {
     final doc = await _flatRef(flatId).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      return null;
+    }
     return Flat.fromFirestore(doc);
   }
 
@@ -49,7 +52,9 @@ class FlatRepository {
         .limit(1)
         .get();
 
-    if (snapshot.docs.isEmpty) return null;
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
     return Flat.fromFirestore(snapshot.docs.first);
   }
 }
