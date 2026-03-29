@@ -7,8 +7,8 @@ Expects JSON body / callable data: {"flatId": "<id>"}
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-import firebase_admin
 from firebase_functions import https_fn
 from google.cloud import firestore
 
@@ -17,8 +17,8 @@ from services.week_reset_service import WeekResetService
 logger = logging.getLogger(__name__)
 
 
-@https_fn.on_call()
-def week_reset_callable(req: https_fn.CallableRequest) -> dict:
+@https_fn.on_call()  # type: ignore[untyped-decorator]
+def week_reset_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
     """HTTP-callable Cloud Function that executes week_reset() for a given flat."""
     flat_id: str = (req.data or {}).get("flatId", "")
     if not flat_id:
@@ -31,7 +31,7 @@ def week_reset_callable(req: https_fn.CallableRequest) -> dict:
     return {"success": True}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def week_reset_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger variant used by Cloud Scheduler.
 

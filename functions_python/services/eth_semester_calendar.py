@@ -9,8 +9,7 @@ ETH semester schedule:
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 
 class EthSemesterCalendar:
@@ -47,14 +46,14 @@ class EthSemesterCalendar:
     def _monday_of_iso_week(year: int, week: int) -> datetime:
         """Return the Monday (UTC midnight) of ISO week `week` in the given `year`."""
         # Jan 4 is always in week 1 per ISO 8601
-        jan4 = datetime(year, 1, 4, tzinfo=timezone.utc)
+        jan4 = datetime(year, 1, 4, tzinfo=UTC)
         # Weekday: Monday = 0, Sunday = 6  (Python datetime.weekday())
         jan4_weekday = jan4.weekday()  # 0 = Monday
         week1_monday = jan4 - timedelta(days=jan4_weekday)
         return week1_monday + timedelta(weeks=week - 1)
 
     @staticmethod
-    def current_semester_start(dt: datetime) -> Optional[datetime]:
+    def current_semester_start(dt: datetime) -> datetime | None:
         """Return the start date (Monday) of the ETH semester containing `dt`.
 
         Returns None when `dt` is not inside any active semester.

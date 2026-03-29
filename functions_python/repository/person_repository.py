@@ -5,10 +5,7 @@ All Firestore access for members goes through this class (Repository pattern).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from google.cloud.firestore_v1 import Client, Transaction
+from typing import Any
 
 from constants.strings import (
     COLLECTION_FLATS,
@@ -23,7 +20,7 @@ class PersonRepository:
     def __init__(self, db: Any) -> None:
         self._db = db
 
-    def _member_ref(self, flat_id: str, uid: str):
+    def _member_ref(self, flat_id: str, uid: str) -> Any:
         return (
             self._db.collection(COLLECTION_FLATS)
             .document(flat_id)
@@ -31,7 +28,7 @@ class PersonRepository:
             .document(uid)
         )
 
-    def _members_collection(self, flat_id: str):
+    def _members_collection(self, flat_id: str) -> Any:
         return (
             self._db.collection(COLLECTION_FLATS)
             .document(flat_id)
@@ -57,12 +54,12 @@ class PersonRepository:
             raise ValueError(f"{ERROR_PERSON_NOT_FOUND}: {uid}")
         return person_from_firestore(doc.id, doc.to_dict())
 
-    def update_member(self, flat_id: str, uid: str, updates: dict) -> None:
+    def update_member(self, flat_id: str, uid: str, updates: dict[str, Any]) -> None:
         """Update specific fields on a member document."""
         self._member_ref(flat_id, uid).update(updates)
 
     def update_member_in_transaction(
-        self, flat_id: str, uid: str, updates: dict, transaction: Any
+        self, flat_id: str, uid: str, updates: dict[str, Any], transaction: Any
     ) -> None:
         """Update specific fields on a member document within a transaction."""
         transaction.update(self._member_ref(flat_id, uid), updates)

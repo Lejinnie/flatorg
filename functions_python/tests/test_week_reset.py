@@ -18,16 +18,14 @@ Task ring (ring_index → level):
 from __future__ import annotations
 
 import sys
-import os
+from pathlib import Path
 
 # Ensure the functions_python package root is on the path when running pytest
 # directly from the tests/ directory or from the project root.
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.task import Task, TaskState
-from models.person import Person
+from models.task import TaskState
 from services.week_reset_service import run_week_reset_algorithm
-
 from tests.helpers import (
     DEFAULT_FLAT,
     build_full_scenario,
@@ -58,30 +56,30 @@ class TestAllGreenNoVacations:
               6:Bathroom(L3)-p5 7:FloorB(L2)-p6    8:Shopping(L1)-p7
     """
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         ids = [f"p{i}" for i in range(9)]
         self.tasks, self.persons = build_full_scenario(ids)
         self.result = run_week_reset_algorithm(self.tasks, self.persons, DEFAULT_FLAT)
 
-    def test_produces_exactly_9_assignments(self):
+    def test_produces_exactly_9_assignments(self) -> None:
         assigned = [uid for uid in self.result if uid != ""]
         assert len(assigned) == 9
 
-    def test_assigns_each_person_exactly_once(self):
-        unique = set(uid for uid in self.result if uid != "")
+    def test_assigns_each_person_exactly_once(self) -> None:
+        unique = {uid for uid in self.result if uid != ""}
         assert len(unique) == 9
 
-    def test_green_l3_p0_moves_to_l2_slot(self):
+    def test_green_l3_p0_moves_to_l2_slot(self) -> None:
         # Green L3 (p0=Toilet) moves to an L2 slot
         assert self.result.index("p0") in L2_SLOTS
 
-    def test_green_l3_p3_moves_to_l2_slot(self):
+    def test_green_l3_p3_moves_to_l2_slot(self) -> None:
         assert self.result.index("p3") in L2_SLOTS
 
-    def test_green_l3_p6_moves_to_l2_slot(self):
+    def test_green_l3_p6_moves_to_l2_slot(self) -> None:
         assert self.result.index("p6") in L2_SLOTS
 
-    def test_green_l2_people_move_to_l1_slots(self):
+    def test_green_l2_people_move_to_l1_slots(self) -> None:
         # p1=Kitchen(L2), p4=Floor(A)(L2), p7=Floor(B)(L2) should all be at L1
         for uid in ["p1", "p4", "p7"]:
             assert self.result.index(uid) in L1_SLOTS
@@ -92,10 +90,10 @@ class TestAllGreenNoVacations:
 class TestGreenL3ForwardScan:
     """Scenario: Green L3 person scans forward for free L2."""
 
-    def test_p0_toilet_finds_kitchen_first(self):
+    def test_p0_toilet_finds_kitchen_first(self) -> None:
         """p0 (Toilet, L3) scans forward and finds Kitchen (index 1) first."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.NotDone for i in range(1, 9)}
+        task_states = dict.fromkeys(range(1, 9), TaskState.NotDone)
         task_states[0] = TaskState.Completed
 
         # Step 2 (Green L3): p0 scans forward from 0 → first free L2 is Kitchen(1) → p0→1
@@ -110,10 +108,10 @@ class TestGreenL3ForwardScan:
 class TestRedL2MovesUpToL3:
     """Scenario: Red L2 person moves up to L3."""
 
-    def test_failed_kitchen_gets_l3_task(self):
+    def test_failed_kitchen_gets_l3_task(self) -> None:
         """A person who failed Kitchen (L2) gets an L3 task next week."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         task_states[1] = TaskState.NotDone  # p1=Kitchen fails
 
         tasks, persons = build_full_scenario(ids, task_states)
@@ -128,7 +126,7 @@ class TestRedL2MovesUpToL3:
 class TestRedL1MovesUpToL2:
     """Scenario: Red L1 person moves up to L2."""
 
-    def test_failed_recycling_gets_l2_when_slots_available(self):
+    def test_failed_recycling_gets_l2_when_slots_available(self) -> None:
         """A person who failed Recycling (L1) gets an L2 task when L2 slots are available.
 
         Initial:  0:Toilet(L3)-p0[✓]   1:Kitchen(L2)-p1[✗]   2:Recycling(L1)-p2[✗]
@@ -160,9 +158,9 @@ class TestRedL1MovesUpToL2:
 class TestRedL3StaysAtL3:
     """Scenario: Red L3 person stays at L3."""
 
-    def test_failed_toilet_stays_at_l3(self):
+    def test_failed_toilet_stays_at_l3(self) -> None:
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         task_states[0] = TaskState.NotDone  # p0=Toilet fails
 
         tasks, persons = build_full_scenario(ids, task_states)
@@ -170,13 +168,13 @@ class TestRedL3StaysAtL3:
 
         assert result.index("p0") in L3_SLOTS
 
-    def test_red_l3_retains_same_task_when_still_free(self):
+    def test_red_l3_retains_same_task_when_still_free(self) -> None:
         """Red L3 retains their same task when it is still free.
 
         Green L3s (p3, p6) scan forward past Toilet — leaving Toilet free for p0.
         """
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         task_states[0] = TaskState.NotDone  # only p0 fails
 
         tasks, persons = build_full_scenario(ids, task_states)
@@ -190,10 +188,10 @@ class TestRedL3StaysAtL3:
 class TestBlueShortVacationProtected:
     """Scenario: Blue short vacation person gets a protected L1 slot."""
 
-    def test_vacation_person_weeks_not_cleaned_le_threshold_gets_l1_slot(self):
+    def test_vacation_person_weeks_not_cleaned_le_threshold_gets_l1_slot(self) -> None:
         """A person on vacation (weeks_not_cleaned ≤ 1) is assigned first to an L1 slot."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         on_vacation = {"p2": True}
         weeks_not_cleaned = {2: 0}  # will be incremented to 1 in pre-step
 
@@ -208,10 +206,10 @@ class TestBlueShortVacationProtected:
 class TestBlueLongVacationUnprotected:
     """Scenario: Blue long vacation person is assigned last."""
 
-    def test_long_vacation_person_fills_remaining_slot(self):
+    def test_long_vacation_person_fills_remaining_slot(self) -> None:
         """A person on long vacation (weeks_not_cleaned > threshold) fills remaining slots."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         on_vacation = {"p2": True}
         weeks_not_cleaned = {2: 2}  # already > threshold (1), and increments to 3
 
@@ -232,7 +230,7 @@ class TestRedL1EscapeAcceptedTradeoff:
     Documented in CLAUDE.md as an accepted tradeoff.
     """
 
-    def test_red_l1_stays_at_l1_when_l2_and_l3_full(self):
+    def test_red_l1_stays_at_l1_when_l2_and_l3_full(self) -> None:
         ids = [f"p{i}" for i in range(9)]
         task_states = {
             0: TaskState.Completed,  # p0 Toilet L3 green → moves to L2
@@ -267,7 +265,7 @@ class TestRedL1EscapeAcceptedTradeoff:
 class TestGreenL1ShortestRingDistance:
     """Scenario: Green L1 uses shortest forward ring distance."""
 
-    def test_green_l1_picks_nearest_forward_slot(self):
+    def test_green_l1_picks_nearest_forward_slot(self) -> None:
         """Green L1 person is assigned to the free slot with minimum forward ring distance."""
         ids = [f"p{i}" for i in range(9)]
         task_states = {
@@ -296,7 +294,7 @@ class TestGreenL1ShortestRingDistance:
 class TestSmokeNoDuplicates:
     """Smoke test: week_reset() never assigns two people to the same task."""
 
-    def test_produces_9_unique_assignments(self):
+    def test_produces_9_unique_assignments(self) -> None:
         """Alternating completed/not_done states produce 9 unique assignments."""
         ids = [f"p{i}" for i in range(9)]
         all_states = [
@@ -310,12 +308,12 @@ class TestSmokeNoDuplicates:
             TaskState.NotDone,
             TaskState.Completed,
         ]
-        task_states = {i: s for i, s in enumerate(all_states)}
+        task_states = dict(enumerate(all_states))
 
         tasks, persons = build_full_scenario(ids, task_states)
         result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
 
-        unique = set(uid for uid in result if uid != "")
+        unique = {uid for uid in result if uid != ""}
         assert len(unique) == 9
         assert len([uid for uid in result if uid != ""]) == 9
 
@@ -325,10 +323,10 @@ class TestSmokeNoDuplicates:
 class TestWeeksNotCleanedIncrements:
     """Scenario: weeks_not_cleaned increments before categorisation."""
 
-    def test_increments_before_strategy_runs_for_short_vacation(self):
+    def test_increments_before_strategy_runs_for_short_vacation(self) -> None:
         """weeks_not_cleaned 0→1 (= threshold) → blueShort → protected L1 slot."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         on_vacation = {"p2": True}
         weeks_not_cleaned = {2: 0}  # becomes 1 after increment = threshold
 
@@ -337,10 +335,10 @@ class TestWeeksNotCleanedIncrements:
 
         assert result.index("p2") in L1_SLOTS
 
-    def test_increments_before_strategy_runs_for_long_vacation(self):
+    def test_increments_before_strategy_runs_for_long_vacation(self) -> None:
         """weeks_not_cleaned 1→2 (> threshold) → blueLong → fills last slot."""
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.Completed for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.Completed)
         on_vacation = {"p2": True}
         weeks_not_cleaned = {2: 1}  # becomes 2 after increment > threshold
 
@@ -355,7 +353,7 @@ class TestWeeksNotCleanedIncrements:
 class TestEffectiveAssignedToSwap:
     """Scenario: swap does not affect rotation (effective_assigned_to)."""
 
-    def test_week_reset_uses_original_assigned_to_when_swap_active(self):
+    def test_week_reset_uses_original_assigned_to_when_swap_active(self) -> None:
         """week_reset uses original_assigned_to when a swap is active.
 
         p0 originally had Toilet (L3, index 0) but swapped to Kitchen (L2, index 1).
@@ -390,9 +388,9 @@ class TestEffectiveAssignedToSwap:
 class TestTwoShortVacationPeopleGetL1Slots:
     """Scenario: two short-vacation people both receive L1 slots."""
 
-    def test_two_l1_vacation_people_each_assigned_protected_l1_slot(self):
+    def test_two_l1_vacation_people_each_assigned_protected_l1_slot(self) -> None:
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.NotDone for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.NotDone)
         on_vacation = {"p2": True, "p5": True}
         weeks_not_cleaned = {2: 0, 5: 0}
 
@@ -401,7 +399,7 @@ class TestTwoShortVacationPeopleGetL1Slots:
 
         assert result.index("p2") in L1_SLOTS
         assert result.index("p5") in L1_SLOTS
-        assert len(set(uid for uid in result if uid != "")) == 9
+        assert len({uid for uid in result if uid != ""}) == 9
 
 
 # ── Scenario: short-vacation overflow ────────────────────────────────────────
@@ -409,14 +407,14 @@ class TestTwoShortVacationPeopleGetL1Slots:
 class TestShortVacationOverflow:
     """Scenario: short-vacation overflow — L3 person gets L2 slot, not L1."""
 
-    def test_l3_vacation_person_overflows_to_l2_when_l1_full(self):
+    def test_l3_vacation_person_overflows_to_l2_when_l1_full(self) -> None:
         """With 4 short-vacation people (3 L1 + 1 L3), the L3 person overflows to L2.
 
         The spec says "those who had harder tasks get the harder available slots", so
         the L3 person (harder) must land on the L2 overflow slot.
         """
         ids = [f"p{i}" for i in range(9)]
-        task_states = {i: TaskState.NotDone for i in range(9)}
+        task_states = dict.fromkeys(range(9), TaskState.NotDone)
         on_vacation = {"p0": True, "p2": True, "p5": True, "p8": True}
         weeks_not_cleaned = {0: 0, 2: 0, 5: 0, 8: 0}
 
@@ -430,7 +428,7 @@ class TestShortVacationOverflow:
         for uid in ["p2", "p5", "p8"]:
             assert result.index(uid) in L1_SLOTS
 
-        assert len(set(uid for uid in result if uid != "")) == 9
+        assert len({uid for uid in result if uid != ""}) == 9
 
 
 # ── Accepted tradeoff: vacation overflow blocks Green L3 reward ───────────────
@@ -438,7 +436,7 @@ class TestShortVacationOverflow:
 class TestVacationOverflowBlocksGreenL3Reward:
     """Accepted tradeoff: short-vacation overflow blocks Green L3 reward."""
 
-    def test_green_l3_stays_at_l3_when_vacation_fills_all_lower_slots(self):
+    def test_green_l3_stays_at_l3_when_vacation_fills_all_lower_slots(self) -> None:
         """Green L3 person stays at L3 when vacation fills all L1 and L2 slots.
 
         6 short-vacation people fill all 3 L1 + all 3 L2 slots in step 1.
@@ -473,4 +471,4 @@ class TestVacationOverflowBlocksGreenL3Reward:
         # p6 (Green L3) stays at L3 — all lower slots occupied by vacation
         assert result.index("p6") in L3_SLOTS
 
-        assert len(set(uid for uid in result if uid != "")) == 9
+        assert len({uid for uid in result if uid != ""}) == 9

@@ -5,10 +5,7 @@ All Firestore access for tasks goes through this class (Repository pattern).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from google.cloud.firestore_v1 import Client, Transaction
+from typing import Any
 
 from constants.strings import (
     COLLECTION_FLATS,
@@ -22,7 +19,7 @@ class TaskRepository:
     def __init__(self, db: Any) -> None:
         self._db = db
 
-    def _task_ref(self, flat_id: str, task_id: str):
+    def _task_ref(self, flat_id: str, task_id: str) -> Any:
         return (
             self._db.collection(COLLECTION_FLATS)
             .document(flat_id)
@@ -30,7 +27,7 @@ class TaskRepository:
             .document(task_id)
         )
 
-    def _tasks_collection(self, flat_id: str):
+    def _tasks_collection(self, flat_id: str) -> Any:
         return (
             self._db.collection(COLLECTION_FLATS)
             .document(flat_id)
@@ -64,12 +61,12 @@ class TaskRepository:
             raise ValueError(f"{ERROR_TASK_NOT_FOUND}: {task_id}")
         return task_from_firestore(doc.id, doc.to_dict())
 
-    def update_task(self, flat_id: str, task_id: str, updates: dict) -> None:
+    def update_task(self, flat_id: str, task_id: str, updates: dict[str, Any]) -> None:
         """Update specific fields on a task document."""
         self._task_ref(flat_id, task_id).update(updates)
 
     def update_task_in_transaction(
-        self, flat_id: str, task_id: str, updates: dict, transaction: Any
+        self, flat_id: str, task_id: str, updates: dict[str, Any], transaction: Any
     ) -> None:
         """Update specific fields on a task document within a transaction."""
         transaction.update(self._task_ref(flat_id, task_id), updates)
@@ -87,8 +84,8 @@ class TaskRepository:
 
         task_ref = self._task_ref(flat_id, task_id)
 
-        @transactional
-        def _update_in_tx(tx) -> None:
+        @transactional  # type: ignore[untyped-decorator]
+        def _update_in_tx(tx: Any) -> None:
             doc = tx.get(task_ref)
             if not doc.exists:
                 raise ValueError(f"{ERROR_TASK_NOT_FOUND}: {task_id}")

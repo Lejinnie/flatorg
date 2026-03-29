@@ -9,6 +9,7 @@ Completed is a no-op.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from firebase_functions import https_fn
 from google.cloud import firestore
@@ -19,8 +20,8 @@ from repository.task_repository import TaskRepository
 logger = logging.getLogger(__name__)
 
 
-@https_fn.on_call()
-def enter_grace_period_callable(req: https_fn.CallableRequest) -> dict:
+@https_fn.on_call()  # type: ignore[untyped-decorator]
+def enter_grace_period_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
     """HTTP-callable Cloud Function that transitions a task from Pending → NotDone."""
     data = req.data or {}
     flat_id: str = data.get("flatId", "")
@@ -36,7 +37,7 @@ def enter_grace_period_callable(req: https_fn.CallableRequest) -> dict:
     return {"success": True}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def enter_grace_period_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger variant for Cloud Scheduler.
 

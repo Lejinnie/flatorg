@@ -5,12 +5,7 @@ All Firestore access for flat settings goes through this class (Repository patte
 
 from __future__ import annotations
 
-from typing import Optional
-
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from google.cloud.firestore_v1 import Client, Transaction
+from typing import Any
 
 from constants.strings import COLLECTION_FLATS, ERROR_FLAT_NOT_FOUND
 from models.flat import Flat, flat_from_firestore
@@ -20,7 +15,7 @@ class FlatRepository:
     def __init__(self, db: Any) -> None:
         self._db = db
 
-    def _flat_ref(self, flat_id: str):
+    def _flat_ref(self, flat_id: str) -> Any:
         return self._db.collection(COLLECTION_FLATS).document(flat_id)
 
     def get_flat(self, flat_id: str) -> Flat:
@@ -41,7 +36,6 @@ class FlatRepository:
 
     def create_flat(self, flat_id: str, flat: Flat) -> None:
         """Create a new flat document."""
-        from models.flat import flat_from_firestore
         self._flat_ref(flat_id).set(
             {
                 "name": flat.name,
@@ -54,11 +48,11 @@ class FlatRepository:
             }
         )
 
-    def update_flat_settings(self, flat_id: str, updates: dict) -> None:
+    def update_flat_settings(self, flat_id: str, updates: dict[str, Any]) -> None:
         """Update specific admin-configurable settings on a flat."""
         self._flat_ref(flat_id).update(updates)
 
-    def find_flat_by_invite_code(self, invite_code: str) -> Optional[Flat]:
+    def find_flat_by_invite_code(self, invite_code: str) -> Flat | None:
         """Look up a flat by its invite code. Returns None when no match found."""
         snapshot = (
             self._db.collection(COLLECTION_FLATS)

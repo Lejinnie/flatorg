@@ -7,7 +7,7 @@ than the flat's shopping_cleanup_hours setting.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from firebase_functions import https_fn, scheduler_fn
 from google.cloud import firestore
@@ -23,8 +23,8 @@ from repository.flat_repository import FlatRepository
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(schedule="every 1 hours", timezone="Europe/Zurich")
-def shopping_cleanup_scheduled(event: scheduler_fn.ScheduledEvent) -> None:
+@scheduler_fn.on_schedule(schedule="every 1 hours", timezone="Europe/Zurich")  # type: ignore[untyped-decorator]
+def shopping_cleanup_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     """Periodically delete bought shopping items older than the flat's threshold."""
     db = firestore.Client()
     flat_repo = FlatRepository(db)
@@ -33,7 +33,7 @@ def shopping_cleanup_scheduled(event: scheduler_fn.ScheduledEvent) -> None:
         _delete_expired_shopping_items(flat_doc.id, flat.shopping_cleanup_hours, db)
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def shopping_cleanup_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger for manual testing. Expects JSON: {"flatId": "<id>"}"""
     body = req.get_json(silent=True) or {}
@@ -61,7 +61,7 @@ def _delete_expired_shopping_items(
 
     Returns the number of items deleted.
     """
-    cutoff = datetime.now(tz=timezone.utc) - timedelta(hours=cleanup_hours)
+    cutoff = datetime.now(tz=UTC) - timedelta(hours=cleanup_hours)
 
     snapshot = list(
         db.collection(COLLECTION_FLATS)

@@ -10,7 +10,7 @@ Running the reset slightly early is harmless — tokens are replenished idempote
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from firebase_functions import https_fn, scheduler_fn
 from google.cloud import firestore
@@ -22,10 +22,10 @@ from services.eth_semester_calendar import EthSemesterCalendar
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone="Europe/Zurich")
-def token_reset_scheduled(event: scheduler_fn.ScheduledEvent) -> None:
+@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone="Europe/Zurich")  # type: ignore[untyped-decorator]
+def token_reset_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     """Reset swap tokens at the start of each ETH semester."""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     if not EthSemesterCalendar.is_in_semester(now):
         logger.info("token_reset_scheduled: not in semester, skipping date=%s", now.isoformat())
         return
@@ -38,7 +38,7 @@ def token_reset_scheduled(event: scheduler_fn.ScheduledEvent) -> None:
         person_repo.reset_all_swap_tokens(flat_doc.id)
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def token_reset_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger for manual testing / admin use.
 

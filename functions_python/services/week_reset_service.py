@@ -7,10 +7,7 @@ runs inside a single Firestore transaction to guarantee atomicity.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from google.cloud.firestore_v1 import Client, Transaction
+from typing import Any, ClassVar
 
 from constants.strings import (
     COLLECTION_FLATS,
@@ -20,9 +17,8 @@ from constants.strings import (
     LOG_WEEK_RESET_COMPLETE,
     LOG_WEEK_RESET_START,
 )
-from models.flat import Flat
 from models.person import Person
-from models.swap_request import SwapRequest, SwapRequestStatus, swap_request_from_firestore
+from models.swap_request import SwapRequestStatus, swap_request_from_firestore
 from models.task import Task, TaskState, effective_assigned_to
 from repository.flat_repository import FlatRepository
 from repository.person_repository import PersonRepository
@@ -59,7 +55,7 @@ class WeekResetService:
     """
 
     # Fixed ordered list of strategies executed each reset cycle.
-    _STRATEGIES: list[AssignmentStrategy] = [
+    _STRATEGIES: ClassVar[list[AssignmentStrategy]] = [
         BlueShortVacationStrategy(),
         GreenL3Strategy(),
         GreenL2Strategy(),
@@ -82,8 +78,8 @@ class WeekResetService:
 
         logger.info("%s %s", LOG_WEEK_RESET_START, flat_id)
 
-        @transactional
-        def _run(transaction) -> None:
+        @transactional  # type: ignore[untyped-decorator]
+        def _run(transaction: Any) -> None:
             flat = self._flat_repo.get_flat_in_transaction(flat_id, transaction)
             tasks = self._task_repo.get_all_tasks_in_transaction(flat_id, transaction)
             persons = self._person_repo.get_all_members_in_transaction(flat_id, transaction)
@@ -111,8 +107,8 @@ class WeekResetService:
         """
         from google.cloud.firestore_v1.transaction import transactional
 
-        @transactional
-        def _run(transaction) -> None:
+        @transactional  # type: ignore[untyped-decorator]
+        def _run(transaction: Any) -> None:
             task = self._task_repo.get_task_in_transaction(flat_id, task_id, transaction)
             self._task_repo.update_task_in_transaction(
                 flat_id, task_id,
@@ -155,7 +151,7 @@ class WeekResetService:
                 "created_at": SERVER_TIMESTAMP,
             }
         )
-        return swap_ref.id
+        return str(swap_ref.id)
 
     def accept_swap(self, flat_id: str, swap_request_id: str) -> None:
         """Accept a swap request: swap assigned_to on both tasks, deduct 1 token.
@@ -171,8 +167,8 @@ class WeekResetService:
             .document(swap_request_id)
         )
 
-        @transactional
-        def _run(transaction) -> None:
+        @transactional  # type: ignore[untyped-decorator]
+        def _run(transaction: Any) -> None:
             swap_doc = transaction.get(swap_ref)
             swap = swap_request_from_firestore(swap_doc.id, swap_doc.to_dict())
 

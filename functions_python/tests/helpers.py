@@ -5,12 +5,12 @@ Mirrors the test fixture helpers in functions/tests/weekReset.test.ts.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from models.person import Person, PersonRole
 from models.task import Task, TaskState
 
-FUTURE_DATE = datetime(2099, 1, 1, tzinfo=timezone.utc)
+FUTURE_DATE = datetime(2099, 1, 1, tzinfo=UTC)
 DEFAULT_FLAT = {"vacation_threshold_weeks": 1}
 
 

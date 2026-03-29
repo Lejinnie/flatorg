@@ -8,6 +8,7 @@ Cloud Scheduler calls these functions before each task's due_date_time:
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from firebase_functions import https_fn
 from google.cloud import firestore
@@ -22,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 # ── Day-before reminder ───────────────────────────────────────────────────────
 
-@https_fn.on_call()
-def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict:
+@https_fn.on_call()  # type: ignore[untyped-decorator]
+def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
     """HTTP-callable: send the day-before reminder to a task's assignee."""
     data = req.data or {}
     flat_id: str = data.get("flatId", "")
@@ -37,7 +38,7 @@ def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict:
     return {"success": True}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def send_day_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger for Cloud Scheduler. Expects JSON: {"flatId": ..., "taskId": ...}"""
     body = req.get_json(silent=True) or {}
@@ -57,8 +58,8 @@ def send_day_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
 
 # ── Hours-before reminder ─────────────────────────────────────────────────────
 
-@https_fn.on_call()
-def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict:
+@https_fn.on_call()  # type: ignore[untyped-decorator]
+def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
     """HTTP-callable: send the X-hours-before reminder to a task's assignee."""
     data = req.data or {}
     flat_id: str = data.get("flatId", "")
@@ -72,7 +73,7 @@ def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict:
     return {"success": True}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def send_hours_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
     """HTTP trigger for Cloud Scheduler. Expects JSON: {"flatId": ..., "taskId": ...}"""
     body = req.get_json(silent=True) or {}

@@ -7,9 +7,8 @@ iOS: notifications appear only in the in-app panel (no APNs key required).
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
-import firebase_admin.messaging as messaging
+from firebase_admin import messaging
 from google.cloud.firestore_v1 import Client
 
 from constants.strings import (
@@ -34,7 +33,7 @@ class NotificationService:
         self._db = db
         self._person_repo = PersonRepository(db)
 
-    def _get_fcm_token(self, flat_id: str, uid: str) -> Optional[str]:
+    def _get_fcm_token(self, flat_id: str, uid: str) -> str | None:
         """Retrieve the FCM token for a member, or None if none registered."""
         doc = (
             self._db.collection(COLLECTION_FLATS)

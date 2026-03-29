@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 
-class TaskLevel(str, Enum):
+class TaskLevel(StrEnum):
     """Difficulty level of a task in the rotation ring."""
 
     L1 = "L1"  # easy: Recycling, Washing Rags, Shopping
@@ -15,7 +15,7 @@ class TaskLevel(str, Enum):
     L3 = "L3"  # hard: Toilet, Shower, Bathroom
 
 
-class TaskState(str, Enum):
+class TaskState(StrEnum):
     """Lifecycle state of a task within a single week.
 
     Drives UI colour coding and week_reset() categorisation.

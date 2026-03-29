@@ -23,6 +23,7 @@ dependencies:
   provider: ^6.1.2
 
 flutter:
+  uses-material-design: true
   assets:
     - email_templates/issue_template_1.txt
     - email_templates/issue_template_2.txt
@@ -31,4 +32,4 @@ flutter:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  lint_hard: ^7.1.2

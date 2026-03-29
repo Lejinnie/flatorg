@@ -13,12 +13,11 @@ from constants.task_constants import (
     L1_RING_INDICES,
     L2_RING_INDICES,
     L3_RING_INDICES,
-    TOTAL_TASKS,
     TASK_LEVEL_BY_RING_INDEX,
+    TOTAL_TASKS,
 )
-from models.task import Task, TaskLevel, TaskState, effective_assigned_to
 from models.person import Person
-
+from models.task import Task, TaskLevel, TaskState, effective_assigned_to
 
 # ── Shared context ────────────────────────────────────────────────────────────
 
@@ -105,7 +104,9 @@ def categorise_persons(ctx: WeekResetContext) -> tuple[
             # NotDone, Pending-but-past-deadline, or Vacant → treated as Red.
             red.append(PersonTaskPair(person=person, task=task))
 
-    by_ring_index = lambda pair: pair.task.ring_index
+    def by_ring_index(pair: PersonTaskPair) -> int:
+        return pair.task.ring_index
+
     return (
         sorted(green, key=by_ring_index),
         sorted(red, key=by_ring_index),
@@ -329,14 +330,13 @@ class RedL2Strategy(AssignmentStrategy):
             backward = scan_backward_for_higher_free_slot(ctx, pair.task.ring_index, TaskLevel.L2)
             if backward != -1:
                 assign_slot(ctx, backward, pair.person.uid)
+            # No free L3 anywhere — stay at L2.
+            elif ctx.next_assignments[pair.task.ring_index] == "":
+                assign_slot(ctx, pair.task.ring_index, pair.person.uid)
             else:
-                # No free L3 anywhere — stay at L2.
-                if ctx.next_assignments[pair.task.ring_index] == "":
-                    assign_slot(ctx, pair.task.ring_index, pair.person.uid)
-                else:
-                    free_l2 = free_slots_by_level(ctx, TaskLevel.L2)
-                    if free_l2:
-                        assign_slot(ctx, free_l2[0], pair.person.uid)
+                free_l2 = free_slots_by_level(ctx, TaskLevel.L2)
+                if free_l2:
+                    assign_slot(ctx, free_l2[0], pair.person.uid)
 
 
 # ── Step 6: Red L1 ────────────────────────────────────────────────────────────
