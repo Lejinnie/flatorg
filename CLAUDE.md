@@ -192,23 +192,23 @@ A list of issues to be sent to Livit, on a separate tab.
 - for selection, try not to use normal string text input fields, but try to use selection, or date picker whereever possible. If we have a list of tasks, they should be displayed in a dropout selection for example.
 
 ### Login page
-<img src="./wireframes/login.png" width="300px">
+<!-- <img src="./wireframes/login.png" width="300px"> -->
 
 Very simple login page. Typical login and register. Single Sign on is future feature, not currently needed.
 
 ### Entry page
-<img src="./wireframes/entry.png" width="300px">
+<!-- <img src="./wireframes/entry.png" width="300px"> -->
 
 Simple, only has two big buttons to select from. Only enters the page when the application doesn't find a flatorg that it has joined. (If there is a way to store which flat the person has joined, this would be used.)
 
 ### Join flat page
-<img src="./wireframes/join_flat.png" width="300px">
+<!-- <img src="./wireframes/join_flat.png" width="300px"> -->
 
 Join a flat page shows information that the user needs to provide to access a flat. Specifically:
 - Flat code shared by a member of flat
 
 ### Create a new flat
-<img src="./wireframes/create_flat.png" width="300px">
+<!-- <img src="./wireframes/create_flat.png" width="300px"> -->
 
 Page when you are creating a new flat. Going back goes to the entry page.
 - Flat name
@@ -216,12 +216,12 @@ Page when you are creating a new flat. Going back goes to the entry page.
 - Below is a button "add more" that adds an empty entry with placeholders 
   
 ### Flat Settings
-<img src="./wireframes/settings.png" width="300px">
+<!-- <img src="./wireframes/settings.png" width="300px"> -->
 
 The list of members + "Generate & copy invite code" is available to all members of the flat, but only admin can delete members and access all the settings below. Press-hold on any member to go into remove mode which makes the buttons turn red and have a trashcan icon on the right of each of them.As mentioned, not possible if not admin. Exit this mode by pressing anywhere outside of the members. Clicking while on remove shows a confirmation window. Also, all settings below the button is only admin-read and writeable. Add a "admin" keyword next to the admin name.
 
 ### Default Flat page (Tasks page)
-<img src="./wireframes/tasks.png" width="300px">
+<!-- <img src="./wireframes/tasks.png" width="300px"> -->
 
 The first page to greet you if you have logged into the flat already. There shouldn't be any need to relogin if you already did once.
 1. **Notifications** This is a button that opens up a notification page. ALso shows current number of notifications. Click on it, and it opens a popup with all the current notifications as a list. If it contains a decision "Yes" or "No", then there doesn't need to be a dismiss button. Only if they cannot take an action upon it e.g. a reminder to do a task, is there a button for "dismiss" and they can click on it to remove it from the list. Otherwise any decision normally also removes the notification.
@@ -235,13 +235,13 @@ Not available if no flat is loaded.
 3. **Issue List** — flat issues to report to Livit
 
 ### Shopping page:
-<img src="./wireframes/shopping.png" width="300px">
+<!-- <img src="./wireframes/shopping.png" width="300px"> -->
 
 Very simple shopping page. Every member has write/read access.
 Add a new item with "add item" which opens a new item at the top with a textfield which we add type into. Remove item by clicking on the empty checkmark to mark it as done. The items will be grayed out and moved to the bottom under the line.
 
 ### Issue page:
-<img src="./wireframes/issues.png" width="300px">
+<!-- <img src="./wireframes/issues.png" width="300px"> -->
 
 - Tapping an issue opens a detail view popup showing the full title and description.
 - Long-press on an issue to select it for sending. It also enters selection mode, where all the other issues get a selection button on the right that can be clicked. Normal clicking on issue still opens detailed view. Exits selection mode when going "backwards" or pressing a cancel button on the left (left of the select all button.) Select All button becomes deselect all if eveyrthing is selected. 
