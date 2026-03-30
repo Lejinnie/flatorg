@@ -9,8 +9,8 @@ import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/person.dart';
-import '../providers/auth_provider.dart';
 import '../models/task.dart';
+import '../providers/auth_provider.dart';
 import '../providers/flat_provider.dart';
 import '../repositories/flat_repository.dart';
 import '../repositories/person_repository.dart';
@@ -105,6 +105,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _confirmLogOut(BuildContext context) async {
+    // Capture before the async gap to avoid BuildContext-across-async-gap lint.
+    final authProvider = context.read<AuthProvider>();
     final confirmed = await showConfirmationDialog(
       context,
       title: confirmLogOutTitle,
@@ -116,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!confirmed || !mounted) {
       return;
     }
-    await context.read<AuthProvider>().signOut();
+    await authProvider.signOut();
   }
 
   void _copyInviteCode(BuildContext context, String code) {
