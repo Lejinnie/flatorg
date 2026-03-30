@@ -28,9 +28,9 @@ class IssuesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const MainScaffold(
-    currentIndex: 2,
-    child: _IssuesBody(),
-  );
+        currentIndex: 2,
+        child: _IssuesBody(),
+      );
 }
 
 class _IssuesBody extends StatefulWidget {
@@ -80,7 +80,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
     String creatorUid,
   ) async {
     final titleCtrl = TextEditingController();
-    final descCtrl  = TextEditingController();
+    final descCtrl = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -130,7 +130,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
       return;
     }
     final title = titleCtrl.text.trim();
-    final desc  = descCtrl.text.trim();
+    final desc = descCtrl.text.trim();
     if (title.isEmpty) {
       return;
     }
@@ -178,7 +178,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
     // Pick a random email template.
     final templateIndex = Random().nextInt(3) + 1;
-    final templatePath  = 'email_templates/issue_template_$templateIndex.txt';
+    final templatePath = 'email_templates/issue_template_$templateIndex.txt';
 
     // Load the template from assets.
     String template;
@@ -194,9 +194,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
         .join('\n');
 
     // Split sender name.
-    final parts     = senderName.trim().split(' ');
+    final parts = senderName.trim().split(' ');
     final firstName = parts.first;
-    final lastName  = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
     final body = template
         .replaceAll('{{issues}}', issueLines)
@@ -237,7 +237,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
       title: confirmResolvedTitle,
       message: confirmResolvedMessage,
       confirmLabel: confirmResolvedLabel,
-      confirmColor: AppTheme.destructiveRed,
+      confirmColor: AppTheme.stateCompleted,
       confirmTextColor: Colors.white,
     );
     if (!confirmed) {
@@ -255,11 +255,11 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
   @override
   Widget build(BuildContext context) {
-    final flatProvider  = context.watch<FlatProvider>();
-    final flatId        = flatProvider.flatId;
+    final flatProvider = context.watch<FlatProvider>();
+    final flatId = flatProvider.flatId;
     final currentPerson = flatProvider.currentPerson;
-    final currentUid    = currentPerson?.uid ?? '';
-    final senderName    = currentPerson?.name ?? '';
+    final currentUid = currentPerson?.uid ?? '';
+    final senderName = currentPerson?.name ?? '';
 
     return Scaffold(
       appBar: _selectionMode
@@ -281,27 +281,25 @@ class _IssuesBodyState extends State<_IssuesBody> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final allIssues   = snap.data ?? [];
-          final sendable    = allIssues.where((i) => !i.isOnCooldown).toList();
-          final onCooldown  = allIssues.where((i) => i.isOnCooldown).toList();
+          final allIssues = snap.data ?? [];
+          final sendable = allIssues.where((i) => !i.isOnCooldown).toList();
+          final onCooldown = allIssues.where((i) => i.isOnCooldown).toList();
 
           // Determine whether the current user can send (assigned to Shopping).
           return FutureBuilder<List<Task>>(
             future: TaskRepository().fetchTasks(flatId),
             builder: (ctx, taskSnap) {
-              final tasks     = taskSnap.data ?? [];
-              final shopTask  = tasks.where(
+              final tasks = taskSnap.data ?? [];
+              final shopTask = tasks.where(
                 (t) => t.ringIndex == shoppingRingIndex,
               );
-              final canSend   = shopTask.isNotEmpty &&
+              final canSend = shopTask.isNotEmpty &&
                   shopTask.first.assignedTo == currentUid;
 
-              final selectedSendable = sendable
-                  .where((i) => _selectedIds.contains(i.id))
-                  .toList();
-              final selectedAll = allIssues
-                  .where((i) => _selectedIds.contains(i.id))
-                  .toList();
+              final selectedSendable =
+                  sendable.where((i) => _selectedIds.contains(i.id)).toList();
+              final selectedAll =
+                  allIssues.where((i) => _selectedIds.contains(i.id)).toList();
 
               return Stack(
                 children: [
@@ -352,8 +350,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
                           child: Text(
                             labelRecentlySent,
                             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.grayMid,
-                            ),
+                                  color: AppTheme.grayMid,
+                                ),
                           ),
                         ),
                         ...onCooldown.map(
@@ -401,28 +399,27 @@ class _IssuesBodyState extends State<_IssuesBody> {
     );
   }
 
-  AppBar _selectionAppBar(BuildContext context, String flatId) =>
-      AppBar(
-      leading: TextButton(
-        onPressed: _exitSelection,
-        child: const Text(buttonCancel),
-      ),
-      leadingWidth: 80,
-      title: const Text(headingIssues),
-      actions: [
-        StreamBuilder<List<Issue>>(
-          stream: IssueRepository().watchIssues(flatId),
-          builder: (ctx, snap) {
-            final all = snap.data ?? [];
-            return TextButton(
-              onPressed: () {
-                setState(() => _selectedIds.addAll(all.map((i) => i.id)));
-              },
-              child: const Text(buttonSelectAll),
-            );
-          },
+  AppBar _selectionAppBar(BuildContext context, String flatId) => AppBar(
+        leading: TextButton(
+          onPressed: _exitSelection,
+          child: const Text(buttonCancel),
         ),
-      ],
+        leadingWidth: 80,
+        title: const Text(headingIssues),
+        actions: [
+          StreamBuilder<List<Issue>>(
+            stream: IssueRepository().watchIssues(flatId),
+            builder: (ctx, snap) {
+              final all = snap.data ?? [];
+              return TextButton(
+                onPressed: () {
+                  setState(() => _selectedIds.addAll(all.map((i) => i.id)));
+                },
+                child: const Text(buttonSelectAll),
+              );
+            },
+          ),
+        ],
       );
 }
 
@@ -443,7 +440,7 @@ class _SelectionActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bg    = theme.brightness == Brightness.dark
+    final bg = theme.brightness == Brightness.dark
         ? const Color(0xFF333333)
         : Colors.white;
 
@@ -461,7 +458,8 @@ class _SelectionActionBar extends StatelessWidget {
               label: const Text(buttonSend),
               onPressed: canSend ? onSend : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: canSend ? AppTheme.featureColor : AppTheme.grayLight,
+                backgroundColor:
+                    canSend ? AppTheme.featureColor : AppTheme.grayLight,
               ),
             ),
           ),
@@ -472,7 +470,8 @@ class _SelectionActionBar extends StatelessWidget {
               label: const Text(buttonResolved),
               onPressed: canResolve ? onResolve : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: canResolve ? AppTheme.stateCompleted : AppTheme.grayLight,
+                backgroundColor:
+                    canResolve ? AppTheme.stateCompleted : AppTheme.grayLight,
                 foregroundColor: canResolve ? Colors.white : AppTheme.grayMid,
               ),
             ),
