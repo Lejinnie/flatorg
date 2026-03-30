@@ -75,11 +75,9 @@ class _TaskCardState extends State<TaskCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final task  = widget.task;
+    final task = widget.task;
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = isDark
-        ? const Color(0xFF333333)
-        : Colors.white;
+    final cardBg = isDark ? const Color(0xFF333333) : Colors.white;
 
     return Card(
       color: cardBg,
@@ -215,12 +213,9 @@ class _TaskCardState extends State<TaskCard> {
             icon: const Icon(Icons.beach_access, size: 18),
             label: const Text(buttonVacation),
             style: ElevatedButton.styleFrom(
-              backgroundColor: onVacation
-                  ? AppTheme.grayLight
-                  : AppTheme.stateVacant,
-              foregroundColor: onVacation
-                  ? AppTheme.grayMid
-                  : Colors.white,
+              backgroundColor:
+                  onVacation ? AppTheme.grayLight : AppTheme.stateVacant,
+              foregroundColor: onVacation ? AppTheme.grayMid : Colors.white,
             ),
             onPressed: onVacation ? null : () => _confirmVacation(context),
           ),

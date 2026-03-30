@@ -36,13 +36,32 @@ class IssueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme     = Theme.of(context);
+    final theme = Theme.of(context);
     final onCooldown = issue.isOnCooldown;
-    final isDark    = theme.brightness == Brightness.dark;
+    final isDark = theme.brightness == Brightness.dark;
 
-    final cardColor = isSelected
-        ? AppTheme.accentColor.withAlpha(100)
-        : (isDark ? const Color(0xFF333333) : Colors.white);
+    final defaultCardColor = theme.cardTheme.color ?? theme.cardColor;
+
+    final Color cardColor;
+    final Color descriptionTextColor;
+    final Color? titleTextColor;
+    final IconData checkboxIcon;
+    final Color checkboxColor;
+    if (isSelected) {
+      // Coloured selection background — use explicit dark text for contrast.
+      cardColor = isDark ? AppTheme.selectionColor : AppTheme.highlightColor;
+      descriptionTextColor = AppTheme.grayDark;
+      titleTextColor = onCooldown ? AppTheme.grayMid : AppTheme.grayDark;
+      checkboxIcon = Icons.check_box;
+      checkboxColor = isDark ? AppTheme.highlightColor : AppTheme.featureColor;
+    } else {
+      // Default card — let the theme drive text colour via null.
+      cardColor = defaultCardColor;
+      descriptionTextColor = AppTheme.grayMid;
+      titleTextColor = onCooldown ? AppTheme.grayMid : null;
+      checkboxIcon = Icons.check_box_outline_blank;
+      checkboxColor = AppTheme.grayMid;
+    }
 
     return GestureDetector(
       onLongPress: onLongPress,
@@ -66,7 +85,7 @@ class IssueTile extends StatelessWidget {
                       Text(
                         issue.title,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: onCooldown ? AppTheme.grayMid : null,
+                          color: titleTextColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -78,9 +97,7 @@ class IssueTile extends StatelessWidget {
                           // When selected the background becomes a sage-green
                           // tint; grayMid loses contrast against it in dark
                           // mode.  Use a high-contrast colour instead.
-                          color: isSelected
-                              ? (isDark ? Colors.white70 : AppTheme.grayDark)
-                              : AppTheme.grayMid,
+                          color: descriptionTextColor,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -94,12 +111,8 @@ class IssueTile extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.only(left: AppTheme.spacingSm),
                       child: Icon(
-                        isSelected
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        color: isSelected
-                            ? AppTheme.featureColor
-                            : AppTheme.grayMid,
+                        checkboxIcon,
+                        color: checkboxColor,
                       ),
                     ),
                   ),

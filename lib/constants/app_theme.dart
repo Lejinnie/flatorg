@@ -14,22 +14,28 @@ class AppTheme {
   static const bgLight = Color(0xFFEEEEEE);
 
   /// Page/scaffold background — dark mode.
-  static const bgDark = Color(0xFF262626);
+  static const bgDark = Color(0xFF0a0a0a);
 
   // ── Brand palette ─────────────────────────────────────────────────────────
 
   /// Muted sage green — buttons, navigation highlights, primary actions.
-  static const featureColor = Color(0xFFACBFA4);
 
-  /// Light sage — card surfaces, input backgrounds, secondary highlights.
-  static const accentColor = Color(0xFFE2E8CE);
+  static const darkerFeatureColor = Color(0xFF0C1B33);
+
+  static const featureColor = Color(0xFF508484);
+
+  /// featureColor +10% saturation and +10% lightness — used for selected card backgrounds in dark mode.
+  static const selectionColor = Color(0xFF59AEAE);
+
+  /// highlight color for highlighting stuff.
+  static const highlightColor = Color(0xFFFFCB77);
 
   // ── Task-state colours (ONLY for the 4 px top bar on task cards) ──────────
 
   static const stateCompleted = Color(0xFF10B981); // green
-  static const statePending   = Color(0xFFF59E0B); // amber
-  static const stateNotDone   = Color(0xFFEF4444); // red
-  static const stateVacant    = Color(0xFF3B82F6); // blue
+  static const statePending = Color(0xFFF59E0B); // amber
+  static const stateNotDone = Color(0xFFEF4444); // red
+  static const stateVacant = Color(0xFF3B82F6); // blue
 
   // ── Destructive colour (remove member, irreversible confirm dialogs) ───────
 
@@ -48,9 +54,9 @@ class AppTheme {
 
   // ── Font sizes (3 centralised values) ────────────────────────────────────
 
-  static const fontSmall  = 12.0;
+  static const fontSmall = 12.0;
   static const fontMedium = 16.0;
-  static const fontLarge  = 24.0;
+  static const fontLarge = 24.0;
 
   // ── Spacing ───────────────────────────────────────────────────────────────
 
@@ -75,15 +81,42 @@ class AppTheme {
   static TextTheme _buildTextTheme(Color bodyColor, Color displayColor) =>
       GoogleFonts.publicSansTextTheme(
         TextTheme(
-          displayLarge:  TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w700, color: displayColor),
-          titleLarge:    TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w600, color: displayColor),
-          titleMedium:   TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w600, color: displayColor),
-          bodyLarge:     TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-          bodyMedium:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-          bodySmall:     TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w400, color: bodyColor),
-          labelSmall:    TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-          labelMedium:   TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-          labelLarge:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w500, color: bodyColor),
+          displayLarge: TextStyle(
+              fontSize: fontLarge,
+              fontWeight: FontWeight.w700,
+              color: displayColor),
+          titleLarge: TextStyle(
+              fontSize: fontLarge,
+              fontWeight: FontWeight.w600,
+              color: displayColor),
+          titleMedium: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w600,
+              color: displayColor),
+          bodyLarge: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          bodyMedium: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          bodySmall: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          labelSmall: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
+          labelMedium: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
+          labelLarge: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
         ),
       );
 
@@ -97,7 +130,7 @@ class AppTheme {
       scaffoldBackgroundColor: bgLight,
       colorScheme: const ColorScheme.light(
         primary: featureColor,
-        secondary: accentColor,
+        secondary: highlightColor,
         surface: bgLight,
         onPrimary: Color(0xFF374151),
         onSecondary: Color(0xFF374151),
@@ -143,7 +176,8 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: featureColor,
           foregroundColor: grayDark,
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -157,7 +191,8 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: grayDark,
           side: const BorderSide(color: grayLight),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -180,29 +215,29 @@ class AppTheme {
   // ── Dark theme ────────────────────────────────────────────────────────────
 
   static ThemeData get darkTheme {
-    final textTheme = _buildTextTheme(accentColor, accentColor);
+    final textTheme = _buildTextTheme(Colors.white, Colors.white);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: bgDark,
       colorScheme: const ColorScheme.dark(
         primary: featureColor,
-        secondary: accentColor,
-        surface: Color(0xFF333333),
-        onPrimary: Color(0xFF262626),
-        onSecondary: Color(0xFF262626),
-        onSurface: accentColor,
+        secondary: highlightColor,
+        surface: bgDark,
+        onPrimary: Colors.white,
+        onSecondary: Colors.black,
+
         error: stateNotDone,
       ),
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: bgDark,
-        foregroundColor: accentColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: textTheme.titleLarge,
       ),
       cardTheme: CardThemeData(
-        color: const Color(0xFF333333),
+        color: darkerFeatureColor,
         elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
@@ -233,7 +268,8 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: featureColor,
           foregroundColor: bgDark,
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -245,9 +281,10 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accentColor,
+          foregroundColor: Colors.white,
           side: const BorderSide(color: grayMid),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),

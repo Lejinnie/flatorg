@@ -29,7 +29,7 @@ class ShoppingItemTile extends StatelessWidget {
         onTap: onToggleBought,
         child: Icon(
           isBought ? Icons.check_box : Icons.check_box_outline_blank,
-          color: isBought ? AppTheme.grayMid : AppTheme.featureColor,
+          color: Colors.white,
         ),
       ),
       title: Text(
@@ -37,6 +37,7 @@ class ShoppingItemTile extends StatelessWidget {
         style: theme.textTheme.bodyMedium?.copyWith(
           color: isBought ? AppTheme.grayMid : null,
           decoration: isBought ? TextDecoration.lineThrough : null,
+          decorationColor: isBought ? AppTheme.grayMid : null,
         ),
       ),
       dense: true,
