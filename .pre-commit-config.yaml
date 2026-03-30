@@ -1,0 +1,41 @@
+repos:
+  # ---------------------------------------------------------------------------
+  # Python — ruff (lint + format) and mypy (type checking)
+  # All hooks run against functions_python/ only.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.0
+    hooks:
+      - id: ruff
+        name: ruff lint (functions_python)
+        args: [--fix]
+        files: ^functions_python/
+      - id: ruff-format
+        name: ruff format (functions_python)
+        files: ^functions_python/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        name: mypy type check (functions_python)
+        args: [--config-file=functions_python/pyproject.toml]
+        files: ^functions_python/
+        # Additional runtime stubs mypy needs for strict mode.
+        additional_dependencies:
+          - firebase-functions>=0.1.0
+          - firebase-admin>=6.0.0
+          - google-cloud-firestore>=2.16.0
+
+  # ---------------------------------------------------------------------------
+  # Flutter — static analysis with fatal infos
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: flutter-analyze
+        name: flutter analyze
+        language: system
+        entry: flutter analyze --fatal-infos
+        # Run once for the whole repo (not per changed file).
+        pass_filenames: false
+        files: \.(dart)$
