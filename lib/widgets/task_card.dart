@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
-import '../constants/task_constants.dart';
 import '../models/person.dart';
 import '../models/task.dart';
 import 'confirmation_dialog.dart';
@@ -72,17 +71,6 @@ class _TaskCardState extends State<TaskCard> {
     return DateFormat('EEE d MMM, HH:mm').format(dt);
   }
 
-  String get _levelLabel {
-    switch (taskLevelByRingIndex[widget.task.ringIndex.clamp(0, 8)]) {
-      case TaskLevel.l3:
-        return 'Hard';
-      case TaskLevel.l2:
-        return 'Medium';
-      case TaskLevel.l1:
-        return 'Easy';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -114,31 +102,9 @@ class _TaskCardState extends State<TaskCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Header row ────────────────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        task.name,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spacingSm,
-                        vertical: AppTheme.spacingXs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentColor.withAlpha(80),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                      ),
-                      child: Text(
-                        _levelLabel,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppTheme.grayMid,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  task.name,
+                  style: theme.textTheme.titleMedium,
                 ),
 
                 const SizedBox(height: AppTheme.spacingXs),

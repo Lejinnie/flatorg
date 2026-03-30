@@ -60,6 +60,10 @@ class _IssuesBodyState extends State<_IssuesBody> {
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
+        // Exit selection mode automatically when the last item is deselected.
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
       } else {
         _selectedIds.add(id);
       }
@@ -389,22 +393,12 @@ class _IssuesBodyState extends State<_IssuesBody> {
         StreamBuilder<List<Issue>>(
           stream: IssueRepository().watchIssues(flatId),
           builder: (ctx, snap) {
-            final all         = snap.data ?? [];
-            final allSelected = all.every((i) => _selectedIds.contains(i.id));
-
+            final all = snap.data ?? [];
             return TextButton(
               onPressed: () {
-                setState(() {
-                  if (allSelected) {
-                    _selectedIds.clear();
-                  } else {
-                    _selectedIds.addAll(all.map((i) => i.id));
-                  }
-                });
+                setState(() => _selectedIds.addAll(all.map((i) => i.id)));
               },
-              child: Text(
-                allSelected ? buttonDeselectAllIssues : buttonSelectAll,
-              ),
+              child: const Text(buttonSelectAll),
             );
           },
         ),

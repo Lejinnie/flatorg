@@ -144,8 +144,7 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
               ...unbought.map(
                 (item) => ShoppingItemTile(
                   item: item,
-                  onToggleBought: () =>
-                      ShoppingRepository().markBought(flatId, item.id),
+                  onToggleBought: () => ShoppingRepository().markBought(flatId, item.id),
                 ),
               ),
 
@@ -183,8 +182,7 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
                 ...bought.map(
                   (item) => ShoppingItemTile(
                     item: item,
-                    onToggleBought: () =>
-                        ShoppingRepository().markBought(flatId, item.id),
+                    onToggleBought: () => ShoppingRepository().markUnbought(flatId, item.id),
                   ),
                 ),
               ],

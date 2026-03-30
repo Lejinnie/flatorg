@@ -230,7 +230,6 @@ const buttonAddIssue         = 'Add Issue';
 const buttonSend             = 'Send';
 const buttonResolved         = 'Resolved';
 const buttonSelectAll        = 'Select All';
-const buttonDeselectAllIssues = 'Deselect All';
 const hintIssueImageOptional = 'Image (optional)';
 const labelRecentlySent      = 'Recently sent';
 
@@ -252,6 +251,13 @@ const labelUnitHours              = 'hours';
 const labelUnitMinutes            = 'minutes';
 const labelUnitDays               = 'days';
 const labelSelectMember           = 'Select a member';
+
+// ── Log out ───────────────────────────────────────────────────────────────────
+
+const buttonLogOut         = 'Log out';
+const confirmLogOutTitle   = 'Log out?';
+const confirmLogOutMessage = 'You will be signed out of FlatOrg.';
+const confirmLogOutLabel   = 'Log out';
 
 // ── Generic error ─────────────────────────────────────────────────────────────
 

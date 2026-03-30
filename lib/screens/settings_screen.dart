@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/person.dart';
+import '../providers/auth_provider.dart';
 import '../models/task.dart';
 import '../providers/flat_provider.dart';
 import '../repositories/flat_repository.dart';
@@ -81,10 +82,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: AppTheme.spacingSm),
               _AdminSettings(flatId: flatId, flatProvider: flatProvider),
             ],
+
+            // ── Log out (all members) ─────────────────────────────────
+            const SizedBox(height: AppTheme.spacingLg),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.logout),
+                label: const Text(buttonLogOut),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.destructiveRed,
+                  side: const BorderSide(color: AppTheme.destructiveRed),
+                ),
+                onPressed: () => _confirmLogOut(context),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingXl),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogOut(BuildContext context) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: confirmLogOutTitle,
+      message: confirmLogOutMessage,
+      confirmLabel: confirmLogOutLabel,
+      confirmColor: AppTheme.destructiveRed,
+      confirmTextColor: Colors.white,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+    await context.read<AuthProvider>().signOut();
   }
 
   void _copyInviteCode(BuildContext context, String code) {

@@ -83,10 +83,24 @@ GoRouter buildAppRouter(BuildContext context) {
       GoRoute(path: routeEntry,       builder: (_, __) => const EntryScreen()),
       GoRoute(path: routeCreateFlat,  builder: (_, __) => const CreateFlatScreen()),
       GoRoute(path: routeJoinFlat,    builder: (_, __) => const JoinFlatScreen()),
-      GoRoute(path: routeTasks,       builder: (_, __) => const TasksScreen()),
-      GoRoute(path: routeShopping,    builder: (_, __) => const ShoppingScreen()),
-      GoRoute(path: routeIssues,      builder: (_, __) => const IssuesScreen()),
-      GoRoute(path: routeSettings,    builder: (_, __) => const SettingsScreen()),
+      // Tab routes use NoTransitionPage so switching tabs feels instant rather
+      // than sliding in from the side like a pushed screen.
+      GoRoute(
+        path: routeTasks,
+        pageBuilder: (_, __) => const NoTransitionPage(child: TasksScreen()),
+      ),
+      GoRoute(
+        path: routeShopping,
+        pageBuilder: (_, __) => const NoTransitionPage(child: ShoppingScreen()),
+      ),
+      GoRoute(
+        path: routeIssues,
+        pageBuilder: (_, __) => const NoTransitionPage(child: IssuesScreen()),
+      ),
+      GoRoute(
+        path: routeSettings,
+        pageBuilder: (_, __) => const NoTransitionPage(child: SettingsScreen()),
+      ),
     ],
   );
 }

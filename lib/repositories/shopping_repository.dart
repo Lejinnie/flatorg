@@ -36,6 +36,14 @@ class ShoppingRepository {
     });
   }
 
+  /// Moves a bought item back to the active shopping list.
+  Future<void> markUnbought(String flatId, String itemId) async {
+    await _shoppingCollection(flatId).doc(itemId).update({
+      fieldShoppingIsBought: false,
+      fieldShoppingBoughtAt: null,
+    });
+  }
+
   /// Deletes a shopping item.
   Future<void> deleteItem(String flatId, String itemId) async {
     await _shoppingCollection(flatId).doc(itemId).delete();
