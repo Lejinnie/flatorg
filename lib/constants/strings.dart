@@ -206,8 +206,8 @@ const confirmAdminMessage    = 'You are about to transfer admin rights to {name}
 const confirmAdminLabel      = 'Transfer';
 
 const confirmResolvedTitle   = 'Mark as resolved?';
-const confirmResolvedMessage = 'Remove the selected issues from the list?';
-const confirmResolvedLabel   = 'Resolve';
+const confirmResolvedMessage = 'This will permanently DELETE the selected issues. They cannot be recovered.';
+const confirmResolvedLabel   = 'Delete';
 
 const confirmSendTitle       = 'Send to Livit?';
 const confirmSendMessage     = 'Did you write the complaints in German? Did you check the right problems to submit?';

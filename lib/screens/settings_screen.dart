@@ -179,6 +179,9 @@ class _MembersSection extends StatelessWidget {
             final isThisAdmin = member.isAdmin;
 
             return GestureDetector(
+              // opaque so the whole tile area (including padding) is a valid
+              // long-press target, not just the text inside it.
+              behavior: HitTestBehavior.opaque,
               onLongPress: isAdmin && !isSelf
                   ? onEnterRemoveMode
                   : null,

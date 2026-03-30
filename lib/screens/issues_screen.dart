@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +13,7 @@ import '../models/task.dart';
 import '../providers/flat_provider.dart';
 import '../repositories/issue_repository.dart';
 import '../repositories/task_repository.dart';
+import '../router/app_router.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../widgets/issue_detail_dialog.dart';
 import '../widgets/issue_tile.dart';
@@ -83,6 +85,11 @@ class _IssuesBodyState extends State<_IssuesBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        // Wider than the default — the description field needs more room.
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMd,
+          vertical: AppTheme.spacingLg,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         ),
@@ -99,8 +106,10 @@ class _IssuesBodyState extends State<_IssuesBody> {
             TextField(
               controller: descCtrl,
               decoration: const InputDecoration(hintText: hintIssueDescription),
-              maxLines: 4,
-              textInputAction: TextInputAction.done,
+              // newline so Enter inserts a line break rather than submitting.
+              maxLines: 6,
+              textInputAction: TextInputAction.newline,
+              keyboardType: TextInputType.multiline,
             ),
           ],
         ),
@@ -228,6 +237,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
       title: confirmResolvedTitle,
       message: confirmResolvedMessage,
       confirmLabel: confirmResolvedLabel,
+      confirmColor: AppTheme.destructiveRed,
+      confirmTextColor: Colors.white,
     );
     if (!confirmed) {
       return;
@@ -253,7 +264,16 @@ class _IssuesBodyState extends State<_IssuesBody> {
     return Scaffold(
       appBar: _selectionMode
           ? _selectionAppBar(context, flatId)
-          : AppBar(title: const Text(headingIssues)),
+          : AppBar(
+              title: const Text(headingIssues),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: headingSettings,
+                  onPressed: () => context.push(routeSettings),
+                ),
+              ],
+            ),
       body: StreamBuilder<List<Issue>>(
         stream: IssueRepository().watchIssues(flatId),
         builder: (ctx, snap) {

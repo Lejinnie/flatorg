@@ -75,7 +75,12 @@ class IssueTile extends StatelessWidget {
                       Text(
                         issue.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppTheme.grayMid,
+                          // When selected the background becomes a sage-green
+                          // tint; grayMid loses contrast against it in dark
+                          // mode.  Use a high-contrast colour instead.
+                          color: isSelected
+                              ? (isDark ? Colors.white70 : AppTheme.grayDark)
+                              : AppTheme.grayMid,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
