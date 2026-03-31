@@ -77,10 +77,9 @@ class _TaskCardState extends State<TaskCard> {
     final theme = Theme.of(context);
     final task = widget.task;
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF333333) : Colors.white;
-
+    final secondaryTextColor = isDark ? AppTheme.grayLight : AppTheme.grayMid;
     return Card(
-      color: cardBg,
+      color: theme.cardTheme.color,
       margin: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingXs,
@@ -112,14 +111,14 @@ class _TaskCardState extends State<TaskCard> {
                 Text(
                   '$labelDue$_dueLabel',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.grayMid,
+                    color: secondaryTextColor,
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingXs),
                 Text(
                   '$labelAssignee${widget.assigneeName.isEmpty ? labelUnassigned : widget.assigneeName}',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.grayMid,
+                    color: secondaryTextColor,
                   ),
                 ),
 

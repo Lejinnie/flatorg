@@ -20,7 +20,8 @@ class AppTheme {
 
   /// Muted sage green — buttons, navigation highlights, primary actions.
 
-  static const darkerFeatureColor = Color(0xFF0C1B33);
+  /// Dark card background — dark teal, consistent with featureColor.
+  static const cardColorDark = Color(0xFF1F3535);
 
   static const featureColor = Color(0xFF508484);
 
@@ -236,7 +237,7 @@ class AppTheme {
         titleTextStyle: textTheme.titleLarge,
       ),
       cardTheme: CardThemeData(
-        color: darkerFeatureColor,
+        color: cardColorDark,
         elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
