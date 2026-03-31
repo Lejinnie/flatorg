@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
+import '../constants/task_constants.dart';
 import '../models/person.dart';
 import '../models/task.dart';
 import '../providers/auth_provider.dart';
@@ -208,7 +209,7 @@ class _MembersSection extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            member.name,
+                            member.name.isNotEmpty ? member.name : member.email,
                             style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
                               color: removeMode && !isSelf
                                   ? AppTheme.stateNotDone
@@ -278,6 +279,11 @@ class _MembersSection extends StatelessWidget {
   }
 }
 
+// ── Duration unit toggle ──────────────────────────────────────────────────────
+
+/// Whether the user is currently editing duration in hours or days.
+enum _DurationUnit { hours, days }
+
 // ── Admin settings ────────────────────────────────────────────────────────────
 
 class _AdminSettings extends StatefulWidget {
@@ -297,6 +303,10 @@ class _AdminSettingsState extends State<_AdminSettings> {
   late int _reminderHours;
 
   var _settingsInitialised = false;
+
+  // Duration unit toggles for grace period and reminder settings.
+  _DurationUnit _gracePeriodUnit = _DurationUnit.hours;
+  _DurationUnit _reminderUnit    = _DurationUnit.hours;
 
   void _initSettings() {
     final flat = widget.flatProvider.flat;
@@ -336,14 +346,15 @@ class _AdminSettingsState extends State<_AdminSettings> {
         ),
         const Divider(),
 
-        // Grace period
-        _NumberSettingRow(
+        // Grace period — supports hours or days unit toggle.
+        _DurationSettingRow(
           label: labelGracePeriod,
-          value: _gracePeriodHours,
-          unit: labelUnitHours,
-          onChanged: (v) {
-            setState(() => _gracePeriodHours = v);
-            unawaited(_saveSetting('grace_period_hours', v));
+          storedHours: _gracePeriodHours,
+          unit: _gracePeriodUnit,
+          onUnitChanged: (u) => setState(() => _gracePeriodUnit = u),
+          onHoursChanged: (h) {
+            setState(() => _gracePeriodHours = h);
+            unawaited(_saveSetting('grace_period_hours', h));
           },
         ),
         const Divider(),
@@ -360,14 +371,15 @@ class _AdminSettingsState extends State<_AdminSettings> {
         ),
         const Divider(),
 
-        // Reminder hours
-        _NumberSettingRow(
+        // Reminder — supports hours or days unit toggle.
+        _DurationSettingRow(
           label: labelReminderHours,
-          value: _reminderHours,
-          unit: labelUnitHours,
-          onChanged: (v) {
-            setState(() => _reminderHours = v);
-            unawaited(_saveSetting('reminder_hours_before_deadline', v));
+          storedHours: _reminderHours,
+          unit: _reminderUnit,
+          onUnitChanged: (u) => setState(() => _reminderUnit = u),
+          onHoursChanged: (h) {
+            setState(() => _reminderHours = h);
+            unawaited(_saveSetting('reminder_hours_before_deadline', h));
           },
         ),
         const Divider(),
@@ -379,6 +391,18 @@ class _AdminSettingsState extends State<_AdminSettings> {
         _TasksAdminSection(flatId: widget.flatId),
 
         const SizedBox(height: AppTheme.spacingMd),
+
+        // Reset all admin settings to factory defaults.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.restart_alt),
+            label: const Text(buttonResetDefaults),
+            onPressed: () => _resetToDefaults(context),
+          ),
+        ),
+
+        const SizedBox(height: AppTheme.spacingSm),
 
         // Transfer admin rights
         SizedBox(
@@ -398,13 +422,44 @@ class _AdminSettingsState extends State<_AdminSettings> {
     );
   }
 
+  Future<void> _resetToDefaults(BuildContext context) async {
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: confirmResetTitle,
+      message: confirmResetMessage,
+      confirmLabel: confirmResetLabel,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    await FlatRepository().updateFlatSettings(widget.flatId, {
+      fieldFlatVacationThreshold:   defaultVacationThresholdWeeks,
+      fieldFlatGracePeriodHours:    defaultGracePeriodHours,
+      fieldFlatReminderHours:       defaultReminderHoursBeforeDeadline,
+      fieldFlatShoppingCleanupHours: defaultShoppingCleanupHours,
+    });
+
+    // Force _initSettings to re-read from the flat document on next build.
+    setState(() => _settingsInitialised = false);
+  }
+
   Future<void> _showTransferAdminDialog(BuildContext outerCtx) async {
     final members = await PersonRepository().watchMembers(widget.flatId).first;
     final eligible = members
         .where((m) => m.uid != widget.flatProvider.currentPerson?.uid)
         .toList();
 
-    if (eligible.isEmpty || !mounted) {
+    if (eligible.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(labelTransferAdminAlone)),
+      );
+      return;
+    }
+    if (!mounted) {
       return;
     }
 
@@ -521,22 +576,36 @@ class _TasksAdminSectionState extends State<_TasksAdminSection> {
   Widget build(BuildContext context) =>
       StreamBuilder<List<Task>>(
         stream: TaskRepository().watchTasks(widget.flatId),
-        builder: (ctx, snap) {
-          final tasks = snap.data ?? [];
-          return Column(
-            children: tasks.map((task) => _TaskEditTile(
-              flatId: widget.flatId,
-              task: task,
-            )).toList(),
+        builder: (ctx, taskSnap) {
+          final tasks = taskSnap.data ?? [];
+          return StreamBuilder<List<Person>>(
+            stream: PersonRepository().watchMembers(widget.flatId),
+            builder: (ctx, memberSnap) {
+              final members = memberSnap.data ?? [];
+              return Column(
+                children: tasks.map((task) => _TaskEditTile(
+                  flatId: widget.flatId,
+                  task: task,
+                  members: members,
+                )).toList(),
+              );
+            },
           );
         },
       );
 }
 
 class _TaskEditTile extends StatefulWidget {
-  const _TaskEditTile({required this.flatId, required this.task});
+  const _TaskEditTile({
+    required this.flatId,
+    required this.task,
+    required this.members,
+  });
   final String flatId;
   final Task task;
+
+  /// All current flat members, used for the assignee dropdown.
+  final List<Person> members;
 
   @override
   State<_TaskEditTile> createState() => _TaskEditTileState();
@@ -547,6 +616,7 @@ class _TaskEditTileState extends State<_TaskEditTile> {
   late TextEditingController _nameCtrl;
   late TextEditingController _subtasksCtrl;
   late DateTime _dueDate;
+  late String _assignedTo;
 
   @override
   void initState() {
@@ -555,7 +625,8 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     _subtasksCtrl = TextEditingController(
       text: widget.task.description.join('\n'),
     );
-    _dueDate = widget.task.dueDateTime.toDate();
+    _dueDate    = widget.task.dueDateTime.toDate();
+    _assignedTo = widget.task.assignedTo;
   }
 
   @override
@@ -602,9 +673,12 @@ class _TaskEditTileState extends State<_TaskEditTile> {
           .toList(),
     );
     await repo.updateDueDateTime(widget.flatId, widget.task.id, _dueDate);
+    await repo.updateTask(widget.flatId, widget.task.id, {
+      fieldTaskAssignedTo: _assignedTo,
+    });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Task saved.')),
+        const SnackBar(content: Text(labelChangeTasks)),
       );
       setState(() => _expanded = false);
     }
@@ -663,9 +737,41 @@ class _TaskEditTileState extends State<_TaskEditTile> {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
+
+                  // Assignee dropdown — empty string means Vacant (no one).
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: labelAssignedToTask,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: widget.members.any((m) => m.uid == _assignedTo)
+                            ? _assignedTo
+                            : '',
+                        isExpanded: true,
+                        items: [
+                          const DropdownMenuItem(
+                            value: '',
+                            child: Text(labelVacant),
+                          ),
+                          ...widget.members.map(
+                            (m) => DropdownMenuItem(
+                              value: m.uid,
+                              child: Text(
+                                m.name.isNotEmpty ? m.name : m.email,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _assignedTo = v ?? ''),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
                   ElevatedButton(
                     onPressed: _save,
-                    child: const Text('Save'),
+                    child: const Text(buttonConfirm),
                   ),
                 ],
               ),
@@ -723,6 +829,94 @@ class _NumberSettingRow extends StatelessWidget {
               Text(unit, style: theme.textTheme.bodySmall?.copyWith(
                 color: AppTheme.grayMid,
               )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Duration setting row (hours / days toggle) ────────────────────────────────
+
+/// A [_NumberSettingRow] variant that lets the admin toggle between hours and
+/// days.  Values are always stored internally as hours; the toggle changes only
+/// the display granularity (1 day = 24 hours).
+class _DurationSettingRow extends StatelessWidget {
+  const _DurationSettingRow({
+    required this.label,
+    required this.storedHours,
+    required this.unit,
+    required this.onUnitChanged,
+    required this.onHoursChanged,
+  });
+
+  final String label;
+
+  /// The current value in hours as stored in Firestore.
+  final int storedHours;
+
+  final _DurationUnit unit;
+  final ValueChanged<_DurationUnit> onUnitChanged;
+
+  /// Called with the new value in hours whenever the stepper changes.
+  final ValueChanged<int> onHoursChanged;
+
+  int get _displayValue =>
+      unit == _DurationUnit.days ? (storedHours / 24).round().clamp(1, 9999) : storedHours;
+
+  /// Minimum storedHours: 1 h or 24 h (1 day) depending on unit.
+  int get _minHours => unit == _DurationUnit.days ? 24 : 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: AppTheme.spacingXs),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: storedHours > _minHours
+                    ? () => onHoursChanged(storedHours - _minHours)
+                    : null,
+              ),
+              SizedBox(
+                width: 48,
+                child: Text(
+                  '$_displayValue',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () => onHoursChanged(storedHours + _minHours),
+              ),
+              const SizedBox(width: AppTheme.spacingXs),
+              SegmentedButton<_DurationUnit>(
+                segments: const [
+                  ButtonSegment(
+                    value: _DurationUnit.hours,
+                    label: Text(labelUnitHours),
+                  ),
+                  ButtonSegment(
+                    value: _DurationUnit.days,
+                    label: Text(labelUnitDays),
+                  ),
+                ],
+                selected: {unit},
+                onSelectionChanged: (s) => onUnitChanged(s.first),
+                style: SegmentedButton.styleFrom(
+                  textStyle: theme.textTheme.bodySmall,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+              ),
             ],
           ),
         ],

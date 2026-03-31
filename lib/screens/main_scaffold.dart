@@ -26,7 +26,21 @@ class MainScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: child,
+    body: GestureDetector(
+      // translucent so taps and scrolls in child widgets are not consumed.
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity ?? 0;
+        if (v < -500 && currentIndex < _routes.length - 1) {
+          // Swipe left → next tab.
+          context.go(_routes[currentIndex + 1]);
+        } else if (v > 500 && currentIndex > 0) {
+          // Swipe right → previous tab.
+          context.go(_routes[currentIndex - 1]);
+        }
+      },
+      child: child,
+    ),
     bottomNavigationBar: BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: (i) {

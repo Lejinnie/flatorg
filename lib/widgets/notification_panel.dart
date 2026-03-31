@@ -34,6 +34,9 @@ class NotificationPanel extends StatelessWidget {
   }) {
     unawaited(showModalBottomSheet<void>(
       context: context,
+      // isScrollControlled lets the sheet expand past half-screen and avoids
+      // conflict between the dismiss gesture and an inner scroll view.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusLg),

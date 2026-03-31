@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
 import '../models/issue.dart';
+import '../models/person.dart';
 import '../models/task.dart';
 import '../providers/flat_provider.dart';
 import '../repositories/person_repository.dart';
@@ -90,24 +91,27 @@ class _TasksBody extends StatelessWidget {
                 }
               }
 
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
-                itemCount: tasks.length,
-                itemBuilder: (ctx, i) {
-                  final task         = tasks[i];
-                  final assigneeName = memberMap[task.assignedTo] ?? '';
-                  final isOwner      = task.assignedTo == currentUid;
+              return RefreshIndicator(
+                onRefresh: () async {},
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                  itemCount: tasks.length,
+                  itemBuilder: (ctx, i) {
+                    final task         = tasks[i];
+                    final assigneeName = memberMap[task.assignedTo] ?? '';
+                    final isOwner      = task.assignedTo == currentUid;
 
-                  return TaskCard(
-                    task: task,
-                    assigneeName: assigneeName,
-                    isCurrentUserAssignee: isOwner,
-                    currentPerson: currentPerson,
-                    onComplete: () => _completeTask(ctx, flatId, task),
-                    onVacation: () => _markVacation(ctx, flatId, currentUid),
-                    onRequestSwap: () => _requestSwap(ctx, flatId, task, currentUid, currentPerson?.uid ?? ''),
-                  );
-                },
+                    return TaskCard(
+                      task: task,
+                      assigneeName: assigneeName,
+                      isCurrentUserAssignee: isOwner,
+                      currentPerson: currentPerson,
+                      onComplete: () => _completeTask(ctx, flatId, task),
+                      onVacation: () => _markVacation(ctx, flatId, currentUid),
+                      onRequestSwap: () => _requestSwap(ctx, flatId, task, currentUid, currentPerson?.uid ?? ''),
+                    );
+                  },
+                ),
               );
             },
           );
@@ -194,11 +198,17 @@ class _NotificationBadge extends StatelessWidget {
   final String currentPersonName;
 
   @override
-  Widget build(BuildContext context) {
-    final repo = SwapRequestRepository();
+  // Stream members so we can resolve UIDs to display names in the panel.
+  Widget build(BuildContext context) => StreamBuilder<List<Person>>(
+      stream: PersonRepository().watchMembers(flatId),
+      builder: (ctx, memberSnap) {
+        final memberMap = <String, String>{};
+        for (final m in (memberSnap.data ?? <Person>[])) {
+          memberMap[m.uid] = m.name.isNotEmpty ? m.name : m.email;
+        }
 
     return StreamBuilder<List<SwapRequest>>(
-      stream: repo.watchPendingRequestsForUser(flatId, currentUid),
+      stream: SwapRequestRepository().watchPendingRequestsForUser(flatId, currentUid),
       builder: (ctx, snap) {
         final count = snap.data?.length ?? 0;
 
@@ -213,9 +223,7 @@ class _NotificationBadge extends StatelessWidget {
                   ctx,
                   flatId: flatId,
                   currentUid: currentUid,
-                  // Look up member names from the flat's member stream.
-                  // For simplicity we return the uid as fallback.
-                  getRequesterName: (uid) => uid,
+                  getRequesterName: (uid) => memberMap[uid] ?? uid,
                 );
               },
             ),
@@ -245,5 +253,6 @@ class _NotificationBadge extends StatelessWidget {
         );
       },
     );
-  }
+      }, // outer members StreamBuilder
+    );
 }

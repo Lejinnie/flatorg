@@ -102,7 +102,9 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
           final unbought = all.where((i) => !i.isBought).toList();
           final bought   = all.where((i) => i.isBought).toList();
 
-          return ListView(
+          return RefreshIndicator(
+            onRefresh: () async {},
+            child: ListView(
             padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
             children: [
               // Inline add field (appears at top when active).
@@ -187,7 +189,8 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
                 ),
               ],
             ],
-          );
+            ), // ListView
+          ); // RefreshIndicator
         },
       ),
     );

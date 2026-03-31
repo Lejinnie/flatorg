@@ -82,47 +82,71 @@ class _IssuesBodyState extends State<_IssuesBody> {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
 
+    // Use a List as a mutable holder so triedSubmit persists across StatefulBuilder rebuilds.
+    final triedSubmit = [false];
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        // Wider than the default — the description field needs more room.
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingMd,
-          vertical: AppTheme.spacingLg,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        ),
-        title: const Text(buttonAddIssue),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(hintText: hintIssueTitle),
-              textInputAction: TextInputAction.next,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          // Wider than the default — the description field needs more room.
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.spacingMd,
+            vertical: AppTheme.spacingLg,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          ),
+          title: const Text(buttonAddIssue),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(hintText: hintIssueTitle),
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => setDialogState(() {}),
+              ),
+              if (triedSubmit[0] && titleCtrl.text.trim().isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                  child: Text(
+                    errorIssueTitleRequired,
+                    style: TextStyle(
+                      color: AppTheme.destructiveRed,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: AppTheme.spacingSm),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(hintText: hintIssueDescription),
+                // newline so Enter inserts a line break rather than submitting.
+                maxLines: 6,
+                textInputAction: TextInputAction.newline,
+                keyboardType: TextInputType.multiline,
+              ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(buttonCancel),
             ),
-            const SizedBox(height: AppTheme.spacingSm),
-            TextField(
-              controller: descCtrl,
-              decoration: const InputDecoration(hintText: hintIssueDescription),
-              // newline so Enter inserts a line break rather than submitting.
-              maxLines: 6,
-              textInputAction: TextInputAction.newline,
-              keyboardType: TextInputType.multiline,
+            ElevatedButton(
+              onPressed: () {
+                if (titleCtrl.text.trim().isEmpty) {
+                  setDialogState(() => triedSubmit[0] = true);
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text(buttonConfirm),
             ),
           ],
         ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(buttonCancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(buttonConfirm),
-          ),
-        ],
       ),
     );
 
@@ -303,7 +327,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
               return Stack(
                 children: [
-                  ListView(
+                  RefreshIndicator(
+                    onRefresh: () async {},
+                  child: ListView(
                     padding: EdgeInsets.only(
                       bottom: _selectionMode ? 80 : AppTheme.spacingSm,
                       top: AppTheme.spacingXs,
@@ -366,7 +392,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
                         ),
                       ],
                     ],
-                  ),
+                  ), // ListView
+                  ), // RefreshIndicator
 
                   // Selection mode bottom action bar.
                   if (_selectionMode)
@@ -402,7 +429,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
   AppBar _selectionAppBar(BuildContext context, String flatId) => AppBar(
         leading: TextButton(
           onPressed: _exitSelection,
-          child: const Text(buttonCancel),
+          child: const Text(buttonGoBack),
         ),
         leadingWidth: 80,
         title: const Text(headingIssues),
@@ -453,13 +480,16 @@ class _SelectionActionBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.send_outlined),
-              label: const Text(buttonSend),
-              onPressed: canSend ? onSend : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    canSend ? AppTheme.featureColor : AppTheme.grayLight,
+            child: Tooltip(
+              message: canSend ? '' : tooltipSendRestricted,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.send_outlined),
+                label: const Text(buttonSend),
+                onPressed: canSend ? onSend : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      canSend ? AppTheme.featureColor : AppTheme.grayLight,
+                ),
               ),
             ),
           ),

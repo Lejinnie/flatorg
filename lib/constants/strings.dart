@@ -225,6 +225,7 @@ const confirmSendLabel = 'Send';
 
 const buttonCancel = 'Cancel';
 const buttonConfirm = 'Confirm';
+const buttonGoBack = 'Go Back';
 
 // ── Shopping screen ───────────────────────────────────────────────────────────
 
@@ -263,6 +264,14 @@ const labelUnitHours = 'hours';
 const labelUnitMinutes = 'minutes';
 const labelUnitDays = 'days';
 const labelSelectMember = 'Select a member';
+const labelTransferAdminAlone =
+    'You are the only member. Add members before transferring admin rights.';
+const labelAssignedToTask = 'Assigned to';
+const buttonResetDefaults = 'Reset to defaults';
+const confirmResetTitle = 'Reset settings?';
+const confirmResetMessage =
+    'This will restore all admin settings to their default values.';
+const confirmResetLabel = 'Reset';
 
 // ── Log out ───────────────────────────────────────────────────────────────────
 
@@ -274,3 +283,6 @@ const confirmLogOutLabel = 'Log out';
 // ── Generic error ─────────────────────────────────────────────────────────────
 
 const errorGeneric = 'Something went wrong. Please try again.';
+const errorIssueTitleRequired = 'Title is required';
+const tooltipSendRestricted =
+    'Only the person assigned to the Shopping task can send issues to Livit';

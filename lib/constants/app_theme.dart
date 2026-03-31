@@ -225,7 +225,6 @@ class AppTheme {
         secondary: highlightColor,
         surface: bgDark,
         onPrimary: Colors.white,
-        onSecondary: Colors.black,
 
         error: stateNotDone,
       ),
