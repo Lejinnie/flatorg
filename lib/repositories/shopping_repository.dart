@@ -15,13 +15,15 @@ class ShoppingRepository {
           .doc(flatId)
           .collection(collectionShoppingItems);
 
-  /// Returns a real-time stream of all shopping items.
-  /// Unbought items are returned before bought ones (Firestore orderBy on bool not supported;
-  /// ordering is done client-side in the UI).
+  /// Returns a real-time stream of all shopping items sorted by [ShoppingItem.order].
+  /// Sorting is done client-side because the `order` field may be absent on items
+  /// created before this field was introduced.
   Stream<List<ShoppingItem>> watchShoppingItems(String flatId) =>
-      _shoppingCollection(flatId)
-          .snapshots()
-          .map((snap) => snap.docs.map(ShoppingItem.fromFirestore).toList());
+      _shoppingCollection(flatId).snapshots().map((snap) {
+        final items = snap.docs.map(ShoppingItem.fromFirestore).toList()
+          ..sort((a, b) => a.order.compareTo(b.order));
+        return items;
+      });
 
   /// Adds a new shopping item.
   Future<void> addShoppingItem(String flatId, ShoppingItem item) async {
@@ -47,5 +49,18 @@ class ShoppingRepository {
   /// Deletes a shopping item.
   Future<void> deleteItem(String flatId, String itemId) async {
     await _shoppingCollection(flatId).doc(itemId).delete();
+  }
+
+  /// Batch-writes a new [fieldShoppingOrder] value for each item based on its
+  /// position in [items].  Used after the user reorders the list.
+  Future<void> updateItemOrders(String flatId, List<ShoppingItem> items) async {
+    final batch = _db.batch();
+    for (var i = 0; i < items.length; i++) {
+      batch.update(
+        _shoppingCollection(flatId).doc(items[i].id),
+        {fieldShoppingOrder: i},
+      );
+    }
+    await batch.commit();
   }
 }

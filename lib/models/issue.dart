@@ -162,12 +162,17 @@ class ShoppingItem {
   /// Null when not yet bought.
   final Timestamp? boughtAt;
 
+  /// Position in the unbought list for manual reordering.
+  /// Defaults to 0 for items created before this field was introduced.
+  final int order;
+
   const ShoppingItem({
     required this.id,
     required this.text,
     required this.addedBy,
     required this.isBought,
     required this.boughtAt,
+    this.order = 0,
   });
 
   factory ShoppingItem.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -178,6 +183,7 @@ class ShoppingItem {
       addedBy: (data[fieldShoppingAddedBy] as String?) ?? '',
       isBought: (data[fieldShoppingIsBought] as bool?) ?? false,
       boughtAt: data[fieldShoppingBoughtAt] as Timestamp?,
+      order: (data[fieldShoppingOrder] as int?) ?? 0,
     );
   }
 
@@ -186,6 +192,7 @@ class ShoppingItem {
     fieldShoppingAddedBy: addedBy,
     fieldShoppingIsBought: isBought,
     fieldShoppingBoughtAt: boughtAt,
+    fieldShoppingOrder: order,
   };
 
   ShoppingItem copyWith({
@@ -194,11 +201,13 @@ class ShoppingItem {
     String? addedBy,
     bool? isBought,
     Timestamp? boughtAt,
+    int? order,
   }) => ShoppingItem(
     id: id ?? this.id,
     text: text ?? this.text,
     addedBy: addedBy ?? this.addedBy,
     isBought: isBought ?? this.isBought,
     boughtAt: boughtAt ?? this.boughtAt,
+    order: order ?? this.order,
   );
 }

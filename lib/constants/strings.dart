@@ -56,6 +56,7 @@ const fieldShoppingText = 'text';
 const fieldShoppingAddedBy = 'added_by';
 const fieldShoppingIsBought = 'is_bought';
 const fieldShoppingBoughtAt = 'bought_at';
+const fieldShoppingOrder = 'order';
 
 // ── Swap request field names ──────────────────────────────────────────────────
 
