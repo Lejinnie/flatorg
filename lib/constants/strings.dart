@@ -267,7 +267,7 @@ const labelSelectMember = 'Select a member';
 const labelTransferAdminAlone =
     'You are the only member. Add members before transferring admin rights.';
 const labelAssignedToTask = 'Assigned to';
-const buttonResetDefaults = 'Reset to defaults';
+const buttonResetDefaults = 'Reset above settings to default';
 const confirmResetTitle = 'Reset settings?';
 const confirmResetMessage =
     'This will restore all admin settings to their default values.';
@@ -284,5 +284,7 @@ const confirmLogOutLabel = 'Log out';
 
 const errorGeneric = 'Something went wrong. Please try again.';
 const errorIssueTitleRequired = 'Title is required';
+const errorIssueDescRequired = 'Description is required';
 const tooltipSendRestricted =
     'Only the person assigned to the Shopping task can send issues to Livit';
+const labelMemberNameNotLoaded = 'Not loaded';

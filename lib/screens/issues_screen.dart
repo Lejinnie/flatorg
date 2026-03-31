@@ -91,44 +91,59 @@ class _IssuesBodyState extends State<_IssuesBody> {
         builder: (ctx, setDialogState) => AlertDialog(
           // Wider than the default — the description field needs more room.
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingMd,
-            vertical: AppTheme.spacingLg,
+            horizontal: 8,
+            vertical: AppTheme.spacingMd,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
           title: const Text(buttonAddIssue),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleCtrl,
-                decoration: const InputDecoration(hintText: hintIssueTitle),
-                textInputAction: TextInputAction.next,
-                onChanged: (_) => setDialogState(() {}),
-              ),
-              if (triedSubmit[0] && titleCtrl.text.trim().isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: AppTheme.spacingXs),
-                  child: Text(
-                    errorIssueTitleRequired,
-                    style: TextStyle(
-                      color: AppTheme.destructiveRed,
-                      fontSize: 12,
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 280),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(hintText: hintIssueTitle),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                if (triedSubmit[0] && titleCtrl.text.trim().isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                    child: Text(
+                      errorIssueTitleRequired,
+                      style: TextStyle(
+                        color: AppTheme.destructiveRed,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(hintText: hintIssueDescription),
+                  // newline so Enter inserts a line break rather than submitting.
+                  maxLines: 8,
+                  textInputAction: TextInputAction.newline,
+                  keyboardType: TextInputType.multiline,
+                  onChanged: (_) => setDialogState(() {}),
                 ),
-              const SizedBox(height: AppTheme.spacingSm),
-              TextField(
-                controller: descCtrl,
-                decoration: const InputDecoration(hintText: hintIssueDescription),
-                // newline so Enter inserts a line break rather than submitting.
-                maxLines: 6,
-                textInputAction: TextInputAction.newline,
-                keyboardType: TextInputType.multiline,
-              ),
-            ],
+                if (triedSubmit[0] && descCtrl.text.trim().isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                    child: Text(
+                      errorIssueDescRequired,
+                      style: TextStyle(
+                        color: AppTheme.destructiveRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
           actions: [
             OutlinedButton(
@@ -137,7 +152,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (titleCtrl.text.trim().isEmpty) {
+                if (titleCtrl.text.trim().isEmpty ||
+                    descCtrl.text.trim().isEmpty) {
                   setDialogState(() => triedSubmit[0] = true);
                   return;
                 }
@@ -286,19 +302,27 @@ class _IssuesBodyState extends State<_IssuesBody> {
     final senderName = currentPerson?.name ?? '';
 
     return Scaffold(
-      appBar: _selectionMode
-          ? _selectionAppBar(context, flatId)
-          : AppBar(
-              title: const Text(headingIssues),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined),
-                  tooltip: headingSettings,
-                  onPressed: () => context.push(routeSettings),
-                ),
-              ],
+      appBar: AppBar(
+        title: const Text(headingIssues),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: headingSettings,
+            onPressed: () => context.push(routeSettings),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_selectionMode)
+            _SelectionBar(
+              onGoBack: _exitSelection,
+              onSelectAll: (allIssues) {
+                setState(() => _selectedIds.addAll(allIssues.map((i) => i.id)));
+              },
+              flatId: flatId,
             ),
-      body: StreamBuilder<List<Issue>>(
+          Expanded(child: StreamBuilder<List<Issue>>(
         stream: IssueRepository().watchIssues(flatId),
         builder: (ctx, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
@@ -422,31 +446,52 @@ class _IssuesBodyState extends State<_IssuesBody> {
             },
           );
         },
-      ),
+      )), // Expanded + StreamBuilder
+        ],
+      ), // Column
     );
   }
+}
 
-  AppBar _selectionAppBar(BuildContext context, String flatId) => AppBar(
-        leading: TextButton(
-          onPressed: _exitSelection,
-          child: const Text(buttonGoBack),
-        ),
-        leadingWidth: 80,
-        title: const Text(headingIssues),
-        actions: [
-          StreamBuilder<List<Issue>>(
-            stream: IssueRepository().watchIssues(flatId),
-            builder: (ctx, snap) {
-              final all = snap.data ?? [];
-              return TextButton(
-                onPressed: () {
-                  setState(() => _selectedIds.addAll(all.map((i) => i.id)));
-                },
-                child: const Text(buttonSelectAll),
-              );
-            },
-          ),
-        ],
+/// Bar shown below the AppBar title when selection mode is active.
+/// Provides "Go Back" (exit selection) and "Select All" controls.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.onGoBack,
+    required this.onSelectAll,
+    required this.flatId,
+  });
+
+  final VoidCallback onGoBack;
+  final void Function(List<Issue> allIssues) onSelectAll;
+  final String flatId;
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<List<Issue>>(
+        stream: IssueRepository().watchIssues(flatId),
+        builder: (ctx, snap) {
+          final all = snap.data ?? [];
+          return Container(
+            color: Theme.of(context).colorScheme.surface,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingSm,
+              vertical: AppTheme.spacingXs,
+            ),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: onGoBack,
+                  child: const Text(buttonGoBack),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => onSelectAll(all),
+                  child: const Text(buttonSelectAll),
+                ),
+              ],
+            ),
+          );
+        },
       );
 }
 

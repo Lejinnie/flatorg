@@ -209,7 +209,7 @@ class _MembersSection extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            member.name.isNotEmpty ? member.name : member.email,
+                            member.name.isNotEmpty ? member.name : labelMemberNameNotLoaded,
                             style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
                               color: removeMode && !isSelf
                                   ? AppTheme.stateNotDone
@@ -279,11 +279,6 @@ class _MembersSection extends StatelessWidget {
   }
 }
 
-// ── Duration unit toggle ──────────────────────────────────────────────────────
-
-/// Whether the user is currently editing duration in hours or days.
-enum _DurationUnit { hours, days }
-
 // ── Admin settings ────────────────────────────────────────────────────────────
 
 class _AdminSettings extends StatefulWidget {
@@ -303,10 +298,6 @@ class _AdminSettingsState extends State<_AdminSettings> {
   late int _reminderHours;
 
   var _settingsInitialised = false;
-
-  // Duration unit toggles for grace period and reminder settings.
-  _DurationUnit _gracePeriodUnit = _DurationUnit.hours;
-  _DurationUnit _reminderUnit    = _DurationUnit.hours;
 
   void _initSettings() {
     final flat = widget.flatProvider.flat;
@@ -346,15 +337,26 @@ class _AdminSettingsState extends State<_AdminSettings> {
         ),
         const Divider(),
 
-        // Grace period — supports hours or days unit toggle.
-        _DurationSettingRow(
+        // Grace period — days row + hours row (stored as total hours).
+        _NumberSettingRow(
           label: labelGracePeriod,
-          storedHours: _gracePeriodHours,
-          unit: _gracePeriodUnit,
-          onUnitChanged: (u) => setState(() => _gracePeriodUnit = u),
-          onHoursChanged: (h) {
-            setState(() => _gracePeriodHours = h);
-            unawaited(_saveSetting('grace_period_hours', h));
+          value: _gracePeriodHours ~/ 24,
+          unit: labelUnitDays,
+          allowZero: true,
+          onChanged: (d) {
+            final newTotal = (d * 24 + _gracePeriodHours % 24).clamp(1, 9999);
+            setState(() => _gracePeriodHours = newTotal);
+            unawaited(_saveSetting(fieldFlatGracePeriodHours, newTotal));
+          },
+        ),
+        _NumberSettingRow(
+          value: _gracePeriodHours % 24,
+          unit: labelUnitHours,
+          allowZero: true,
+          onChanged: (h) {
+            final newTotal = (_gracePeriodHours ~/ 24 * 24 + h).clamp(1, 9999);
+            setState(() => _gracePeriodHours = newTotal);
+            unawaited(_saveSetting(fieldFlatGracePeriodHours, newTotal));
           },
         ),
         const Divider(),
@@ -366,43 +368,55 @@ class _AdminSettingsState extends State<_AdminSettings> {
           unit: labelUnitHours,
           onChanged: (v) {
             setState(() => _cleanupHours = v);
-            unawaited(_saveSetting('shopping_cleanup_hours', v));
+            unawaited(_saveSetting(fieldFlatShoppingCleanupHours, v));
           },
         ),
         const Divider(),
 
-        // Reminder — supports hours or days unit toggle.
-        _DurationSettingRow(
+        // Reminder — days row + hours row (stored as total hours).
+        _NumberSettingRow(
           label: labelReminderHours,
-          storedHours: _reminderHours,
-          unit: _reminderUnit,
-          onUnitChanged: (u) => setState(() => _reminderUnit = u),
-          onHoursChanged: (h) {
-            setState(() => _reminderHours = h);
-            unawaited(_saveSetting('reminder_hours_before_deadline', h));
+          value: _reminderHours ~/ 24,
+          unit: labelUnitDays,
+          allowZero: true,
+          onChanged: (d) {
+            final newTotal = (d * 24 + _reminderHours % 24).clamp(1, 9999);
+            setState(() => _reminderHours = newTotal);
+            unawaited(_saveSetting(fieldFlatReminderHours, newTotal));
+          },
+        ),
+        _NumberSettingRow(
+          value: _reminderHours % 24,
+          unit: labelUnitHours,
+          allowZero: true,
+          onChanged: (h) {
+            final newTotal = (_reminderHours ~/ 24 * 24 + h).clamp(1, 9999);
+            setState(() => _reminderHours = newTotal);
+            unawaited(_saveSetting(fieldFlatReminderHours, newTotal));
           },
         ),
         const Divider(),
 
-        const SizedBox(height: AppTheme.spacingMd),
+        // Reset the four settings above to factory defaults.
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.restart_alt),
+              label: const Text(buttonResetDefaults),
+              onPressed: () => _resetToDefaults(context),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: AppTheme.spacingSm),
 
         // Change Tasks section
         const _SectionHeader(labelChangeTasks),
         _TasksAdminSection(flatId: widget.flatId),
 
         const SizedBox(height: AppTheme.spacingMd),
-
-        // Reset all admin settings to factory defaults.
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.restart_alt),
-            label: const Text(buttonResetDefaults),
-            onPressed: () => _resetToDefaults(context),
-          ),
-        ),
-
-        const SizedBox(height: AppTheme.spacingSm),
 
         // Transfer admin rights
         SizedBox(
@@ -677,8 +691,27 @@ class _TaskEditTileState extends State<_TaskEditTile> {
       fieldTaskAssignedTo: _assignedTo,
     });
     if (mounted) {
+      // Build a descriptive message: Changed "Task" from Old to New.
+      String resolveName(String uid) {
+        if (uid.isEmpty) {
+          return labelVacant;
+        }
+        final match = widget.members.where((m) => m.uid == uid).firstOrNull;
+        if (match == null) {
+          return labelVacant;
+        }
+        return match.name.isNotEmpty ? match.name : match.email;
+      }
+
+      final oldName = resolveName(widget.task.assignedTo);
+      final newName = resolveName(_assignedTo);
+      final taskName = _nameCtrl.text.trim().isNotEmpty
+          ? _nameCtrl.text.trim()
+          : widget.task.name;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(labelChangeTasks)),
+        SnackBar(
+          content: Text('Changed "$taskName" from $oldName to $newName'),
+        ),
       );
       setState(() => _expanded = false);
     }
@@ -739,34 +772,33 @@ class _TaskEditTileState extends State<_TaskEditTile> {
                   const SizedBox(height: AppTheme.spacingSm),
 
                   // Assignee dropdown — empty string means Vacant (no one).
-                  InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: labelAssignedToTask,
+                  Text(
+                    labelAssignedToTask,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryTextColor,
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: widget.members.any((m) => m.uid == _assignedTo)
-                            ? _assignedTo
-                            : '',
-                        isExpanded: true,
-                        items: [
-                          const DropdownMenuItem(
-                            value: '',
-                            child: Text(labelVacant),
-                          ),
-                          ...widget.members.map(
-                            (m) => DropdownMenuItem(
-                              value: m.uid,
-                              child: Text(
-                                m.name.isNotEmpty ? m.name : m.email,
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _assignedTo = v ?? ''),
+                  ),
+                  const SizedBox(height: AppTheme.spacingXs),
+                  DropdownButton<String>(
+                    value: widget.members.any((m) => m.uid == _assignedTo)
+                        ? _assignedTo
+                        : '',
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text(labelVacant),
                       ),
-                    ),
+                      ...widget.members.map(
+                        (m) => DropdownMenuItem(
+                          value: m.uid,
+                          child: Text(
+                            m.name.isNotEmpty ? m.name : m.email,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _assignedTo = v ?? ''),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   ElevatedButton(
@@ -786,32 +818,37 @@ class _TaskEditTileState extends State<_TaskEditTile> {
 
 class _NumberSettingRow extends StatelessWidget {
   const _NumberSettingRow({
-    required this.label,
     required this.value,
     required this.unit,
     required this.onChanged,
+    this.label = '',
+    this.allowZero = false,
   });
 
   final String label;
   final int value;
   final String unit;
   final ValueChanged<int> onChanged;
+  final bool allowZero;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final minValue = allowZero ? 0 : 1;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: AppTheme.spacingXs),
+          if (label.isNotEmpty) ...[
+            Text(label, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: AppTheme.spacingXs),
+          ],
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
-                onPressed: value > 1 ? () => onChanged(value - 1) : null,
+                onPressed: value > minValue ? () => onChanged(value - 1) : null,
               ),
               SizedBox(
                 width: 48,
@@ -827,96 +864,8 @@ class _NumberSettingRow extends StatelessWidget {
               ),
               const SizedBox(width: AppTheme.spacingXs),
               Text(unit, style: theme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.grayMid,
+                color: AppTheme.secondaryTextColor,
               )),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Duration setting row (hours / days toggle) ────────────────────────────────
-
-/// A [_NumberSettingRow] variant that lets the admin toggle between hours and
-/// days.  Values are always stored internally as hours; the toggle changes only
-/// the display granularity (1 day = 24 hours).
-class _DurationSettingRow extends StatelessWidget {
-  const _DurationSettingRow({
-    required this.label,
-    required this.storedHours,
-    required this.unit,
-    required this.onUnitChanged,
-    required this.onHoursChanged,
-  });
-
-  final String label;
-
-  /// The current value in hours as stored in Firestore.
-  final int storedHours;
-
-  final _DurationUnit unit;
-  final ValueChanged<_DurationUnit> onUnitChanged;
-
-  /// Called with the new value in hours whenever the stepper changes.
-  final ValueChanged<int> onHoursChanged;
-
-  int get _displayValue =>
-      unit == _DurationUnit.days ? (storedHours / 24).round().clamp(1, 9999) : storedHours;
-
-  /// Minimum storedHours: 1 h or 24 h (1 day) depending on unit.
-  int get _minHours => unit == _DurationUnit.days ? 24 : 1;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: AppTheme.spacingXs),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.remove_circle_outline),
-                onPressed: storedHours > _minHours
-                    ? () => onHoursChanged(storedHours - _minHours)
-                    : null,
-              ),
-              SizedBox(
-                width: 48,
-                child: Text(
-                  '$_displayValue',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline),
-                onPressed: () => onHoursChanged(storedHours + _minHours),
-              ),
-              const SizedBox(width: AppTheme.spacingXs),
-              SegmentedButton<_DurationUnit>(
-                segments: const [
-                  ButtonSegment(
-                    value: _DurationUnit.hours,
-                    label: Text(labelUnitHours),
-                  ),
-                  ButtonSegment(
-                    value: _DurationUnit.days,
-                    label: Text(labelUnitDays),
-                  ),
-                ],
-                selected: {unit},
-                onSelectionChanged: (s) => onUnitChanged(s.first),
-                style: SegmentedButton.styleFrom(
-                  textStyle: theme.textTheme.bodySmall,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                ),
-              ),
             ],
           ),
         ],

@@ -50,6 +50,9 @@ class AppTheme {
   /// Secondary / hint text.
   static const grayMid = Color(0xFF6B7280);
 
+  /// Unit labels and non-critical annotations — lighter than grayMid.
+  static const secondaryTextColor = Color(0xFF9CA3AF);
+
   /// Primary body text (light mode).
   static const grayDark = Color(0xFF374151);
 
