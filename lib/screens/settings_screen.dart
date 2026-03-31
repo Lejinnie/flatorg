@@ -224,13 +224,13 @@ class _MembersSection extends StatelessWidget {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: AppTheme.featureColor.withAlpha(60),
+                                color: AppTheme.highlightColor.withAlpha(60),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 labelAdminBadge,
                                 style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.grayDark,
+                                  color: AppTheme.highlightColor,
                                 ),
                               ),
                             ),

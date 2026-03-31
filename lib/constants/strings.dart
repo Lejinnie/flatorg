@@ -225,7 +225,7 @@ const confirmSendLabel = 'Send';
 
 const buttonCancel = 'Cancel';
 const buttonConfirm = 'Confirm';
-const buttonGoBack = 'Go Back';
+const buttonGoBack = 'Exit selection';
 
 // ── Shopping screen ───────────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ const labelRecentlySent = 'Recently sent';
 // ── Settings screen ───────────────────────────────────────────────────────────
 
 const labelMembers = 'Members';
-const labelAdminBadge = '(admin)';
+const labelAdminBadge = 'admin';
 const labelAdminOnlySettings = 'Admin Settings';
 const labelVacationThreshold = 'How many weeks can a task stay uncleaned?';
 const labelGracePeriod = 'How long can a person still submit a task as done?';
