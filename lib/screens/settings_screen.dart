@@ -204,7 +204,7 @@ class _MembersSection extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            member.name.isNotEmpty ? member.name : labelMemberNameNotLoaded,
+                            member.name.isNotEmpty ? member.name : member.email,
                             style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
                               color: removeMode && !isSelf
                                   ? AppTheme.stateNotDone
@@ -424,8 +424,6 @@ class _AdminSettingsState extends State<_AdminSettings> {
             child: const Text(labelTransferAdmin),
           ),
         ),
-
-        const SizedBox(height: AppTheme.spacingXl),
       ],
     );
   }

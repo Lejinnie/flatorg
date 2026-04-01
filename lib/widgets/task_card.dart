@@ -67,6 +67,10 @@ class _TaskCardState extends State<TaskCard> {
     if (task.state == TaskState.vacant) {
       return AppTheme.stateVacant;
     }
+    // Unassigned task (no one has this slot yet) → blue like vacant.
+    if (task.assignedTo.isEmpty) {
+      return AppTheme.stateVacant;
+    }
     // Assignee on vacation → blue, regardless of the task's own state.
     if (widget.assigneePerson?.onVacation ?? false) {
       return AppTheme.stateVacant;

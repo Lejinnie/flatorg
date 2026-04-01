@@ -17,6 +17,7 @@ class NotificationPanel extends StatelessWidget {
     required this.flatId,
     required this.currentUid,
     required this.getRequesterName,
+    required this.scrollController,
     super.key,
   });
 
@@ -26,6 +27,10 @@ class NotificationPanel extends StatelessWidget {
   /// Callback to look up a member's display name by UID.
   final String Function(String uid) getRequesterName;
 
+  /// Provided by [DraggableScrollableSheet] so the inner list and the sheet
+  /// drag gesture share the same scroll physics — prevents flickering.
+  final ScrollController scrollController;
+
   static void show(
     BuildContext context, {
     required String flatId,
@@ -34,18 +39,27 @@ class NotificationPanel extends StatelessWidget {
   }) {
     unawaited(showModalBottomSheet<void>(
       context: context,
-      // isScrollControlled lets the sheet expand past half-screen and avoids
-      // conflict between the dismiss gesture and an inner scroll view.
+      // isScrollControlled is required for DraggableScrollableSheet to work
+      // correctly — without it the sheet is capped at 50 % height and the
+      // drag handle fights the inner ListView for scroll events.
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppTheme.radiusLg),
         ),
       ),
-      builder: (_) => NotificationPanel(
-        flatId: flatId,
-        currentUid: currentUid,
-        getRequesterName: getRequesterName,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.45,
+        maxChildSize: 0.85,
+        // expand: false keeps the sheet within the bottom-sheet frame rather
+        // than filling the entire screen when dragged to max.
+        expand: false,
+        builder: (ctx, scrollController) => NotificationPanel(
+          flatId: flatId,
+          currentUid: currentUid,
+          getRequesterName: getRequesterName,
+          scrollController: scrollController,
+        ),
       ),
     ));
   }
@@ -55,59 +69,68 @@ class NotificationPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final repo  = SwapRequestRepository();
 
-    return Padding(
-      padding: const EdgeInsets.all(AppTheme.spacingMd),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.grayLight,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTheme.spacingMd),
+    return StreamBuilder<List<SwapRequest>>(
+      stream: repo.watchPendingRequestsForUser(flatId, currentUid),
+      builder: (ctx, snap) {
+        final requests = snap.data ?? [];
 
-          Text(labelNotifications, style: theme.textTheme.titleMedium),
-          const SizedBox(height: AppTheme.spacingSm),
-
-          StreamBuilder<List<SwapRequest>>(
-            stream: repo.watchPendingRequestsForUser(flatId, currentUid),
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final requests = snap.data ?? [];
-
-              if (requests.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTheme.spacingLg,
-                  ),
-                  child: Center(
-                    child: Text(
-                      labelNoNotifications,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.grayMid,
+        return CustomScrollView(
+          controller: scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spacingMd,
+                  AppTheme.spacingMd,
+                  AppTheme.spacingMd,
+                  AppTheme.spacingSm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppTheme.grayLight,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }
-
-              return ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(ctx).size.height * 0.5,
+                    const SizedBox(height: AppTheme.spacingMd),
+                    Text(
+                      labelNotifications,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppTheme.spacingSm),
+                  ],
                 ),
-                child: ListView.separated(
-                  shrinkWrap: true,
+              ),
+            ),
+
+            if (snap.connectionState == ConnectionState.waiting)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (requests.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    labelNoNotifications,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.grayMid,
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingMd,
+                ),
+                sliver: SliverList.separated(
                   itemCount: requests.length,
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (ctx, i) {
@@ -128,11 +151,10 @@ class NotificationPanel extends StatelessWidget {
                     );
                   },
                 ),
-              );
-            },
-          ),
-        ],
-      ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
