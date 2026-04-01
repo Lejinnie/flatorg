@@ -57,13 +57,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.all(AppTheme.spacingMd),
           children: [
             // ── Members ───────────────────────────────────────────────
-            const _SectionHeader(labelMembers),
+            Row(
+              children: [
+                const Expanded(child: _SectionHeader(labelMembers)),
+                if (isAdmin)
+                  IconButton(
+                    icon: Icon(
+                      _removeMode ? Icons.close : Icons.edit,
+                      size: 20,
+                    ),
+                    tooltip: _removeMode ? buttonCancel : labelEditMembers,
+                    onPressed: () =>
+                        setState(() => _removeMode = !_removeMode),
+                  ),
+              ],
+            ),
             _MembersSection(
               flatId: flatId,
               currentPerson: currentPerson,
               removeMode: _removeMode,
               isAdmin: isAdmin,
-              onEnterRemoveMode: () => setState(() => _removeMode = true),
               onExitRemoveMode: () => setState(() => _removeMode = false),
             ),
 
@@ -157,7 +170,6 @@ class _MembersSection extends StatelessWidget {
     required this.currentPerson,
     required this.removeMode,
     required this.isAdmin,
-    required this.onEnterRemoveMode,
     required this.onExitRemoveMode,
   });
 
@@ -165,7 +177,6 @@ class _MembersSection extends StatelessWidget {
   final Person? currentPerson;
   final bool removeMode;
   final bool isAdmin;
-  final VoidCallback onEnterRemoveMode;
   final VoidCallback onExitRemoveMode;
 
   @override
@@ -179,14 +190,7 @@ class _MembersSection extends StatelessWidget {
             final isSelf = member.uid == currentPerson?.uid;
             final isThisAdmin = member.isAdmin;
 
-            return GestureDetector(
-              // opaque so the whole tile area (including padding) is a valid
-              // long-press target, not just the text inside it.
-              behavior: HitTestBehavior.opaque,
-              onLongPress: isAdmin && !isSelf
-                  ? onEnterRemoveMode
-                  : null,
-              child: Container(
+            return Container(
                 margin: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spacingMd,
@@ -249,7 +253,6 @@ class _MembersSection extends StatelessWidget {
                       ),
                   ],
                 ),
-              ),
             );
           }).toList(),
         );

@@ -22,6 +22,7 @@ class TaskCard extends StatefulWidget {
     required this.onComplete,
     required this.onVacation,
     required this.onRequestSwap,
+    this.assigneePerson,
     super.key,
   });
 
@@ -35,6 +36,10 @@ class TaskCard extends StatefulWidget {
 
   /// The signed-in user's Person document (for token counts, vacation flag).
   final Person? currentPerson;
+
+  /// Full Person document of the task's assignee, used to detect on-vacation
+  /// status so the swap confirmation can note that no reply is needed.
+  final Person? assigneePerson;
 
   /// Called when the assignee confirms task completion.
   final VoidCallback onComplete;
@@ -272,10 +277,17 @@ class _TaskCardState extends State<TaskCard> {
   }
 
   Future<void> _confirmSwap(BuildContext context, int tokens) async {
-    final msg = confirmSwapMessage.replaceFirst(
+    final isVacant = widget.task.assignedTo.isEmpty ||
+        widget.task.state == TaskState.vacant;
+    final isOnVacation = widget.assigneePerson?.onVacation ?? false;
+    final isImmediate = isVacant || isOnVacation;
+
+    final baseMsg = confirmSwapMessage.replaceFirst(
       '{tokens}',
       '$tokens/$swapTokensPerSemester',
     );
+    final msg = isImmediate ? '$baseMsg\n\n$confirmSwapImmediateNote' : baseMsg;
+
     final confirmed = await showConfirmationDialog(
       context,
       title: confirmSwapTitle,

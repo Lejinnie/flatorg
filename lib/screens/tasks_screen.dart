@@ -74,21 +74,13 @@ class _TasksBody extends StatelessWidget {
             );
           }
 
-          // Fetch all members for name resolution.
-          return StreamBuilder<List<dynamic>>(
-            stream: _membersStream(flatId),
+          // Fetch all members for name + vacation-status resolution.
+          return StreamBuilder<List<Person>>(
+            stream: PersonRepository().watchMembers(flatId),
             builder: (ctx, memberSnap) {
-              final memberMap = <String, String>{};
-              if (memberSnap.hasData) {
-                for (final m in memberSnap.data!) {
-                  if (m is Map<String, dynamic>) {
-                    final uid  = m['uid'] as String? ?? '';
-                    final name = m['name'] as String? ?? '';
-                    if (uid.isNotEmpty) {
-                      memberMap[uid] = name;
-                    }
-                  }
-                }
+              final memberMap = <String, Person>{};
+              for (final m in memberSnap.data ?? <Person>[]) {
+                memberMap[m.uid] = m;
               }
 
               return RefreshIndicator(
@@ -97,18 +89,21 @@ class _TasksBody extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
                   itemCount: tasks.length,
                   itemBuilder: (ctx, i) {
-                    final task         = tasks[i];
-                    final assigneeName = memberMap[task.assignedTo] ?? '';
-                    final isOwner      = task.assignedTo == currentUid;
+                    final task           = tasks[i];
+                    final assigneePerson = memberMap[task.assignedTo];
+                    final assigneeName   = assigneePerson?.name ?? '';
+                    final isOwner        = task.assignedTo == currentUid;
 
                     return TaskCard(
                       task: task,
                       assigneeName: assigneeName,
                       isCurrentUserAssignee: isOwner,
                       currentPerson: currentPerson,
+                      assigneePerson: assigneePerson,
                       onComplete: () => _completeTask(ctx, flatId, task),
                       onVacation: () => _markVacation(ctx, flatId, currentUid),
-                      onRequestSwap: () => _requestSwap(ctx, flatId, task, currentUid, currentPerson?.uid ?? ''),
+                      onRequestSwap: () => _requestSwap(
+                          ctx, flatId, task, currentUid, currentPerson?.uid ?? ''),
                     );
                   },
                 ),
@@ -120,17 +115,6 @@ class _TasksBody extends StatelessWidget {
     );
   }
 
-  Stream<List<dynamic>> _membersStream(String flatId) =>
-      FirebaseFirestore.instance
-          .collection('flats')
-          .doc(flatId)
-          .collection('members')
-          .snapshots()
-          .map((snap) => snap.docs.map((d) {
-                final data = d.data();
-                data['uid'] = d.id;
-                return data;
-              }).toList());
 
   Future<void> _completeTask(
     BuildContext context,
@@ -160,10 +144,16 @@ class _TasksBody extends StatelessWidget {
   ) async {
     // Find the requester's own task.
     final tasks = await TaskRepository().fetchTasks(flatId);
-    final myTask = tasks.firstWhere(
-      (t) => t.assignedTo == requesterUid,
-      orElse: () => tasks.first,
-    );
+    final myTaskMatches = tasks.where((t) => t.assignedTo == requesterUid);
+    if (myTaskMatches.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(errorNoTaskAssigned)),
+        );
+      }
+      return;
+    }
+    final myTask = myTaskMatches.first;
 
     final requestId = FirebaseFirestore.instance
         .collection('flats')

@@ -199,7 +199,16 @@ const confirmSwapTitle = 'Request swap?';
 
 /// {tokens} is replaced with e.g. "2/3"
 const confirmSwapMessage = '{tokens} tokens remaining. Request this task swap?';
+
+/// Appended to [confirmSwapMessage] when the target task is vacant or the
+/// assignee is on vacation — the swap executes immediately with no reply needed.
+const confirmSwapImmediateNote =
+    'This will happen immediately — no need to wait for the other person to confirm.';
+
 const confirmSwapLabel = 'Request';
+
+const errorNoTaskAssigned =
+    "You don't have a task assigned yet and can't request a swap.";
 
 const confirmRemoveTitle = 'Remove member?';
 
@@ -251,6 +260,7 @@ const labelRecentlySent = 'Recently sent';
 
 const labelMembers = 'Members';
 const labelAdminBadge = 'admin';
+const labelEditMembers = 'Edit members';
 const labelAdminOnlySettings = 'Admin Settings';
 const labelVacationThreshold = 'How many weeks can a task stay uncleaned?';
 const labelGracePeriod = 'How long can a person still submit a task as done?';
