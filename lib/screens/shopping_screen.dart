@@ -101,9 +101,13 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
+          behavior: SnackBarBehavior.floating,
           content: Text('"${item.text}" deleted'),
           action: SnackBarAction(
             label: buttonUndo,
+            // Explicit colour so the button is always legible against the
+            // SnackBar background regardless of theme.
+            textColor: AppTheme.featureColor,
             onPressed: () => unawaited(repo.addShoppingItem(flatId, item)),
           ),
         ),
