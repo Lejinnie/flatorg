@@ -16,9 +16,10 @@ import 'main_scaffold.dart';
 
 /// Shopping list screen.
 ///
-/// Shows a permanent input field at the top, then unbought items (drag-to-reorder)
-/// above a divider, and bought (greyed, struck-through) items below.
-/// Long-pressing any item enters deletion mode where tapping deletes the item.
+/// Shows a permanent input field at the top, then unbought items
+/// (drag-to-reorder, newest first) above a divider, and bought
+/// (greyed, struck-through) items below.
+/// Swipe any item left to delete it.
 class ShoppingScreen extends StatelessWidget {
   const ShoppingScreen({super.key});
 
@@ -38,16 +39,12 @@ class _ShoppingBody extends StatefulWidget {
 
 class _ShoppingBodyState extends State<_ShoppingBody> {
   final _addCtrl = TextEditingController();
-  var _deletionMode = false;
 
   @override
   void dispose() {
     _addCtrl.dispose();
     super.dispose();
   }
-
-  void _enterDeletionMode() => setState(() => _deletionMode = true);
-  void _exitDeletionMode() => setState(() => _deletionMode = false);
 
   Future<void> _addItem(String flatId, String addedByUid) async {
     final text = _addCtrl.text.trim();
@@ -70,8 +67,8 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
         addedBy: addedByUid,
         isBought: false,
         boughtAt: null,
-        // Use timestamp millis so new items always sort after any reordered item
-        // (which gets compact indices 0, 1, 2… after a drag operation).
+        // Timestamp millis guarantees the new item sorts above all reordered
+        // items (which receive compact descending indices after a drag).
         order: DateTime.now().millisecondsSinceEpoch,
       ),
     );
@@ -80,8 +77,7 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
   }
 
   void _onReorder(String flatId, List<ShoppingItem> unbought, int oldIndex, int newIndex) {
-    // Flutter's ReorderableListView fires newIndex already past the removed item
-    // position; adjust before splicing.
+    // Flutter fires newIndex past the removed slot; adjust before splicing.
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
@@ -91,6 +87,14 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
     unawaited(ShoppingRepository().updateItemOrders(flatId, reordered));
   }
 
+  /// Red slide-left background shown while the user drags an item toward dismissal.
+  Widget _dismissBackground() => Container(
+        color: AppTheme.destructiveRed,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: AppTheme.spacingMd),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      );
+
   @override
   Widget build(BuildContext context) {
     final flatProvider = context.watch<FlatProvider>();
@@ -99,185 +103,144 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
     final cleanupHours = flatProvider.flat?.shoppingCleanupHours ?? 6;
     final theme = Theme.of(context);
 
-    return PopScope(
-      // Intercept Android back button while in deletion mode.
-      canPop: !_deletionMode,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _exitDeletionMode();
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(headingShopping),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              tooltip: headingSettings,
-              onPressed: () => context.push(routeSettings),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(headingShopping),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: headingSettings,
+            onPressed: () => context.push(routeSettings),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // ── Permanent input field ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spacingMd,
+              AppTheme.spacingSm,
+              AppTheme.spacingXs,
+              AppTheme.spacingXs,
             ),
-          ],
-        ),
-        body: Column(
-          children: [
-            // ── Permanent input field ───────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppTheme.spacingMd,
-                AppTheme.spacingSm,
-                AppTheme.spacingXs,
-                AppTheme.spacingXs,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _addCtrl,
-                      decoration: const InputDecoration(
-                        hintText: hintShoppingItem,
-                        isDense: true,
-                      ),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) async {
-                        // Pass empty list as fallback; stream not available here.
-                        // Actual unbought count comes from the StreamBuilder below
-                        // but for ordering we re-read from stream on submit.
-                        await _addItem(flatId, currentUid);
-                      },
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _addCtrl,
+                    decoration: const InputDecoration(
+                      hintText: hintShoppingItem,
+                      isDense: true,
                     ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _addItem(flatId, currentUid),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: AppTheme.featureColor,
-                    tooltip: buttonAddItem,
-                    onPressed: () => _addItem(flatId, currentUid),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  color: AppTheme.featureColor,
+                  tooltip: buttonAddItem,
+                  onPressed: () => _addItem(flatId, currentUid),
+                ),
+              ],
             ),
+          ),
 
-            // ── Deletion mode bar ───────────────────────────────────────────
-            if (_deletionMode)
-              _DeletionBar(onGoBack: _exitDeletionMode),
+          // ── Item list ─────────────────────────────────────────────────────
+          Expanded(
+            child: StreamBuilder<List<ShoppingItem>>(
+              stream: ShoppingRepository().watchShoppingItems(flatId),
+              builder: (ctx, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            // ── Item list ───────────────────────────────────────────────────
-            Expanded(
-              child: StreamBuilder<List<ShoppingItem>>(
-                stream: ShoppingRepository().watchShoppingItems(flatId),
-                builder: (ctx, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                final all = snap.data ?? [];
+                final unbought = all.where((i) => !i.isBought).toList();
+                final bought = all.where((i) => i.isBought).toList();
 
-                  final all = snap.data ?? [];
-                  final unbought = all.where((i) => !i.isBought).toList();
-                  final bought = all.where((i) => i.isBought).toList();
-
-                  return RefreshIndicator(
-                    onRefresh: () async {},
-                    child: ListView(
-                      padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
-                      children: [
-                        // Unbought items — reorderable in normal mode.
-                        if (unbought.isNotEmpty)
-                          ReorderableListView(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            buildDefaultDragHandles: false,
-                            // Disable drag in deletion mode.
-                            onReorder: _deletionMode
-                                ? (_, __) {}
-                                : (old, nw) => _onReorder(flatId, unbought, old, nw),
-                            children: [
-                              for (var i = 0; i < unbought.length; i++)
-                                ShoppingItemTile(
-                                  key: ValueKey(unbought[i].id),
+                return RefreshIndicator(
+                  onRefresh: () async {},
+                  child: ListView(
+                    padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+                    children: [
+                      // Unbought items — drag to reorder, swipe left to delete.
+                      if (unbought.isNotEmpty)
+                        ReorderableListView(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          buildDefaultDragHandles: false,
+                          onReorder: (old, nw) =>
+                              _onReorder(flatId, unbought, old, nw),
+                          children: [
+                            for (var i = 0; i < unbought.length; i++)
+                              Dismissible(
+                                key: ValueKey(unbought[i].id),
+                                direction: DismissDirection.endToStart,
+                                background: _dismissBackground(),
+                                onDismissed: (_) => ShoppingRepository()
+                                    .deleteItem(flatId, unbought[i].id),
+                                child: ShoppingItemTile(
                                   item: unbought[i],
-                                  isDeletionMode: _deletionMode,
-                                  onToggleBought: () =>
-                                      ShoppingRepository().markBought(flatId, unbought[i].id),
-                                  onDelete: () =>
-                                      ShoppingRepository().deleteItem(flatId, unbought[i].id),
-                                  onLongPress: _enterDeletionMode,
-                                  dragHandle: _deletionMode
-                                      ? null
-                                      : ReorderableDragStartListener(
-                                          index: i,
-                                          child: const Padding(
-                                            padding: EdgeInsets.all(AppTheme.spacingMd),
-                                            child: Icon(Icons.drag_handle, color: AppTheme.grayMid),
-                                          ),
-                                        ),
+                                  onToggleBought: () => ShoppingRepository()
+                                      .markBought(flatId, unbought[i].id),
+                                  dragHandle: ReorderableDragStartListener(
+                                    index: i,
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(AppTheme.spacingMd),
+                                      child: Icon(
+                                        Icons.drag_handle,
+                                        color: AppTheme.grayMid,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
+                        ),
 
-                        // Bought items section.
-                        if (bought.isNotEmpty) ...[
-                          const Divider(height: AppTheme.spacingLg),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingMd,
-                              vertical: AppTheme.spacingXs,
+                      // Bought (struck-through) section.
+                      if (bought.isNotEmpty) ...[
+                        const Divider(height: AppTheme.spacingLg),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingMd,
+                            vertical: AppTheme.spacingXs,
+                          ),
+                          child: Text(
+                            shoppingDisappearsAfter.replaceFirst(
+                              '{hours}',
+                              '$cleanupHours',
                             ),
-                            child: Text(
-                              shoppingDisappearsAfter.replaceFirst(
-                                '{hours}',
-                                '$cleanupHours',
-                              ),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppTheme.grayMid,
-                              ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.grayMid,
                             ),
                           ),
-                          ...bought.map(
-                            (item) => ShoppingItemTile(
-                              key: ValueKey(item.id),
+                        ),
+                        ...bought.map(
+                          (item) => Dismissible(
+                            key: ValueKey(item.id),
+                            direction: DismissDirection.endToStart,
+                            background: _dismissBackground(),
+                            onDismissed: (_) =>
+                                ShoppingRepository().deleteItem(flatId, item.id),
+                            child: ShoppingItemTile(
                               item: item,
-                              isDeletionMode: _deletionMode,
                               onToggleBought: () =>
                                   ShoppingRepository().markUnbought(flatId, item.id),
-                              onDelete: () =>
-                                  ShoppingRepository().deleteItem(flatId, item.id),
-                              onLongPress: _enterDeletionMode,
                             ),
                           ),
-                        ],
+                        ),
                       ],
-                    ),
-                  );
-                },
-              ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
-
-/// Bar shown below the AppBar when deletion mode is active.
-/// Provides a "Go Back" (← arrow) to exit deletion mode.
-class _DeletionBar extends StatelessWidget {
-  const _DeletionBar({required this.onGoBack});
-
-  final VoidCallback onGoBack;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        color: Theme.of(context).colorScheme.surface,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTheme.spacingXs,
-          vertical: AppTheme.spacingXs,
-        ),
-        child: Row(
-          children: [
-            TextButton.icon(
-              onPressed: onGoBack,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text(buttonGoBack),
-            ),
-          ],
-        ),
-      );
 }

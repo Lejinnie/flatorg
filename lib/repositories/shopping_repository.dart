@@ -15,13 +15,13 @@ class ShoppingRepository {
           .doc(flatId)
           .collection(collectionShoppingItems);
 
-  /// Returns a real-time stream of all shopping items sorted by [ShoppingItem.order].
+  /// Returns a real-time stream of all shopping items sorted newest-first.
   /// Sorting is done client-side because the `order` field may be absent on items
   /// created before this field was introduced.
   Stream<List<ShoppingItem>> watchShoppingItems(String flatId) =>
       _shoppingCollection(flatId).snapshots().map((snap) {
         final items = snap.docs.map(ShoppingItem.fromFirestore).toList()
-          ..sort((a, b) => a.order.compareTo(b.order));
+          ..sort((a, b) => b.order.compareTo(a.order)); // DESC → newest at top
         return items;
       });
 
@@ -51,14 +51,18 @@ class ShoppingRepository {
     await _shoppingCollection(flatId).doc(itemId).delete();
   }
 
-  /// Batch-writes a new [fieldShoppingOrder] value for each item based on its
-  /// position in [items].  Used after the user reorders the list.
+  /// Batch-writes [fieldShoppingOrder] for each item after a drag reorder.
+  ///
+  /// Assigns descending values (items.length−1 down to 0) so that position 0
+  /// (top of list) carries the highest value, matching the DESC sort used in
+  /// [watchShoppingItems].  New items still sort above these because they use
+  /// [DateTime.now().millisecondsSinceEpoch] as their initial order value.
   Future<void> updateItemOrders(String flatId, List<ShoppingItem> items) async {
     final batch = _db.batch();
     for (var i = 0; i < items.length; i++) {
       batch.update(
         _shoppingCollection(flatId).doc(items[i].id),
-        {fieldShoppingOrder: i},
+        {fieldShoppingOrder: items.length - 1 - i},
       );
     }
     await batch.commit();
