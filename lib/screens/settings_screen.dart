@@ -40,15 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isAdmin       = currentPerson?.isAdmin ?? false;
     final flatId        = flatProvider.flatId;
 
-    return GestureDetector(
-      // Tapping outside the member list exits remove mode.
-      onTap: () {
-        if (_removeMode) {
-          setState(() => _removeMode = false);
-        }
-      },
-      behavior: HitTestBehavior.translucent,
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: const Text(headingSettings),
           leading: BackButton(onPressed: () => context.pop()),
@@ -114,7 +106,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: AppTheme.spacingXl),
           ],
         ),
-      ),
     );
   }
 

@@ -64,7 +64,12 @@ class _TasksBody extends StatelessWidget {
           if (taskSnap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final tasks = taskSnap.data ?? [];
+          // Put the current user's task first; preserve original ring order for the rest.
+          final rawTasks = taskSnap.data ?? [];
+          final tasks = [
+            ...rawTasks.where((t) => t.assignedTo == currentUid),
+            ...rawTasks.where((t) => t.assignedTo != currentUid),
+          ];
           if (tasks.isEmpty) {
             return Center(
               child: Text(

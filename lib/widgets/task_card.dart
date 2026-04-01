@@ -231,16 +231,16 @@ class _TaskCardState extends State<TaskCard> {
   Widget _buildSwapAction(BuildContext context) {
     final tokens = widget.currentPerson?.swapTokensRemaining ?? 0;
     final canSwap = tokens > 0;
+    final isImmediate = widget.task.assignedTo.isEmpty ||
+        widget.task.state == TaskState.vacant ||
+        (widget.assigneePerson?.onVacation ?? false);
+    final label = isImmediate ? buttonSwap : buttonRequestSwap;
 
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         icon: const Icon(Icons.swap_horiz, size: 18),
-        label: Text(
-          canSwap
-              ? buttonRequestSwap
-              : '$buttonRequestSwap (0/$swapTokensPerSemester)',
-        ),
+        label: Text(canSwap ? label : '$label (0/$swapTokensPerSemester)'),
         onPressed: canSwap ? () => _confirmSwap(context, tokens) : null,
       ),
     );

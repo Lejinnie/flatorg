@@ -81,6 +81,7 @@ const tabIssueList = 'Issue List';
 
 const buttonMarkDone = 'Mark as Done';
 const buttonRequestSwap = 'Request Swap';
+const buttonSwap = 'Swap';
 const buttonOnVacation = 'Mark as On Vacation';
 const buttonGenerateInviteCode = 'Generate & Copy Invite Code';
 const buttonSendToLivit = 'Send to Livit';
