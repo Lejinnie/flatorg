@@ -79,6 +79,11 @@ class _TasksBody extends StatelessWidget {
             );
           }
 
+          // Whether the current user has already completed their own task.
+          final myTaskDone = rawTasks.any(
+            (t) => t.assignedTo == currentUid && t.state == TaskState.completed,
+          );
+
           // Fetch all members for name + vacation-status resolution.
           return StreamBuilder<List<Person>>(
             stream: PersonRepository().watchMembers(flatId),
@@ -105,6 +110,7 @@ class _TasksBody extends StatelessWidget {
                       isCurrentUserAssignee: isOwner,
                       currentPerson: currentPerson,
                       assigneePerson: assigneePerson,
+                      currentUserTaskDone: myTaskDone,
                       onComplete: () => _completeTask(ctx, flatId, task),
                       onVacation: () => _markVacation(ctx, flatId, currentUid),
                       onRequestSwap: () => _requestSwap(

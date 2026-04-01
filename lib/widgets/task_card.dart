@@ -23,6 +23,7 @@ class TaskCard extends StatefulWidget {
     required this.onVacation,
     required this.onRequestSwap,
     this.assigneePerson,
+    this.currentUserTaskDone = false,
     super.key,
   });
 
@@ -40,6 +41,10 @@ class TaskCard extends StatefulWidget {
   /// Full Person document of the task's assignee, used to detect on-vacation
   /// status so the swap confirmation can note that no reply is needed.
   final Person? assigneePerson;
+
+  /// True when the current user has already completed their own task this week.
+  /// Hides the swap button on every other card when true.
+  final bool currentUserTaskDone;
 
   /// Called when the assignee confirms task completion.
   final VoidCallback onComplete;
@@ -62,7 +67,10 @@ class _TaskCardState extends State<TaskCard> {
     if (task.state == TaskState.vacant) {
       return AppTheme.stateVacant;
     }
-    // A person on vacation shows as blue regardless of task state.
+    // Assignee on vacation → blue, regardless of the task's own state.
+    if (widget.assigneePerson?.onVacation ?? false) {
+      return AppTheme.stateVacant;
+    }
     if (task.state == TaskState.completed) {
       return AppTheme.stateCompleted;
     }
@@ -84,7 +92,7 @@ class _TaskCardState extends State<TaskCard> {
     final isDark = theme.brightness == Brightness.dark;
     final secondaryTextColor = isDark ? AppTheme.grayLight : AppTheme.grayMid;
     return Card(
-      color: theme.cardTheme.color,
+      color: _stateColor.withValues(alpha: 0.5),
       margin: const EdgeInsets.symmetric(
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingXs,
@@ -192,7 +200,15 @@ class _TaskCardState extends State<TaskCard> {
 
   Widget _buildActions(BuildContext context) {
     if (widget.isCurrentUserAssignee) {
+      // Once the task is done, no further actions are needed on this card.
+      if (widget.task.state == TaskState.completed) {
+        return const SizedBox.shrink();
+      }
       return _buildOwnerActions(context);
+    }
+    // Hide swap button on all other cards once the current user is done.
+    if (widget.currentUserTaskDone) {
+      return const SizedBox.shrink();
     }
     return _buildSwapAction(context);
   }
@@ -231,10 +247,11 @@ class _TaskCardState extends State<TaskCard> {
   Widget _buildSwapAction(BuildContext context) {
     final tokens = widget.currentPerson?.swapTokensRemaining ?? 0;
     final canSwap = tokens > 0;
-    final isImmediate = widget.task.assignedTo.isEmpty ||
-        widget.task.state == TaskState.vacant ||
-        (widget.assigneePerson?.onVacation ?? false);
-    final label = isImmediate ? buttonSwap : buttonRequestSwap;
+    // Vacant means no person is assigned → swap is immediate, label is "Swap".
+    // A person is assigned (even if on vacation) → send a request, label is "Request Swap".
+    final isVacant = widget.task.assignedTo.isEmpty ||
+        widget.task.state == TaskState.vacant;
+    final label = isVacant ? buttonSwap : buttonRequestSwap;
 
     return SizedBox(
       width: double.infinity,
@@ -280,19 +297,24 @@ class _TaskCardState extends State<TaskCard> {
     final isVacant = widget.task.assignedTo.isEmpty ||
         widget.task.state == TaskState.vacant;
     final isOnVacation = widget.assigneePerson?.onVacation ?? false;
-    final isImmediate = isVacant || isOnVacation;
 
     final baseMsg = confirmSwapMessage.replaceFirst(
       '{tokens}',
       '$tokens/$swapTokensPerSemester',
     );
-    final msg = isImmediate ? '$baseMsg\n\n$confirmSwapImmediateNote' : baseMsg;
+    // Append the immediate note when the swap won't need a reply from anyone.
+    final msg = (isVacant || isOnVacation)
+        ? '$baseMsg\n\n$confirmSwapImmediateNote'
+        : baseMsg;
+
+    // "Swap" when unassigned (no one to ask); "Request" when a person holds the task.
+    final confirmLabel = isVacant ? buttonSwap : confirmSwapLabel;
 
     final confirmed = await showConfirmationDialog(
       context,
       title: confirmSwapTitle,
       message: msg,
-      confirmLabel: confirmSwapLabel,
+      confirmLabel: confirmLabel,
     );
     if (confirmed) {
       widget.onRequestSwap();
