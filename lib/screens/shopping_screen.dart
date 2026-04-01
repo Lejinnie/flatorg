@@ -87,6 +87,29 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
     unawaited(ShoppingRepository().updateItemOrders(flatId, reordered));
   }
 
+  /// Deletes [item] from Firestore and shows an undo SnackBar.
+  ///
+  /// If the user taps "Undo" before the SnackBar times out, the item is
+  /// re-added with its original data (including its original [ShoppingItem.order]
+  /// so it reappears in the same position).
+  void _deleteWithUndo(BuildContext context, String flatId, ShoppingItem item) {
+    // Capture ScaffoldMessenger before any async gaps.
+    final messenger = ScaffoldMessenger.of(context);
+    final repo = ShoppingRepository();
+    unawaited(repo.deleteItem(flatId, item.id));
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('"${item.text}" deleted'),
+          action: SnackBarAction(
+            label: buttonUndo,
+            onPressed: () => unawaited(repo.addShoppingItem(flatId, item)),
+          ),
+        ),
+      );
+  }
+
   /// Red slide-left background shown while the user drags an item toward dismissal.
   Widget _dismissBackground() => Container(
         color: AppTheme.destructiveRed,
@@ -179,8 +202,8 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
                                 key: ValueKey(unbought[i].id),
                                 direction: DismissDirection.endToStart,
                                 background: _dismissBackground(),
-                                onDismissed: (_) => ShoppingRepository()
-                                    .deleteItem(flatId, unbought[i].id),
+                                onDismissed: (_) => _deleteWithUndo(
+                                    context, flatId, unbought[i]),
                                 child: ShoppingItemTile(
                                   item: unbought[i],
                                   onToggleBought: () => ShoppingRepository()
@@ -224,7 +247,7 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
                             direction: DismissDirection.endToStart,
                             background: _dismissBackground(),
                             onDismissed: (_) =>
-                                ShoppingRepository().deleteItem(flatId, item.id),
+                                _deleteWithUndo(context, flatId, item),
                             child: ShoppingItemTile(
                               item: item,
                               onToggleBought: () =>

@@ -85,6 +85,7 @@ const buttonOnVacation = 'Mark as On Vacation';
 const buttonGenerateInviteCode = 'Generate & Copy Invite Code';
 const buttonSendToLivit = 'Send to Livit';
 const buttonDeselectAll = 'Deselect All';
+const buttonUndo = 'Undo';
 
 const labelSwapTokensRemaining = 'Swap Tokens';
 const labelWeeksNotCleaned = 'Weeks Uncleaned';
