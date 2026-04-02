@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -424,6 +425,22 @@ class _AdminSettingsState extends State<_AdminSettings> {
             child: const Text(labelTransferAdmin),
           ),
         ),
+
+        const SizedBox(height: AppTheme.spacingSm),
+
+        // Manual week reset — useful for testing or recovering from scheduler failures.
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.restart_alt),
+            label: const Text(buttonTriggerWeekReset),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.destructiveRed,
+              side: const BorderSide(color: AppTheme.destructiveRed),
+            ),
+            onPressed: () => _triggerWeekReset(context),
+          ),
+        ),
       ],
     );
   }
@@ -448,6 +465,44 @@ class _AdminSettingsState extends State<_AdminSettings> {
 
     // Force _initSettings to re-read from the flat document on next build.
     setState(() => _settingsInitialised = false);
+  }
+
+  Future<void> _triggerWeekReset(BuildContext context) async {
+    // Capture before any async gap to satisfy use_build_context_synchronously.
+    final messenger = ScaffoldMessenger.of(context);
+
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: confirmWeekResetTitle,
+      message: confirmWeekResetMessage,
+      confirmLabel: confirmWeekResetLabel,
+      confirmColor: AppTheme.destructiveRed,
+      confirmTextColor: Colors.white,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    try {
+      final callable = FirebaseFunctions.instance
+          .httpsCallable('week_reset_callable');
+      await callable.call<Map<String, dynamic>>({'flatId': widget.flatId});
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text(snackWeekResetSuccess)),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('$snackWeekResetError\n${e.code}: ${e.message}'),
+        ),
+      );
+    }
   }
 
   Future<void> _showTransferAdminDialog(BuildContext outerCtx) async {

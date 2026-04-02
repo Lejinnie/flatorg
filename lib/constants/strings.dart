@@ -286,6 +286,18 @@ const confirmResetMessage =
     'This will restore all admin settings to their default values.';
 const confirmResetLabel = 'Reset';
 
+// ── Week reset ────────────────────────────────────────────────────────────────
+
+const buttonTriggerWeekReset    = 'Trigger week reset';
+const confirmWeekResetTitle     = 'Trigger week reset?';
+const confirmWeekResetMessage   =
+    'This will immediately run the full week reset: reassign all tasks, '
+    'clear swap history, and update green/red/blue statuses. '
+    'This cannot be undone.';
+const confirmWeekResetLabel     = 'Reset now';
+const snackWeekResetSuccess     = 'Week reset completed successfully.';
+const snackWeekResetError       = 'Week reset failed — check the logs.';
+
 // ── Log out ───────────────────────────────────────────────────────────────────
 
 const buttonLogOut = 'Log out';
