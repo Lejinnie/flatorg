@@ -71,12 +71,15 @@ class _TaskCardState extends State<TaskCard> {
     if (task.assignedTo.isEmpty) {
       return AppTheme.stateVacant;
     }
-    // Assignee on vacation → blue, regardless of the task's own state.
-    if (widget.assigneePerson?.onVacation ?? false) {
-      return AppTheme.stateVacant;
-    }
+    // Completed always wins — per spec, completing a task marks the person
+    // as back from vacation. This check must come before onVacation so a
+    // vacation+completed card stays green and never flashes blue.
     if (task.state == TaskState.completed) {
       return AppTheme.stateCompleted;
+    }
+    // Assignee on vacation → blue for all non-completed states.
+    if (widget.assigneePerson?.onVacation ?? false) {
+      return AppTheme.stateVacant;
     }
     if (task.state == TaskState.notDone) {
       return AppTheme.stateNotDone;

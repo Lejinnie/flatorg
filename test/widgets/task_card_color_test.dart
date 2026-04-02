@@ -409,5 +409,78 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'Given the assignee is on vacation AND has completed their task, '
+      'when the card is rendered, '
+      'then the card is green (completion takes priority over vacation)',
+      (tester) async {
+        // Reproduces the green→blue flash: the person completed their task which
+        // per spec means they are back from vacation. The completed check must
+        // come before the onVacation check in _stateColor, otherwise the card
+        // stays blue even though the work was done.
+        final aliceOnVacation = _person(onVacation: true);
+        await _pumpCard(
+          tester,
+          task:                  _task(
+            assignedTo: aliceOnVacation.uid,
+            state:      TaskState.completed,
+          ),
+          assigneeName:          aliceOnVacation.name,
+          assigneePerson:        aliceOnVacation,
+          isCurrentUserAssignee: true,
+          currentPerson:         aliceOnVacation,
+        );
+
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateCompleted.withValues(alpha: 0.5),
+          reason:
+              'Completing a task marks the person as back from vacation — '
+              'the card must be green, not blue.',
+        );
+      },
+    );
+
+    testWidgets(
+      'Given the assignee person data has not yet loaded (null assigneePerson) '
+      'and the task is completed, '
+      'when the card is rendered, '
+      'then the card is green and does not flash blue when member data arrives',
+      (tester) async {
+        // Reproduces the stream-race: tasks stream fires first (assigneePerson=null
+        // because the members stream has not yet emitted), so onVacation defaults
+        // to false → completed check fires → green. If the member data then arrives
+        // with onVacation=true the card must STILL stay green (completed wins).
+        //
+        // Phase 1: render with no assigneePerson yet.
+        await _pumpCard(
+          tester,
+          task:         _task(assignedTo: _kAliceUid, state: TaskState.completed),
+          assigneeName: _kAliceName,
+        );
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateCompleted.withValues(alpha: 0.5),
+          reason: 'Must be green when member data has not yet loaded.',
+        );
+
+        // Phase 2: member data arrives with onVacation=true — card must not
+        //          flip to blue because the task is already completed.
+        await _pumpCard(
+          tester,
+          task:           _task(assignedTo: _kAliceUid, state: TaskState.completed),
+          assigneeName:   _kAliceName,
+          assigneePerson: _person(onVacation: true),
+        );
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateCompleted.withValues(alpha: 0.5),
+          reason:
+              'Must remain green after member data loads — '
+              'completed must not be overridden by onVacation.',
+        );
+      },
+    );
   });
 }

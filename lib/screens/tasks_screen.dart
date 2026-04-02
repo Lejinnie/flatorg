@@ -136,6 +136,15 @@ class _TasksBody extends StatelessWidget {
       'state': 'completed',
       'weeks_not_cleaned': 0,
     });
+    // Per spec: completing a task marks the person as back from vacation.
+    // Clear on_vacation so their Firestore state is consistent with the green card.
+    if (task.assignedTo.isNotEmpty) {
+      await PersonRepository().setVacation(
+        flatId,
+        task.assignedTo,
+        onVacation: false,
+      );
+    }
   }
 
   Future<void> _markVacation(
