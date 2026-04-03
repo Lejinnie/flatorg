@@ -31,6 +31,7 @@ flutter:
     - email_templates/issue_template_3.txt
 
 dev_dependencies:
+  fake_cloud_firestore: ^3.0.3
   flutter_test:
     sdk: flutter
   lint_hard: ^7.1.2

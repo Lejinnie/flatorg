@@ -14,15 +14,17 @@ import '../repositories/swap_request_repository.dart';
 /// (the Firestore stream will confirm).
 class NotificationPanel extends StatelessWidget {
   const NotificationPanel({
-    required this.flatId,
-    required this.currentUid,
+    required this.requestStream,
     required this.getRequesterName,
     required this.scrollController,
+    required this.onRespond,
     super.key,
   });
 
-  final String flatId;
-  final String currentUid;
+  /// Live stream of pending swap requests targeting the current user's tasks.
+  /// Injected so the widget has no direct Firebase dependency and can be
+  /// tested with a plain [StreamController].
+  final Stream<List<SwapRequest>> requestStream;
 
   /// Callback to look up a member's display name by UID.
   final String Function(String uid) getRequesterName;
@@ -31,12 +33,16 @@ class NotificationPanel extends StatelessWidget {
   /// drag gesture share the same scroll physics — prevents flickering.
   final ScrollController scrollController;
 
+  /// Called when the user taps Accept or Decline on a tile.
+  final void Function(SwapRequest request, SwapRequestStatus response) onRespond;
+
   static void show(
     BuildContext context, {
     required String flatId,
     required String currentUid,
     required String Function(String uid) getRequesterName,
   }) {
+    final repo = SwapRequestRepository();
     unawaited(showModalBottomSheet<void>(
       context: context,
       // isScrollControlled is required for DraggableScrollableSheet to work
@@ -55,10 +61,11 @@ class NotificationPanel extends StatelessWidget {
         // than filling the entire screen when dragged to max.
         expand: false,
         builder: (ctx, scrollController) => NotificationPanel(
-          flatId: flatId,
-          currentUid: currentUid,
+          requestStream: repo.watchPendingRequestsForUser(flatId, currentUid),
           getRequesterName: getRequesterName,
           scrollController: scrollController,
+          onRespond: (req, response) =>
+              repo.respondToSwapRequest(flatId, req, response),
         ),
       ),
     ));
@@ -67,10 +74,9 @@ class NotificationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final repo  = SwapRequestRepository();
 
     return StreamBuilder<List<SwapRequest>>(
-      stream: repo.watchPendingRequestsForUser(flatId, currentUid),
+      stream: requestStream,
       builder: (ctx, snap) {
         final requests = snap.data ?? [];
 
@@ -138,16 +144,8 @@ class NotificationPanel extends StatelessWidget {
                     final name = getRequesterName(req.requesterUid);
                     return _SwapRequestTile(
                       requesterName: name,
-                      onAccept: () => repo.respondToSwapRequest(
-                        flatId,
-                        req,
-                        SwapRequestStatus.accepted,
-                      ),
-                      onDecline: () => repo.respondToSwapRequest(
-                        flatId,
-                        req,
-                        SwapRequestStatus.declined,
-                      ),
+                      onAccept:  () => onRespond(req, SwapRequestStatus.accepted),
+                      onDecline: () => onRespond(req, SwapRequestStatus.declined),
                     );
                   },
                 ),
