@@ -240,6 +240,118 @@ void main() {
     );
   });
 
+  // ── Situation 4: immediately after week_reset ────────────────────────────
+  //
+  // week_reset sets every task to TaskState.pending and writes fresh assignedTo
+  // values. Tests here model the exact post-reset document state the UI will
+  // receive from Firestore and assert the correct colour for each outcome.
+
+  group('Situation 4 – immediately after week_reset', () {
+    testWidgets(
+      'Given week_reset produced an unassigned slot '
+      '(assignedTo empty, state: pending — not enough active people), '
+      'when the card is rendered, '
+      'then the card is blue',
+      (tester) async {
+        // All tasks start as pending after reset; empty assignedTo means the
+        // algorithm found no eligible person for this slot.
+        await _pumpCard(
+          tester,
+          task: _task(),
+        );
+
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateVacant.withValues(alpha: 0.5),
+          reason: 'An unassigned post-reset slot must render blue, not amber.',
+        );
+      },
+    );
+
+    testWidgets(
+      'Given week_reset assigned a short-vacation person to an L1 task '
+      '(state: pending, onVacation: true), '
+      'when the card is rendered, '
+      'then the card is blue',
+      (tester) async {
+        // Short-vacation people are assigned in step 1 of the algorithm.
+        // Their presence means the task is covered but they are absent —
+        // blue signals this to the rest of the flat.
+        final aliceOnVacation = _person(onVacation: true);
+        await _pumpCard(
+          tester,
+          task:           _task(assignedTo: aliceOnVacation.uid),
+          assigneeName:   aliceOnVacation.name,
+          assigneePerson: aliceOnVacation,
+        );
+
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateVacant.withValues(alpha: 0.5),
+          reason: 'Vacation assignee after reset must render blue, not amber.',
+        );
+      },
+    );
+
+    testWidgets(
+      'Given week_reset assigned a long-vacation person to a leftover slot '
+      '(state: pending, onVacation: true, weeksNotCleaned > threshold), '
+      'when the card is rendered, '
+      'then the card is blue',
+      (tester) async {
+        // Long-vacation people fill remaining slots in step 8 of the algorithm.
+        // Their card must also be blue regardless of weeksNotCleaned value.
+        final bobOnLongVacation = _person(uid: 'bob-uid', name: 'Bob', onVacation: true);
+        await _pumpCard(
+          tester,
+          task: Task(
+            id:                 't1',
+            name:               'Toilet',
+            description:        const [],
+            dueDateTime:        _kFutureDue,
+            assignedTo:         bobOnLongVacation.uid,
+            originalAssignedTo: '',
+            state:              TaskState.pending,
+            weeksNotCleaned:    5,
+            ringIndex:          0,
+          ),
+          assigneeName:   bobOnLongVacation.name,
+          assigneePerson: bobOnLongVacation,
+        );
+
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.stateVacant.withValues(alpha: 0.5),
+          reason: 'Long-vacation assignee after reset must render blue.',
+        );
+      },
+    );
+
+    testWidgets(
+      'Given week_reset assigned an active (non-vacation) person to a task '
+      '(state: pending, onVacation: false), '
+      'when the card is rendered, '
+      'then the card is amber',
+      (tester) async {
+        // Control case: an active person getting a fresh task after reset
+        // must be amber, not blue. Confirms vacation check does not over-fire.
+        final alice = _person();
+        await _pumpCard(
+          tester,
+          task:           _task(assignedTo: alice.uid),
+          assigneeName:   alice.name,
+          assigneePerson: alice,
+        );
+
+        expect(
+          _cardBackgroundColor(tester),
+          AppTheme.statePending.withValues(alpha: 0.5),
+          reason: 'Active assignee after reset must render amber, not blue.',
+        );
+      },
+    );
+  });
+
   // ── Situation 3: mixed states across the task lifecycle ───────────────────
   //
   // Lifecycle per task within one week:
