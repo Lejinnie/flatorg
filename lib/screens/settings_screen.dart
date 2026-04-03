@@ -600,24 +600,11 @@ class _AdminSettingsState extends State<_AdminSettings> {
 
     final currentAdminUid = widget.flatProvider.currentPerson?.uid ?? '';
 
-    // Update flat's admin_uid.
-    await FlatRepository().updateFlatSettings(
-      widget.flatId,
-      {'admin_uid': selectedUid},
-    );
-
-    // Downgrade current admin to member.
-    await PersonRepository().updateMember(
+    // Single atomic batch: update flat pointer + swap roles.
+    await PersonRepository().transferAdmin(
       widget.flatId,
       currentAdminUid,
-      {'role': 'member'},
-    );
-
-    // Upgrade new admin.
-    await PersonRepository().updateMember(
-      widget.flatId,
       selectedUid!,
-      {'role': 'admin'},
     );
   }
 }
@@ -647,6 +634,7 @@ class _TasksAdminSectionState extends State<_TasksAdminSection> {
                 children: tasks.map((task) => _TaskEditTile(
                   flatId: widget.flatId,
                   task: task,
+                  tasks: tasks,
                   members: members,
                 )).toList(),
               );
@@ -660,10 +648,14 @@ class _TaskEditTile extends StatefulWidget {
   const _TaskEditTile({
     required this.flatId,
     required this.task,
+    required this.tasks,
     required this.members,
   });
   final String flatId;
   final Task task;
+
+  /// All tasks in the flat, used to detect duplicate assignee conflicts.
+  final List<Task> tasks;
 
   /// All current flat members, used for the assignee dropdown.
   final List<Person> members;
@@ -734,9 +726,28 @@ class _TaskEditTileState extends State<_TaskEditTile> {
           .toList(),
     );
     await repo.updateDueDateTime(widget.flatId, widget.task.id, _dueDate);
-    await repo.updateTask(widget.flatId, widget.task.id, {
-      fieldTaskAssignedTo: _assignedTo,
-    });
+
+    // If the new assignee is already on a different task, swap both atomically
+    // so no person ends up assigned to two tasks simultaneously.
+    final conflictTask = _assignedTo.isNotEmpty
+        ? widget.tasks
+            .where((t) => t.id != widget.task.id && t.assignedTo == _assignedTo)
+            .firstOrNull
+        : null;
+
+    if (conflictTask != null) {
+      // Swap: this task → _assignedTo, conflict task → old assignee of this task.
+      await repo.swapTaskAssignees(
+        widget.flatId,
+        widget.task.id,     _assignedTo,
+        conflictTask.id,    widget.task.assignedTo,
+      );
+    } else {
+      await repo.updateTask(widget.flatId, widget.task.id, {
+        fieldTaskAssignedTo: _assignedTo,
+      });
+    }
+
     if (mounted) {
       // Build a descriptive message: Changed "Task" from Old to New.
       String resolveName(String uid) {
@@ -755,10 +766,14 @@ class _TaskEditTileState extends State<_TaskEditTile> {
       final taskName = _nameCtrl.text.trim().isNotEmpty
           ? _nameCtrl.text.trim()
           : widget.task.name;
+
+      final message = conflictTask != null
+          ? 'Swapped "$taskName" ($oldName→$newName) '
+            'and "${conflictTask.name}" ($newName→$oldName)'
+          : 'Changed "$taskName" from $oldName to $newName';
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Changed "$taskName" from $oldName to $newName'),
-        ),
+        SnackBar(content: Text(message)),
       );
       setState(() => _expanded = false);
     }

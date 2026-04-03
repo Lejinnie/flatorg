@@ -83,6 +83,45 @@ class TaskRepository {
     });
   }
 
+  /// Swaps the assignees of two tasks atomically using a single Firestore batch.
+  ///
+  /// After the call, [taskAId] will be assigned to [assigneeForA] and
+  /// [taskBId] will be assigned to [assigneeForB].
+  ///
+  /// Both task IDs and both assignee strings must be non-empty. The two task
+  /// IDs must be distinct — swapping a task with itself is a programmer error.
+  Future<void> swapTaskAssignees(
+    String flatId,
+    String taskAId,
+    String assigneeForA,
+    String taskBId,
+    String assigneeForB,
+  ) async {
+    assert(
+      flatId.isNotEmpty &&
+          taskAId.isNotEmpty &&
+          taskBId.isNotEmpty,
+      'swapTaskAssignees: flatId, taskAId, and taskBId must not be empty. '
+      'Got flatId="$flatId" taskAId="$taskAId" taskBId="$taskBId"',
+    );
+    assert(
+      taskAId != taskBId,
+      'swapTaskAssignees: taskAId and taskBId must differ — '
+      'cannot swap a task with itself (id="$taskAId").',
+    );
+
+    final batch = _db.batch()
+      ..update(
+        _tasksCollection(flatId).doc(taskAId),
+        {fieldTaskAssignedTo: assigneeForA},
+      )
+      ..update(
+        _tasksCollection(flatId).doc(taskBId),
+        {fieldTaskAssignedTo: assigneeForB},
+      );
+    await batch.commit();
+  }
+
   /// Updates the task's name and description (admin only).
   Future<void> updateTaskDetails(
     String flatId,

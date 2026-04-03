@@ -71,4 +71,49 @@ class PersonRepository {
   Future<void> saveFcmToken(String flatId, String uid, String token) async {
     await updateMember(flatId, uid, {fieldPersonFcmToken: token});
   }
+
+  /// Transfers admin rights from [currentAdminUid] to [newAdminUid] atomically.
+  ///
+  /// Writes three documents in a single batch:
+  ///   1. flat's [fieldFlatAdminUid] → [newAdminUid]
+  ///   2. old admin's [fieldPersonRole] → 'member'
+  ///   3. new admin's [fieldPersonRole] → 'admin'
+  ///
+  /// [currentAdminUid] and [newAdminUid] must be non-empty, distinct UIDs of
+  /// existing members; callers are responsible for validating this up front.
+  Future<void> transferAdmin(
+    String flatId,
+    String currentAdminUid,
+    String newAdminUid,
+  ) async {
+    assert(
+      flatId.isNotEmpty && currentAdminUid.isNotEmpty && newAdminUid.isNotEmpty,
+      'transferAdmin: flatId, currentAdminUid, and newAdminUid must not be empty. '
+      'Got flatId="$flatId" currentAdminUid="$currentAdminUid" newAdminUid="$newAdminUid"',
+    );
+    assert(
+      currentAdminUid != newAdminUid,
+      'transferAdmin: currentAdminUid and newAdminUid must differ — '
+      'cannot transfer admin rights to yourself (uid="$currentAdminUid").',
+    );
+
+    final batch = _db.batch()
+      // Update the flat's admin pointer.
+      ..update(
+        _db.collection(collectionFlats).doc(flatId),
+        {fieldFlatAdminUid: newAdminUid},
+      )
+      // Downgrade the outgoing admin to a regular member.
+      ..update(
+        _membersCollection(flatId).doc(currentAdminUid),
+        {fieldPersonRole: 'member'},
+      )
+      // Promote the incoming admin.
+      ..update(
+        _membersCollection(flatId).doc(newAdminUid),
+        {fieldPersonRole: 'admin'},
+      );
+
+    await batch.commit();
+  }
 }
