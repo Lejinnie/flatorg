@@ -44,6 +44,24 @@ class _IssuesBodyState extends State<_IssuesBody> {
   var _selectionMode = false;
   final Set<String> _selectedIds = {};
 
+  // Cached per flatId so a setState (e.g. toggle-select) never recreates the
+  // stream or future — which would reset StreamBuilder/FutureBuilder to their
+  // waiting state and cause the visible flicker.
+  String? _cachedFlatId;
+  Stream<List<Issue>>? _issuesStream;
+  Future<List<Task>>? _tasksFuture;
+
+  /// Call from build() before using _issuesStream / _tasksFuture.
+  /// Re-initialises only when flatId changes (e.g. after switching flat).
+  void _initStreamsIfNeeded(String flatId) {
+    if (flatId == _cachedFlatId) {
+      return;
+    }
+    _cachedFlatId  = flatId;
+    _issuesStream  = IssueRepository().watchIssues(flatId);
+    _tasksFuture   = TaskRepository().fetchTasks(flatId);
+  }
+
   void _enterSelection(String firstId) {
     setState(() {
       _selectionMode = true;
@@ -301,6 +319,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
     final currentUid = currentPerson?.uid ?? '';
     final senderName = currentPerson?.name ?? '';
 
+    _initStreamsIfNeeded(flatId);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(headingIssues),
@@ -312,30 +332,31 @@ class _IssuesBodyState extends State<_IssuesBody> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (_selectionMode)
-            _SelectionBar(
-              onGoBack: _exitSelection,
-              onSelectAll: (allIssues) {
-                setState(() => _selectedIds.addAll(allIssues.map((i) => i.id)));
-              },
-              flatId: flatId,
-            ),
-          Expanded(child: StreamBuilder<List<Issue>>(
-        stream: IssueRepository().watchIssues(flatId),
+      body: StreamBuilder<List<Issue>>(
+        stream: _issuesStream,
         builder: (ctx, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
+          final allIssues = snap.data ?? [];
+          final sendable   = allIssues.where((i) => !i.isOnCooldown).toList();
+          final onCooldown = allIssues.where((i) => i.isOnCooldown).toList();
+
+          return Column(
+            children: [
+              if (_selectionMode)
+                _SelectionBar(
+                  onGoBack: _exitSelection,
+                  allIssues: allIssues,
+                  onSelectAll: (issues) {
+                    setState(() => _selectedIds.addAll(issues.map((i) => i.id)));
+                  },
+                ),
+              Expanded(child: Builder(builder: (ctx) {
+          if (snap.connectionState == ConnectionState.waiting && allIssues.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final allIssues = snap.data ?? [];
-          final sendable = allIssues.where((i) => !i.isOnCooldown).toList();
-          final onCooldown = allIssues.where((i) => i.isOnCooldown).toList();
-
           // Determine whether the current user can send (assigned to Shopping).
           return FutureBuilder<List<Task>>(
-            future: TaskRepository().fetchTasks(flatId),
+            future: _tasksFuture,
             builder: (ctx, taskSnap) {
               final tasks = taskSnap.data ?? [];
               final shopTask = tasks.where(
@@ -445,10 +466,11 @@ class _IssuesBodyState extends State<_IssuesBody> {
               );
             },
           );
-        },
-      )), // Expanded + StreamBuilder
-        ],
-      ), // Column
+        })), // Builder + Expanded
+            ],
+          ); // Column
+        }, // StreamBuilder.builder
+      ), // StreamBuilder (body)
     );
   }
 }
@@ -459,39 +481,36 @@ class _SelectionBar extends StatelessWidget {
   const _SelectionBar({
     required this.onGoBack,
     required this.onSelectAll,
-    required this.flatId,
+    required this.allIssues,
   });
 
   final VoidCallback onGoBack;
   final void Function(List<Issue> allIssues) onSelectAll;
-  final String flatId;
+
+  /// Current issue list passed down from the parent StreamBuilder so this
+  /// widget does not need its own Firestore subscription.
+  final List<Issue> allIssues;
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<List<Issue>>(
-        stream: IssueRepository().watchIssues(flatId),
-        builder: (ctx, snap) {
-          final all = snap.data ?? [];
-          return Container(
-            color: Theme.of(context).colorScheme.surface,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.spacingSm,
-              vertical: AppTheme.spacingXs,
+  Widget build(BuildContext context) => Container(
+        color: Theme.of(context).colorScheme.surface,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingSm,
+          vertical: AppTheme.spacingXs,
+        ),
+        child: Row(
+          children: [
+            TextButton(
+              onPressed: onGoBack,
+              child: const Text(buttonGoBack),
             ),
-            child: Row(
-              children: [
-                TextButton(
-                  onPressed: onGoBack,
-                  child: const Text(buttonGoBack),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => onSelectAll(all),
-                  child: const Text(buttonSelectAll),
-                ),
-              ],
+            const Spacer(),
+            TextButton(
+              onPressed: () => onSelectAll(allIssues),
+              child: const Text(buttonSelectAll),
             ),
-          );
-        },
+          ],
+        ),
       );
 }
 
