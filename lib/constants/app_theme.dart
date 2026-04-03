@@ -78,7 +78,7 @@ class AppTheme {
 
   // ── Task-state colour bar height ──────────────────────────────────────────
 
-  static const taskStateBarHeight = 4.0;
+  static const taskStateBarHeight = 6.0;
 
   // ── Public Sans text theme ────────────────────────────────────────────────
 

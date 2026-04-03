@@ -83,27 +83,40 @@ GoRouter buildAppRouter(BuildContext context) {
       GoRoute(path: routeEntry,       builder: (_, __) => const EntryScreen()),
       GoRoute(path: routeCreateFlat,  builder: (_, __) => const CreateFlatScreen()),
       GoRoute(path: routeJoinFlat,    builder: (_, __) => const JoinFlatScreen()),
-      // Tab routes use NoTransitionPage so switching tabs feels instant rather
-      // than sliding in from the side like a pushed screen.
+      // Tab routes fade in so switching feels lateral rather than like a push.
       GoRoute(
         path: routeTasks,
-        pageBuilder: (_, __) => const NoTransitionPage(child: TasksScreen()),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const TasksScreen()),
       ),
       GoRoute(
         path: routeShopping,
-        pageBuilder: (_, __) => const NoTransitionPage(child: ShoppingScreen()),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const ShoppingScreen()),
       ),
       GoRoute(
         path: routeIssues,
-        pageBuilder: (_, __) => const NoTransitionPage(child: IssuesScreen()),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const IssuesScreen()),
       ),
       GoRoute(
         path: routeSettings,
-        pageBuilder: (_, __) => const NoTransitionPage(child: SettingsScreen()),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const SettingsScreen()),
       ),
     ],
   );
 }
+
+/// Builds a [CustomTransitionPage] with a crossfade for tab-level navigation.
+///
+/// A fade (rather than a slide) is the Material convention for lateral tab
+/// transitions — slides are reserved for hierarchical push/pop navigation.
+CustomTransitionPage<void> _fadePage(ValueKey<String> key, Widget child) =>
+    CustomTransitionPage<void>(
+      key: key,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionsBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
 
 /// Combines multiple [Listenable]s into one so `GoRouter.refreshListenable`
 /// reacts to any provider change.

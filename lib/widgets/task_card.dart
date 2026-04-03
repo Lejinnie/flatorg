@@ -106,19 +106,30 @@ class _TaskCardState extends State<TaskCard> {
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingXs,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── State colour bar ──────────────────────────────────────────────
-          Container(
-            height: AppTheme.taskStateBarHeight,
-            color: _stateColor,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppTheme.spacingMd,
+          AppTheme.spacingSm,
+          AppTheme.spacingMd,
+          AppTheme.spacingMd,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── State colour pill ─────────────────────────────────────────
+            // Sits between the card's top edge and the title, inset from
+            // both sides by the card's horizontal padding.
+            Container(
+              height: AppTheme.taskStateBarHeight,
+              decoration: BoxDecoration(
+                color: _stateColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+            ),
 
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingMd),
-            child: Column(
+            const SizedBox(height: AppTheme.spacingSm),
+
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Header row ────────────────────────────────────────────
@@ -200,10 +211,10 @@ class _TaskCardState extends State<TaskCard> {
                 // ── Action buttons ────────────────────────────────────────
                 _buildActions(context),
               ],
-            ),
-          ),
-        ],
-      ),
+            ),   // inner Column
+          ],
+        ),       // outer Column
+      ),         // Padding
     );
   }
 
