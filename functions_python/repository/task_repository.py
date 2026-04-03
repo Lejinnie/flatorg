@@ -20,19 +20,10 @@ class TaskRepository:
         self._db = db
 
     def _task_ref(self, flat_id: str, task_id: str) -> Any:
-        return (
-            self._db.collection(COLLECTION_FLATS)
-            .document(flat_id)
-            .collection(COLLECTION_TASKS)
-            .document(task_id)
-        )
+        return self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_TASKS).document(task_id)
 
     def _tasks_collection(self, flat_id: str) -> Any:
-        return (
-            self._db.collection(COLLECTION_FLATS)
-            .document(flat_id)
-            .collection(COLLECTION_TASKS)
-        )
+        return self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_TASKS)
 
     def get_all_tasks(self, flat_id: str) -> list[Task]:
         """Fetch all tasks for a flat, ordered by ring_index."""
@@ -52,11 +43,13 @@ class TaskRepository:
             raise ValueError(f"{ERROR_TASK_NOT_FOUND}: {task_id}")
         return task_from_firestore(doc.id, doc.to_dict())
 
-    def get_task_in_transaction(
-        self, flat_id: str, task_id: str, transaction: Any
-    ) -> Task:
-        """Fetch a single task within a transaction; raise ValueError if not found."""
-        doc = transaction.get(self._task_ref(flat_id, task_id))
+    def get_task_in_transaction(self, flat_id: str, task_id: str, transaction: Any) -> Task:
+        """Fetch a single task within a transaction; raise ValueError if not found.
+
+        transaction.get(DocumentReference) returns a generator — next(iter(...))
+        unwraps it to the DocumentSnapshot.
+        """
+        doc = next(iter(transaction.get(self._task_ref(flat_id, task_id))))
         if not doc.exists:
             raise ValueError(f"{ERROR_TASK_NOT_FOUND}: {task_id}")
         return task_from_firestore(doc.id, doc.to_dict())
@@ -65,9 +58,7 @@ class TaskRepository:
         """Update specific fields on a task document."""
         self._task_ref(flat_id, task_id).update(updates)
 
-    def update_task_in_transaction(
-        self, flat_id: str, task_id: str, updates: dict[str, Any], transaction: Any
-    ) -> None:
+    def update_task_in_transaction(self, flat_id: str, task_id: str, updates: dict[str, Any], transaction: Any) -> None:
         """Update specific fields on a task document within a transaction."""
         transaction.update(self._task_ref(flat_id, task_id), updates)
 
@@ -84,9 +75,9 @@ class TaskRepository:
 
         task_ref = self._task_ref(flat_id, task_id)
 
-        @transactional  # type: ignore[untyped-decorator]
+        @transactional
         def _update_in_tx(tx: Any) -> None:
-            doc = tx.get(task_ref)
+            doc = next(iter(tx.get(task_ref)))
             if not doc.exists:
                 raise ValueError(f"{ERROR_TASK_NOT_FOUND}: {task_id}")
             if doc.to_dict().get("state") != TaskState.Pending.value:
