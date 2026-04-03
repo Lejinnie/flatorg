@@ -168,7 +168,7 @@ class WeekResetService:
 
         @transactional
         def _run(transaction: Any) -> None:
-            swap_doc = next(iter(transaction.get(swap_ref)))
+            swap_doc = swap_ref.get(transaction=transaction)
             swap = swap_request_from_firestore(swap_doc.id, swap_doc.to_dict())
 
             if swap.status != SwapRequestStatus.Pending:

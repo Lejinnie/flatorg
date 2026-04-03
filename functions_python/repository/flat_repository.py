@@ -26,12 +26,8 @@ class FlatRepository:
         return flat_from_firestore(doc.id, doc.to_dict())
 
     def get_flat_in_transaction(self, flat_id: str, transaction: Any) -> Flat:
-        """Fetch a flat within a transaction; raise ValueError if not found.
-
-        transaction.get(DocumentReference) returns a generator in the Python Admin
-        SDK — next(iter(...)) is required to unwrap the single DocumentSnapshot.
-        """
-        doc = next(iter(transaction.get(self._flat_ref(flat_id))))
+        """Fetch a flat within a transaction; raise ValueError if not found."""
+        doc = self._flat_ref(flat_id).get(transaction=transaction)
         if not doc.exists:
             raise ValueError(f"{ERROR_FLAT_NOT_FOUND}: {flat_id}")
         return flat_from_firestore(doc.id, doc.to_dict())
