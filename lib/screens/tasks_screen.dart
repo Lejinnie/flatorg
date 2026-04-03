@@ -113,8 +113,9 @@ class _TasksBody extends StatelessWidget {
                       currentUserTaskDone: myTaskDone,
                       onComplete: () => _completeTask(ctx, flatId, task),
                       onVacation: () => _markVacation(ctx, flatId, currentUid),
-                      onRequestSwap: () => _requestSwap(
-                          ctx, flatId, task, currentUid, currentPerson?.uid ?? ''),
+                      onRequestSwap: ({required isImmediate}) => _requestSwap(
+                          ctx, flatId, task, currentPerson?.uid ?? '',
+                          isImmediate: isImmediate),
                     );
                   },
                 ),
@@ -159,9 +160,9 @@ class _TasksBody extends StatelessWidget {
     BuildContext context,
     String flatId,
     Task targetTask,
-    String currentUid,
-    String requesterUid,
-  ) async {
+    String requesterUid, {
+    required bool isImmediate,
+  }) async {
     // Find the requester's own task.
     final tasks = await TaskRepository().fetchTasks(flatId);
     final myTaskMatches = tasks.where((t) => t.assignedTo == requesterUid);
@@ -191,7 +192,14 @@ class _TasksBody extends StatelessWidget {
       createdAt: Timestamp.now(),
     );
 
-    await SwapRequestRepository().createSwapRequest(flatId, request);
+    final repo = SwapRequestRepository();
+    await repo.createSwapRequest(flatId, request);
+
+    // Vacant slots and vacation assignees don't require the other person's
+    // approval — accept immediately so the token is deducted right away.
+    if (isImmediate) {
+      await repo.respondToSwapRequest(flatId, request, SwapRequestStatus.accepted);
+    }
   }
 }
 

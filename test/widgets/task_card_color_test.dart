@@ -87,7 +87,7 @@ Future<void> _pumpCard(
           currentUserTaskDone:   currentUserTaskDone,
           onComplete:            () {},
           onVacation:            () {},
-          onRequestSwap:         () {},
+          onRequestSwap:         ({required isImmediate}) {},
         ),
       ),
     ),

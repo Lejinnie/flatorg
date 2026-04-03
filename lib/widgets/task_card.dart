@@ -53,7 +53,9 @@ class TaskCard extends StatefulWidget {
   final VoidCallback onVacation;
 
   /// Called when another user requests a swap with the task owner.
-  final VoidCallback onRequestSwap;
+  /// `isImmediate` is true when the swap takes effect without the assignee's
+  /// approval (vacant slot or assignee is on vacation).
+  final void Function({required bool isImmediate}) onRequestSwap;
 
   @override
   State<TaskCard> createState() => _TaskCardState();
@@ -324,7 +326,7 @@ class _TaskCardState extends State<TaskCard> {
       confirmLabel: confirmLabel,
     );
     if (confirmed) {
-      widget.onRequestSwap();
+      widget.onRequestSwap(isImmediate: isVacant || isOnVacation);
     }
   }
 }
