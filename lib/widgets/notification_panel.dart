@@ -45,7 +45,9 @@ class NotificationPanel extends StatelessWidget {
   final ScrollController scrollController;
 
   /// Called when the user taps Accept or Decline on a tile.
-  final void Function(SwapRequest request, SwapRequestStatus response) onRespond;
+  /// Returns a [Future] so each tile can await the write and roll back its
+  /// optimistic hide if the request fails.
+  final Future<void> Function(SwapRequest request, SwapRequestStatus response) onRespond;
 
   static void show(
     BuildContext context, {
@@ -165,6 +167,7 @@ class NotificationPanel extends StatelessWidget {
                       requesterTaskName: taskName,
                       onAccept:  () => onRespond(req, SwapRequestStatus.accepted),
                       onDecline: () => onRespond(req, SwapRequestStatus.declined),
+                      key: ValueKey(req.id),
                     );
                   },
                 ),
@@ -176,12 +179,18 @@ class NotificationPanel extends StatelessWidget {
   }
 }
 
-class _SwapRequestTile extends StatelessWidget {
+/// A single swap-request row with optimistic hide-on-respond behaviour.
+///
+/// When the user taps Accept or Decline the tile hides itself immediately
+/// (optimistic) while the write completes.  If the write fails the tile
+/// reappears and shows a generic error snackbar so the user can retry.
+class _SwapRequestTile extends StatefulWidget {
   const _SwapRequestTile({
     required this.requesterName,
     required this.requesterTaskName,
     required this.onAccept,
     required this.onDecline,
+    super.key,
   });
 
   final String requesterName;
@@ -189,20 +198,63 @@ class _SwapRequestTile extends StatelessWidget {
   /// The display name of the task the requester currently holds.
   /// Shown so the recipient knows what they would be swapping into.
   final String requesterTaskName;
-  final VoidCallback onAccept;
-  final VoidCallback onDecline;
+
+  /// Called when the user taps Yes.  Returns a [Future] so the tile can
+  /// detect failure and roll back its optimistic hide.
+  final Future<void> Function() onAccept;
+
+  /// Called when the user taps No.  Returns a [Future] so the tile can
+  /// detect failure and roll back its optimistic hide.
+  final Future<void> Function() onDecline;
+
+  @override
+  State<_SwapRequestTile> createState() => _SwapRequestTileState();
+}
+
+class _SwapRequestTileState extends State<_SwapRequestTile> {
+  /// True after the user responds; collapses the tile immediately while the
+  /// write is in flight.  Reverted to false if the write fails.
+  var _responded = false;
+
+  Future<void> _handleRespond(
+    BuildContext context, {
+    required Future<void> Function() action,
+  }) async {
+    setState(() => _responded = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await action();
+    } on Exception catch (_) {
+      if (!mounted) {
+        return;
+      }
+      // Roll back the optimistic hide so the user can try again.
+      setState(() => _responded = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text(errorGeneric)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Collapsed while the write is in flight or after a successful response
+    // (Firestore stream will remove this item on the next snapshot).
+    if (_responded) {
+      return const SizedBox.shrink();
+    }
+
     final theme     = Theme.of(context);
-    final taskLabel = requesterTaskName.isNotEmpty ? ' ($requesterTaskName)' : '';
+    final taskLabel = widget.requesterTaskName.isNotEmpty
+        ? ' (${widget.requesterTaskName})'
+        : '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$requesterName$taskLabel $swapRequestMessage',
+            '${widget.requesterName}$taskLabel $swapRequestMessage',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: AppTheme.spacingSm),
@@ -213,7 +265,10 @@ class _SwapRequestTile extends StatelessWidget {
                   backgroundColor: AppTheme.stateCompleted,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: onAccept,
+                onPressed: () => _handleRespond(
+                  context,
+                  action: widget.onAccept,
+                ),
                 child: const Text(buttonAccept),
               ),
               const SizedBox(width: AppTheme.spacingSm),
@@ -222,7 +277,10 @@ class _SwapRequestTile extends StatelessWidget {
                   foregroundColor: AppTheme.stateNotDone,
                   side: const BorderSide(color: AppTheme.stateNotDone),
                 ),
-                onPressed: onDecline,
+                onPressed: () => _handleRespond(
+                  context,
+                  action: widget.onDecline,
+                ),
                 child: const Text(buttonDecline),
               ),
             ],

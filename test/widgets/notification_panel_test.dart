@@ -63,7 +63,7 @@ String _taskNameFor(String taskId) => switch (taskId) {
 /// Returns the [StreamController] so tests can push new events.
 Future<StreamController<List<SwapRequest>>> _pump(
   WidgetTester tester, {
-  void Function(SwapRequest, SwapRequestStatus)? onRespond,
+  Future<void> Function(SwapRequest, SwapRequestStatus)? onRespond,
   ScrollController? scrollController,
   Stream<List<SwapRequest>>? stream,
 }) async {
@@ -81,7 +81,7 @@ Future<StreamController<List<SwapRequest>>> _pump(
             getRequesterName:     _nameFor,
             getRequesterTaskName: _taskNameFor,
             scrollController:     scroll,
-            onRespond:            onRespond ?? (_, __) {},
+            onRespond:            onRespond ?? (_, __) async {},
           ),
         ),
       ),
@@ -203,7 +203,7 @@ void main() {
 
         final ctrl = await _pump(
           tester,
-          onRespond: (req, status) {
+          onRespond: (req, status) async {
             respondedRequest = req;
             respondedStatus  = status;
           },
@@ -255,7 +255,7 @@ void main() {
 
         final ctrl = await _pump(
           tester,
-          onRespond: (req, status) {
+          onRespond: (req, status) async {
             respondedRequest = req;
             respondedStatus  = status;
           },
@@ -437,7 +437,7 @@ void main() {
         SwapRequest? acceptedReq;
         final ctrl = await _pump(
           tester,
-          onRespond: (req, status) {
+          onRespond: (req, status) async {
             if (status == SwapRequestStatus.accepted) {
               acceptedReq = req;
             }

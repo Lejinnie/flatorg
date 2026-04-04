@@ -308,6 +308,19 @@ const confirmLogOutLabel = 'Log out';
 // ── Generic error ─────────────────────────────────────────────────────────────
 
 const errorGeneric = 'Something went wrong. Please try again.';
+
+// ── Optimistic-action error messages ──────────────────────────────────────────
+
+/// Shown when the complete-task write fails and the optimistic green state is
+/// rolled back to the previous card colour.
+const errorCompleteTaskFailed = 'Could not mark task as done. Please try again.';
+
+/// Shown when the vacation write fails and the optimistic grayed-out button is
+/// rolled back.
+const errorVacationFailed = 'Could not update vacation status. Please try again.';
+
+/// Shown when the swap-request write fails after the user confirmed the dialog.
+const errorSwapFailed = 'Could not send swap request. Please try again.';
 const errorIssueTitleRequired = 'Title is required';
 const errorIssueDescRequired = 'Description is required';
 const tooltipSendRestricted =
