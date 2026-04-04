@@ -218,6 +218,22 @@ const confirmRemoveMessage =
     'Are you sure you want to remove {name} from the flat?';
 const confirmRemoveLabel = 'Remove';
 
+const confirmLeaveTitle = 'Leave flat?';
+const confirmLeaveMessage = 'You will be removed from this flat.';
+const confirmLeaveLabel = 'Leave';
+
+const confirmDeleteFlatTitle = 'Delete flat?';
+const confirmDeleteFlatMessage =
+    'You are the last member. This will permanently delete the flat '
+    'and all its data. This cannot be undone.';
+const confirmDeleteFlatLabel = 'Delete';
+
+const labelTransferAdminBeforeLeaving = 'Choose a new admin before leaving';
+const labelSelectNewAdminToLeave =
+    'Select who will manage the flat after you leave:';
+const labelLeaveAndTransfer = 'Leave & Transfer';
+const snackRemoveMemberError = 'Failed to remove member';
+
 const confirmAdminTitle = 'Transfer admin rights?';
 
 /// {name} is replaced with the selected member's name.

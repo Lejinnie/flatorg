@@ -20,6 +20,183 @@ import '../repositories/person_repository.dart';
 import '../repositories/task_repository.dart';
 import '../widgets/confirmation_dialog.dart';
 
+// ── Member removal helpers ────────────────────────────────────────────────────
+
+/// Handles removing [member] from [flatId], covering four scenarios:
+///
+/// 1. Admin removing another member — standard confirm → delete.
+/// 2. Non-admin self-removal — "Leave flat?" confirm → delete own doc.
+/// 3. Admin self-removal, last member — "Delete flat?" confirm → delete flat doc.
+/// 4. Admin self-removal with others present — transfer-admin dialog, then
+///    remove self and call [FlatProvider.clearFlat].
+///
+/// [allMembers] is the current snapshot used to determine membership count.
+/// [onExitRemoveMode] is called after a successful non-self removal to reset
+/// the edit mode toggle in the parent widget.
+Future<void> _handleRemoveMember({
+  required BuildContext context,
+  required String flatId,
+  required Person member,
+  required Person? currentPerson,
+  required List<Person> allMembers,
+  required VoidCallback onExitRemoveMode,
+}) async {
+  final isSelf = member.uid == currentPerson?.uid;
+  final isAdminSelf = isSelf && (currentPerson?.isAdmin ?? false);
+
+  try {
+    if (isAdminSelf && allMembers.length == 1) {
+      // ── Case 3: last member → delete the whole flat ───────────────────
+      final confirmed = await showConfirmationDialog(
+        context,
+        title: confirmDeleteFlatTitle,
+        message: confirmDeleteFlatMessage,
+        confirmLabel: confirmDeleteFlatLabel,
+        confirmColor: AppTheme.destructiveRed,
+        confirmTextColor: Colors.white,
+      );
+      if (!confirmed || !context.mounted) {
+        return;
+      }
+      await FlatRepository().deleteFlat(flatId);
+      if (!context.mounted) {
+        return;
+      }
+      await context.read<FlatProvider>().clearFlat();
+      // Router detects hasFlat == false and redirects to entry automatically.
+    } else if (isAdminSelf) {
+      // ── Case 4: admin leaves, others remain → must transfer admin first ──
+      final others =
+          allMembers.where((m) => m.uid != currentPerson!.uid).toList();
+      final newAdminUid = await _showLeaveAsAdminDialog(context, others);
+      if (newAdminUid == null || !context.mounted) {
+        return;
+      }
+      await PersonRepository()
+          .transferAdmin(flatId, currentPerson!.uid, newAdminUid);
+      if (!context.mounted) {
+        return;
+      }
+      // Self-removal is permitted: request.auth.uid == uid in Firestore rules.
+      await PersonRepository().removeMember(flatId, currentPerson.uid);
+      if (!context.mounted) {
+        return;
+      }
+      await context.read<FlatProvider>().clearFlat();
+    } else if (isSelf) {
+      // ── Case 2: non-admin self-removal ────────────────────────────────
+      final confirmed = await showConfirmationDialog(
+        context,
+        title: confirmLeaveTitle,
+        message: confirmLeaveMessage,
+        confirmLabel: confirmLeaveLabel,
+        confirmColor: AppTheme.destructiveRed,
+        confirmTextColor: Colors.white,
+      );
+      if (!confirmed || !context.mounted) {
+        return;
+      }
+      await PersonRepository().removeMember(flatId, member.uid);
+      if (!context.mounted) {
+        return;
+      }
+      await context.read<FlatProvider>().clearFlat();
+    } else {
+      // ── Case 1: admin removing someone else ───────────────────────────
+      final name = member.name.isNotEmpty ? member.name : member.email;
+      final msg = confirmRemoveMessage.replaceFirst('{name}', name);
+      final confirmed = await showConfirmationDialog(
+        context,
+        title: confirmRemoveTitle,
+        message: msg,
+        confirmLabel: confirmRemoveLabel,
+        confirmColor: AppTheme.destructiveRed,
+        confirmTextColor: Colors.white,
+      );
+      if (!confirmed || !context.mounted) {
+        return;
+      }
+      await PersonRepository().removeMember(flatId, member.uid);
+      if (!context.mounted) {
+        return;
+      }
+      onExitRemoveMode();
+    }
+  } on Exception catch (e, stack) {
+    debugPrint('ERROR: _handleRemoveMember failed: $e\n$stack');
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$snackRemoveMemberError: $e')),
+    );
+  }
+}
+
+/// Shows a dialog that lets the admin pick a replacement admin before leaving.
+/// Returns the selected member UID, or null if the dialog was cancelled.
+Future<String?> _showLeaveAsAdminDialog(
+  BuildContext context,
+  List<Person> eligibleMembers,
+) {
+  assert(
+    eligibleMembers.isNotEmpty,
+    '_showLeaveAsAdminDialog: eligibleMembers must not be empty — '
+    'use the delete-flat flow when the admin is the last member.',
+  );
+
+  String? selectedUid = eligibleMembers.first.uid;
+
+  return showDialog<String>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setDialogState) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        title: const Text(labelTransferAdminBeforeLeaving),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              labelSelectNewAdminToLeave,
+              style: Theme.of(ctx).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
+            DropdownButton<String>(
+              value: selectedUid,
+              isExpanded: true,
+              items: eligibleMembers
+                  .map(
+                    (m) => DropdownMenuItem(
+                      value: m.uid,
+                      child: Text(m.name.isNotEmpty ? m.name : m.email),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => setDialogState(() => selectedUid = v),
+            ),
+          ],
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(buttonCancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.destructiveRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(selectedUid),
+            child: const Text(labelLeaveAndTransfer),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 /// Settings screen.
 ///
 /// All members see: the member list and invite code button.
@@ -176,28 +353,28 @@ class _MembersSection extends StatelessWidget {
   Widget build(BuildContext context) =>
       StreamBuilder<List<Person>>(
         stream: PersonRepository().watchMembers(flatId),
-      builder: (ctx, snap) {
-        final members = snap.data ?? [];
-        return Column(
-          children: members.map((member) {
-            final isSelf = member.uid == currentPerson?.uid;
-            final isThisAdmin = member.isAdmin;
+        builder: (ctx, snap) {
+          final members = snap.data ?? [];
+          return Column(
+            children: members.map((member) {
+              final isThisAdmin = member.isAdmin;
+              // In remove mode every row is highlighted — including the current
+              // user's own row, since self-removal is supported.
+              final highlight = removeMode;
 
-            return Container(
+              return Container(
                 margin: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs),
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppTheme.spacingMd,
                   vertical: AppTheme.spacingSm,
                 ),
                 decoration: BoxDecoration(
-                  color: removeMode && !isSelf
+                  color: highlight
                       ? AppTheme.stateNotDone.withAlpha(30)
                       : Theme.of(ctx).cardTheme.color,
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   border: Border.all(
-                    color: removeMode && !isSelf
-                        ? AppTheme.stateNotDone
-                        : AppTheme.grayLight,
+                    color: highlight ? AppTheme.stateNotDone : AppTheme.grayLight,
                   ),
                 ),
                 child: Row(
@@ -208,9 +385,7 @@ class _MembersSection extends StatelessWidget {
                           Text(
                             member.name.isNotEmpty ? member.name : member.email,
                             style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
-                              color: removeMode && !isSelf
-                                  ? AppTheme.stateNotDone
-                                  : null,
+                              color: highlight ? AppTheme.stateNotDone : null,
                             ),
                           ),
                           if (isThisAdmin) ...[
@@ -235,44 +410,28 @@ class _MembersSection extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (removeMode && !isSelf)
+                    if (removeMode)
                       IconButton(
                         icon: const Icon(
                           Icons.delete_outline,
                           color: AppTheme.stateNotDone,
                         ),
-                        onPressed: () =>
-                            _confirmRemove(ctx, flatId, member, onExitRemoveMode),
+                        onPressed: () => _handleRemoveMember(
+                          context: ctx,
+                          flatId: flatId,
+                          member: member,
+                          currentPerson: currentPerson,
+                          allMembers: members,
+                          onExitRemoveMode: onExitRemoveMode,
+                        ),
                       ),
                   ],
                 ),
-            );
-          }).toList(),
-        );
-      },
+              );
+            }).toList(),
+          );
+        },
       );
-
-  Future<void> _confirmRemove(
-    BuildContext context,
-    String flatId,
-    Person member,
-    VoidCallback onExit,
-  ) async {
-    final msg = confirmRemoveMessage.replaceFirst('{name}', member.name);
-    final confirmed = await showConfirmationDialog(
-      context,
-      title: confirmRemoveTitle,
-      message: msg,
-      confirmLabel: confirmRemoveLabel,
-      confirmColor: AppTheme.destructiveRed,
-      confirmTextColor: Colors.white,
-    );
-    if (!confirmed) {
-      return;
-    }
-    await PersonRepository().removeMember(flatId, member.uid);
-    onExit();
-  }
 }
 
 // ── Admin settings ────────────────────────────────────────────────────────────

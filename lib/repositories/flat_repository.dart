@@ -43,6 +43,15 @@ class FlatRepository {
     await _flatRef(flatId).update(updates);
   }
 
+  /// Deletes the flat document. Subcollection cleanup (members, tasks, etc.)
+  /// is handled by a Cloud Function triggered on flat deletion.
+  ///
+  /// Caller must be the flat admin; Firestore security rules enforce this.
+  Future<void> deleteFlat(String flatId) async {
+    assert(flatId.isNotEmpty, 'deleteFlat: flatId must not be empty.');
+    await _flatRef(flatId).delete();
+  }
+
   /// Looks up a flat by its invite code.
   /// Returns null when no flat with that code exists.
   Future<Flat?> findByInviteCode(String inviteCode) async {
