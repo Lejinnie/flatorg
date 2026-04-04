@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -518,6 +519,10 @@ class _AdminSettingsState extends State<_AdminSettings> {
     }
 
     try {
+      // Force a fresh ID token so the callable never rejects with UNAUTHENTICATED
+      // due to a stale token that the SDK hasn't proactively refreshed yet.
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+
       if (isNewAssignment) {
         final callable = FirebaseFunctions.instance
             .httpsCallable('week_reset_callable');
