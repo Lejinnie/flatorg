@@ -86,15 +86,15 @@ GoRouter buildAppRouter(BuildContext context) {
       // Tab routes slide horizontally in the direction of the tab bar.
       GoRoute(
         path: routeTasks,
-        pageBuilder: (_, state) => _slideTabPage(state.pageKey, const TasksScreen(), 0),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const TasksScreen()),
       ),
       GoRoute(
         path: routeShopping,
-        pageBuilder: (_, state) => _slideTabPage(state.pageKey, const ShoppingScreen(), 1),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const ShoppingScreen()),
       ),
       GoRoute(
         path: routeIssues,
-        pageBuilder: (_, state) => _slideTabPage(state.pageKey, const IssuesScreen(), 2),
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const IssuesScreen()),
       ),
       GoRoute(
         path: routeSettings,
@@ -104,42 +104,8 @@ GoRouter buildAppRouter(BuildContext context) {
   );
 }
 
-/// Tracks the tab index of the most recently built tab page.
-/// Updated inside [_slideTabPage] each time GoRouter builds a tab route, so
-/// the next call can compute slide direction correctly.
-var _prevTabIndex = 0;
-
-/// Builds a [CustomTransitionPage] that slides horizontally in the direction
-/// matching the tab bar: moving to a higher-index tab slides in from the right,
-/// lower-index from the left.
-///
-/// Direction is derived by comparing [tabIndex] to the module-level tracker,
-/// which is updated on every call — one int is enough because GoRouter's
-/// pageBuilder is called synchronously on the main thread.
-CustomTransitionPage<void> _slideTabPage(
-  ValueKey<String> key,
-  Widget child,
-  int tabIndex,
-) {
-  // Capture direction before updating the tracker.
-  final fromRight = tabIndex >= _prevTabIndex;
-  _prevTabIndex = tabIndex;
-
-  return CustomTransitionPage<void>(
-    key: key,
-    child: child,
-    transitionsBuilder: (_, animation, __, child) => SlideTransition(
-      position: Tween<Offset>(
-        begin: Offset(fromRight ? 1.0 : -1.0, 0),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
-      child: child,
-    ),
-  );
-}
-
 /// Builds a [CustomTransitionPage] with a crossfade.
-/// Used for non-tab routes (e.g. Settings) where no directional slide is needed.
+/// Used for all route transitions.
 CustomTransitionPage<void> _fadePage(ValueKey<String> key, Widget child) =>
     CustomTransitionPage<void>(
       key: key,
