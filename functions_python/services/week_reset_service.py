@@ -93,11 +93,9 @@ class WeekResetService:
             _write_reset_results(
                 flat_id,
                 updated_tasks,
-                persons,
                 ctx,
                 transaction,
                 self._task_repo,
-                self._person_repo,
             )
 
         _run(self._db.transaction())
@@ -237,11 +235,9 @@ def _increment_weeks_not_cleaned(tasks: list[Task], persons: list[Person]) -> li
 def _write_reset_results(
     flat_id: str,
     tasks: list[Task],
-    persons: list[Person],
     ctx: WeekResetContext,
     transaction: Any,
     task_repo: TaskRepository,
-    person_repo: PersonRepository,
 ) -> None:
     """Apply all computed next-week assignments and reset task/person state in the transaction."""
     task_by_ring_index = {task.ring_index: task for task in tasks}
@@ -262,8 +258,11 @@ def _write_reset_results(
             transaction,
         )
 
-    for person in persons:
-        person_repo.update_member_in_transaction(flat_id, person.uid, {"on_vacation": False}, transaction)
+    # on_vacation is intentionally NOT cleared here.
+    # Per spec, only completed_task() clears on_vacation — when a person
+    # completes their assigned task they are considered back from vacation.
+    # Clearing it on reset would show vacation-assigned tasks as yellow
+    # instead of blue.
 
 
 # ── Exported helper: pure in-memory algorithm for testing ────────────────────
