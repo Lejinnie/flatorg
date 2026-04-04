@@ -20,6 +20,7 @@ FIELD_FLAT_GRACE_PERIOD_HOURS = "grace_period_hours"
 FIELD_FLAT_REMINDER_HOURS = "reminder_hours_before_deadline"
 FIELD_FLAT_SHOPPING_CLEANUP_HOURS = "shopping_cleanup_hours"
 FIELD_FLAT_CREATED_AT = "created_at"
+FIELD_FLAT_LAST_WEEK_RESET_AT = "last_week_reset_at"
 
 # Task fields
 FIELD_TASK_NAME = "name"
@@ -30,6 +31,8 @@ FIELD_TASK_ORIGINAL_ASSIGNED_TO = "original_assigned_to"
 FIELD_TASK_STATE = "state"
 FIELD_TASK_WEEKS_NOT_CLEANED = "weeks_not_cleaned"
 FIELD_TASK_RING_INDEX = "ring_index"
+FIELD_TASK_DAY_BEFORE_REMINDER_SENT = "day_before_reminder_sent"
+FIELD_TASK_HOURS_BEFORE_REMINDER_SENT = "hours_before_reminder_sent"
 
 # Person fields
 FIELD_PERSON_UID = "uid"
@@ -88,19 +91,16 @@ TASK_LEVEL_L3 = "L3"
 
 NOTIFICATION_TITLE_REMINDER = "Task Reminder"
 NOTIFICATION_BODY_REMINDER_DAY_BEFORE = (
-    'Your task "{task_name}" is due tomorrow. '
-    "Please complete it or mark yourself as on vacation."
+    'Your task "{task_name}" is due tomorrow. ' "Please complete it or mark yourself as on vacation."
 )
 NOTIFICATION_BODY_REMINDER_HOURS_BEFORE = (
-    'Your task "{task_name}" is due in {hours} hour(s). '
-    "Please complete it or mark yourself as on vacation."
+    'Your task "{task_name}" is due in {hours} hour(s). ' "Please complete it or mark yourself as on vacation."
 )
 NOTIFICATION_TITLE_TASK_COMPLETED = "Task Completed"
 NOTIFICATION_BODY_TASK_COMPLETED = '{person_name} completed the task "{task_name}".'
 NOTIFICATION_TITLE_SWAP_REQUEST = "Task Swap Request"
 NOTIFICATION_BODY_SWAP_REQUEST = (
-    "{requester_name} wants to swap tasks with you. "
-    "You have {tokens}/3 tokens remaining."
+    "{requester_name} wants to swap tasks with you. " "You have {tokens}/3 tokens remaining."
 )
 
 # ── Log messages ──────────────────────────────────────────────────────────────
@@ -110,6 +110,11 @@ LOG_WEEK_RESET_COMPLETE = "week_reset: completed for flat"
 LOG_GRACE_PERIOD_TRANSITION = "enter_grace_period: task transitioned to not_done"
 LOG_TOKEN_RESET = "token_reset: resetting swap tokens for flat"
 LOG_SHOPPING_CLEANUP = "shopping_cleanup: removing bought items for flat"
+LOG_DEADLINE_CHECK = "deadline_check: processing flat"
+LOG_REMINDER_DAY_BEFORE_SENT = "deadline_check: day-before reminder sent"
+LOG_REMINDER_HOURS_BEFORE_SENT = "deadline_check: hours-before reminder sent"
+LOG_GRACE_PERIOD_AUTO = "deadline_check: auto-triggered grace period for task"
+LOG_WEEK_RESET_AUTO = "deadline_check: auto-triggered week reset for flat"
 
 # ── Error messages ────────────────────────────────────────────────────────────
 

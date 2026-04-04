@@ -50,6 +50,10 @@ class FlatRepository:
         """Update specific admin-configurable settings on a flat."""
         self._flat_ref(flat_id).update(updates)
 
+    def update_flat_settings_in_transaction(self, flat_id: str, updates: dict[str, Any], transaction: Any) -> None:
+        """Update specific flat fields within an existing Firestore transaction."""
+        transaction.update(self._flat_ref(flat_id), updates)
+
     def find_flat_by_invite_code(self, invite_code: str) -> Flat | None:
         """Look up a flat by its invite code. Returns None when no match found."""
         snapshot = self._db.collection(COLLECTION_FLATS).where("invite_code", "==", invite_code).limit(1).stream()

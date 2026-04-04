@@ -10,6 +10,12 @@ import firebase_admin
 firebase_admin.initialize_app()
 
 # ── Week reset ────────────────────────────────────────────────────────────────
+# ── Automatic deadline / reminder / week-reset scheduler ─────────────────────
+from triggers.deadline_check_trigger import (  # noqa: F401, E402
+    check_deadlines_http,
+    check_deadlines_scheduled,
+)
+
 # ── Grace period (pending → not_done) ────────────────────────────────────────
 from triggers.grace_period_trigger import (  # noqa: F401, E402
     enter_grace_period_all_callable,

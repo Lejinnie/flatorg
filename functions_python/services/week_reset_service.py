@@ -7,6 +7,7 @@ runs inside a single Firestore transaction to guarantee atomicity.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Any, ClassVar, cast
 
 from constants.strings import (
@@ -14,6 +15,9 @@ from constants.strings import (
     COLLECTION_SWAP_REQUESTS,
     ERROR_INSUFFICIENT_SWAP_TOKENS,
     ERROR_SWAP_NOT_PENDING,
+    FIELD_FLAT_LAST_WEEK_RESET_AT,
+    FIELD_TASK_DAY_BEFORE_REMINDER_SENT,
+    FIELD_TASK_HOURS_BEFORE_REMINDER_SENT,
     LOG_WEEK_RESET_COMPLETE,
     LOG_WEEK_RESET_START,
 )
@@ -96,6 +100,7 @@ class WeekResetService:
                 ctx,
                 transaction,
                 self._task_repo,
+                self._flat_repo,
             )
 
         _run(self._db.transaction())
@@ -238,6 +243,7 @@ def _write_reset_results(
     ctx: WeekResetContext,
     transaction: Any,
     task_repo: TaskRepository,
+    flat_repo: FlatRepository,
 ) -> None:
     """Apply all computed next-week assignments and reset task/person state in the transaction."""
     task_by_ring_index = {task.ring_index: task for task in tasks}
@@ -254,9 +260,20 @@ def _write_reset_results(
                 "original_assigned_to": "",
                 "state": TaskState.Pending.value,
                 "weeks_not_cleaned": task.weeks_not_cleaned,
+                # Reset reminder flags so they fire again in the new week.
+                FIELD_TASK_DAY_BEFORE_REMINDER_SENT: False,
+                FIELD_TASK_HOURS_BEFORE_REMINDER_SENT: False,
             },
             transaction,
         )
+
+    # Record when this reset ran so deadline_check can skip re-triggering
+    # within the same weekly cycle.
+    flat_repo.update_flat_settings_in_transaction(
+        flat_id,
+        {FIELD_FLAT_LAST_WEEK_RESET_AT: datetime.now(UTC)},
+        transaction,
+    )
 
     # on_vacation is intentionally NOT cleared here.
     # Per spec, only completed_task() clears on_vacation — when a person
