@@ -286,10 +286,23 @@ const confirmResetMessage =
     'This will restore all admin settings to their default values.';
 const confirmResetLabel = 'Reset';
 
-// ── Week reset ────────────────────────────────────────────────────────────────
+// ── Next phase trigger ────────────────────────────────────────────────────────
 
-const buttonTriggerWeekReset    = 'Trigger week reset';
-const confirmWeekResetTitle     = 'Trigger week reset?';
+const buttonTriggerNextPhase       = 'Trigger next phase';
+const labelNextPhaseGracePeriod    = 'Grace Period';
+const labelNextPhaseNewAssignment  = 'New Assignment';
+
+// Grace period (Pending → NotDone)
+const confirmGracePeriodTitle      = 'Trigger Grace Period?';
+const confirmGracePeriodMessage    =
+    'This will mark all pending tasks as overdue (not done), '
+    'starting the grace period. This cannot be undone.';
+const confirmGracePeriodLabel      = 'Trigger';
+const snackGracePeriodSuccess      = 'Grace period started.';
+const snackGracePeriodError        = 'Failed to trigger grace period — check the logs.';
+
+// New assignment (full week reset)
+const confirmWeekResetTitle     = 'Trigger new assignment?';
 const confirmWeekResetMessage   =
     'This will immediately run the full week reset: reassign all tasks, '
     'clear swap history, and update green/red/blue statuses. '

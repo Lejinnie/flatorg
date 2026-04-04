@@ -294,6 +294,36 @@ class _AdminSettingsState extends State<_AdminSettings> {
 
   var _settingsInitialised = false;
 
+  // Live task list — used to determine which phase the button triggers.
+  List<Task> _latestTasks = [];
+  StreamSubscription<List<Task>>? _tasksSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _tasksSub = TaskRepository()
+        .watchTasks(widget.flatId)
+        .listen((tasks) {
+          if (mounted) {
+            setState(() => _latestTasks = tasks);
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_tasksSub?.cancel());
+    super.dispose();
+  }
+
+  /// True when at least one task is in the notDone state, meaning the grace
+  /// period has already run and the full week reset is the next step.
+  bool get _isNewAssignmentPhase =>
+      _latestTasks.any((t) => t.state == TaskState.notDone);
+
+  String get _nextPhaseLabel =>
+      _isNewAssignmentPhase ? labelNextPhaseNewAssignment : labelNextPhaseGracePeriod;
+
   void _initSettings() {
     final flat = widget.flatProvider.flat;
     if (flat != null && !_settingsInitialised) {
@@ -428,17 +458,19 @@ class _AdminSettingsState extends State<_AdminSettings> {
 
         const SizedBox(height: AppTheme.spacingSm),
 
-        // Manual week reset — useful for testing or recovering from scheduler failures.
+        // Manual phase trigger — advances the week cycle to the next phase.
+        // Label reflects whether grace period (Pending→NotDone) or full week
+        // reset (New Assignment) is next, based on current task states.
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
             icon: const Icon(Icons.restart_alt),
-            label: const Text(buttonTriggerWeekReset),
+            label: Text('$buttonTriggerNextPhase ($_nextPhaseLabel)'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppTheme.destructiveRed,
               side: const BorderSide(color: AppTheme.destructiveRed),
             ),
-            onPressed: () => _triggerWeekReset(context),
+            onPressed: () => _triggerNextPhase(context),
           ),
         ),
       ],
@@ -467,15 +499,17 @@ class _AdminSettingsState extends State<_AdminSettings> {
     setState(() => _settingsInitialised = false);
   }
 
-  Future<void> _triggerWeekReset(BuildContext context) async {
-    // Capture before any async gap to satisfy use_build_context_synchronously.
+  Future<void> _triggerNextPhase(BuildContext context) async {
+    // Snapshot the phase before any async gap — the stream could update
+    // _latestTasks while awaiting the dialog, changing _isNewAssignmentPhase.
     final messenger = ScaffoldMessenger.of(context);
+    final isNewAssignment = _isNewAssignmentPhase;
 
     final confirmed = await showConfirmationDialog(
       context,
-      title: confirmWeekResetTitle,
-      message: confirmWeekResetMessage,
-      confirmLabel: confirmWeekResetLabel,
+      title:        isNewAssignment ? confirmWeekResetTitle   : confirmGracePeriodTitle,
+      message:      isNewAssignment ? confirmWeekResetMessage : confirmGracePeriodMessage,
+      confirmLabel: isNewAssignment ? confirmWeekResetLabel   : confirmGracePeriodLabel,
       confirmColor: AppTheme.destructiveRed,
       confirmTextColor: Colors.white,
     );
@@ -484,23 +518,32 @@ class _AdminSettingsState extends State<_AdminSettings> {
     }
 
     try {
-      final callable = FirebaseFunctions.instance
-          .httpsCallable('week_reset_callable');
-      await callable.call<Map<String, dynamic>>({'flatId': widget.flatId});
-      if (!mounted) {
-        return;
+      if (isNewAssignment) {
+        final callable = FirebaseFunctions.instance
+            .httpsCallable('week_reset_callable');
+        await callable.call<Map<String, dynamic>>({'flatId': widget.flatId});
+      } else {
+        final callable = FirebaseFunctions.instance
+            .httpsCallable('enter_grace_period_all_callable');
+        await callable.call<Map<String, dynamic>>({'flatId': widget.flatId});
       }
-      messenger.showSnackBar(
-        const SnackBar(content: Text(snackWeekResetSuccess)),
-      );
-    } on FirebaseFunctionsException catch (e) {
       if (!mounted) {
         return;
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text('$snackWeekResetError\n${e.code}: ${e.message}'),
+          content: Text(
+            isNewAssignment ? snackWeekResetSuccess : snackGracePeriodSuccess,
+          ),
         ),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final base = isNewAssignment ? snackWeekResetError : snackGracePeriodError;
+      messenger.showSnackBar(
+        SnackBar(content: Text('$base\n${e.code}: ${e.message}')),
       );
     }
   }
