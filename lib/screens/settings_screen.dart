@@ -714,6 +714,23 @@ class _TaskEditTileState extends State<_TaskEditTile> {
   }
 
   Future<void> _save() async {
+    // Capture all snackbar data NOW — before any await — because widget.task
+    // and widget.tasks will be replaced by the Firestore stream during the
+    // writes below, making pre-write values unreadable afterwards.
+    final oldAssigneeUid = widget.task.assignedTo;
+    final conflictTask = _assignedTo.isNotEmpty
+        ? widget.tasks
+            .where((t) => t.id != widget.task.id && t.assignedTo == _assignedTo)
+            .firstOrNull
+        : null;
+    // Capture name fields before they can be overwritten by a rebuild.
+    final savedTaskName = _nameCtrl.text.trim().isNotEmpty
+        ? _nameCtrl.text.trim()
+        : widget.task.name;
+    final conflictTaskName = conflictTask?.name ?? '';
+
+    final messenger = ScaffoldMessenger.of(context);
+
     final repo = TaskRepository();
     await repo.updateTaskDetails(
       widget.flatId,
@@ -727,20 +744,11 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     );
     await repo.updateDueDateTime(widget.flatId, widget.task.id, _dueDate);
 
-    // Look up any conflict in the (possibly stale) widget.tasks snapshot only
-    // to build an informative snackbar message.  The actual write goes through
-    // assignTask() which fetches fresh data, preventing duplicate assignments
-    // that would occur if the snapshot had fallen behind during the awaits above.
-    final conflictTask = _assignedTo.isNotEmpty
-        ? widget.tasks
-            .where((t) => t.id != widget.task.id && t.assignedTo == _assignedTo)
-            .firstOrNull
-        : null;
-
+    // assignTask() fetches fresh data to prevent stale-snapshot duplicate
+    // assignments; the snackbar relies on the pre-captured values above.
     await repo.assignTask(widget.flatId, widget.task.id, _assignedTo);
 
     if (mounted) {
-      // Build a descriptive message: Changed "Task" from Old to New.
       String resolveName(String uid) {
         if (uid.isEmpty) {
           return labelVacant;
@@ -752,20 +760,20 @@ class _TaskEditTileState extends State<_TaskEditTile> {
         return match.name.isNotEmpty ? match.name : match.email;
       }
 
-      final oldName = resolveName(widget.task.assignedTo);
+      final oldName = resolveName(oldAssigneeUid);
       final newName = resolveName(_assignedTo);
-      final taskName = _nameCtrl.text.trim().isNotEmpty
-          ? _nameCtrl.text.trim()
-          : widget.task.name;
 
-      final message = conflictTask != null
-          ? 'Swapped "$taskName" ($oldName→$newName) '
-            'and "${conflictTask.name}" ($newName→$oldName)'
-          : 'Changed "$taskName" from $oldName to $newName';
+      final String message;
+      if (conflictTask != null) {
+        // Swap: both tasks changed assignees.
+        // "Task B (vacant → Alice) and Task A (Alice → vacant)"
+        message = '"$savedTaskName" ($oldName → $newName) '
+            'and "$conflictTaskName" ($newName → $oldName)';
+      } else {
+        message = '"$savedTaskName" ($oldName → $newName)';
+      }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(message)));
       setState(() => _expanded = false);
     }
   }
