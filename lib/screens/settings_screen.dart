@@ -727,26 +727,17 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     );
     await repo.updateDueDateTime(widget.flatId, widget.task.id, _dueDate);
 
-    // If the new assignee is already on a different task, swap both atomically
-    // so no person ends up assigned to two tasks simultaneously.
+    // Look up any conflict in the (possibly stale) widget.tasks snapshot only
+    // to build an informative snackbar message.  The actual write goes through
+    // assignTask() which fetches fresh data, preventing duplicate assignments
+    // that would occur if the snapshot had fallen behind during the awaits above.
     final conflictTask = _assignedTo.isNotEmpty
         ? widget.tasks
             .where((t) => t.id != widget.task.id && t.assignedTo == _assignedTo)
             .firstOrNull
         : null;
 
-    if (conflictTask != null) {
-      // Swap: this task → _assignedTo, conflict task → old assignee of this task.
-      await repo.swapTaskAssignees(
-        widget.flatId,
-        widget.task.id,     _assignedTo,
-        conflictTask.id,    widget.task.assignedTo,
-      );
-    } else {
-      await repo.updateTask(widget.flatId, widget.task.id, {
-        fieldTaskAssignedTo: _assignedTo,
-      });
-    }
+    await repo.assignTask(widget.flatId, widget.task.id, _assignedTo);
 
     if (mounted) {
       // Build a descriptive message: Changed "Task" from Old to New.
