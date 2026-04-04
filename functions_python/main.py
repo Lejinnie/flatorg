@@ -12,6 +12,7 @@ firebase_admin.initialize_app()
 # ── Week reset ────────────────────────────────────────────────────────────────
 # ── Grace period (pending → not_done) ────────────────────────────────────────
 from triggers.grace_period_trigger import (  # noqa: F401, E402
+    enter_grace_period_all_callable,
     enter_grace_period_callable,
     enter_grace_period_http,
 )
