@@ -9,13 +9,14 @@ import '../repositories/swap_request_repository.dart';
 
 /// Bottom-sheet notification panel showing pending swap requests.
 ///
-/// Each request shows who wants to swap and offers Yes/No buttons.
-/// Accepting or declining removes the item from the list immediately
-/// (the Firestore stream will confirm).
+/// Each request shows who wants to swap, what task they hold, and offers
+/// Yes/No buttons. Accepting or declining removes the item from the list
+/// immediately (the Firestore stream will confirm).
 class NotificationPanel extends StatelessWidget {
   const NotificationPanel({
     required this.requestStream,
     required this.getRequesterName,
+    required this.getRequesterTaskName,
     required this.scrollController,
     required this.onRespond,
     super.key,
@@ -24,10 +25,20 @@ class NotificationPanel extends StatelessWidget {
   /// Live stream of pending swap requests targeting the current user's tasks.
   /// Injected so the widget has no direct Firebase dependency and can be
   /// tested with a plain [StreamController].
+  ///
+  /// Must be a stable reference — do NOT create this stream inside a builder
+  /// callback that fires on every frame (e.g. DraggableScrollableSheet.builder)
+  /// because each new Stream object causes StreamBuilder to re-subscribe,
+  /// which accumulates duplicate Firestore listener registrations.
   final Stream<List<SwapRequest>> requestStream;
 
   /// Callback to look up a member's display name by UID.
   final String Function(String uid) getRequesterName;
+
+  /// Callback to look up a task's display name by task ID.
+  /// Shows the requester's task name so the recipient knows what they would
+  /// be swapping into.
+  final String Function(String taskId) getRequesterTaskName;
 
   /// Provided by [DraggableScrollableSheet] so the inner list and the sheet
   /// drag gesture share the same scroll physics — prevents flickering.
@@ -41,8 +52,13 @@ class NotificationPanel extends StatelessWidget {
     required String flatId,
     required String currentUid,
     required String Function(String uid) getRequesterName,
+    required String Function(String taskId) getRequesterTaskName,
   }) {
     final repo = SwapRequestRepository();
+    // Stream created once here — NOT inside DraggableScrollableSheet.builder.
+    // The sheet's builder fires on every drag frame; creating the stream there
+    // would cause a new Firestore listener on each frame and accumulate counts.
+    final requestStream = repo.watchPendingRequestsForUser(flatId, currentUid);
     unawaited(showModalBottomSheet<void>(
       context: context,
       // isScrollControlled is required for DraggableScrollableSheet to work
@@ -61,9 +77,10 @@ class NotificationPanel extends StatelessWidget {
         // than filling the entire screen when dragged to max.
         expand: false,
         builder: (ctx, scrollController) => NotificationPanel(
-          requestStream: repo.watchPendingRequestsForUser(flatId, currentUid),
-          getRequesterName: getRequesterName,
-          scrollController: scrollController,
+          requestStream:        requestStream,
+          getRequesterName:     getRequesterName,
+          getRequesterTaskName: getRequesterTaskName,
+          scrollController:     scrollController,
           onRespond: (req, response) =>
               repo.respondToSwapRequest(flatId, req, response),
         ),
@@ -140,10 +157,12 @@ class NotificationPanel extends StatelessWidget {
                   itemCount: requests.length,
                   separatorBuilder: (_, __) => const Divider(),
                   itemBuilder: (ctx, i) {
-                    final req = requests[i];
-                    final name = getRequesterName(req.requesterUid);
+                    final req      = requests[i];
+                    final name     = getRequesterName(req.requesterUid);
+                    final taskName = getRequesterTaskName(req.requesterTaskId);
                     return _SwapRequestTile(
-                      requesterName: name,
+                      requesterName:     name,
+                      requesterTaskName: taskName,
                       onAccept:  () => onRespond(req, SwapRequestStatus.accepted),
                       onDecline: () => onRespond(req, SwapRequestStatus.declined),
                     );
@@ -160,24 +179,30 @@ class NotificationPanel extends StatelessWidget {
 class _SwapRequestTile extends StatelessWidget {
   const _SwapRequestTile({
     required this.requesterName,
+    required this.requesterTaskName,
     required this.onAccept,
     required this.onDecline,
   });
 
   final String requesterName;
+
+  /// The display name of the task the requester currently holds.
+  /// Shown so the recipient knows what they would be swapping into.
+  final String requesterTaskName;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme     = Theme.of(context);
+    final taskLabel = requesterTaskName.isNotEmpty ? ' ($requesterTaskName)' : '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$requesterName $swapRequestMessage',
+            '$requesterName$taskLabel $swapRequestMessage',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: AppTheme.spacingSm),

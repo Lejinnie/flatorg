@@ -44,6 +44,17 @@ String _nameFor(String uid) => switch (uid) {
   _          => uid,
 };
 
+const _kBobTaskId   = 'task-kitchen';
+const _kAliceTaskId = 'task-shower';
+const _kCarlaTaskId = 'task-bathroom';
+
+String _taskNameFor(String taskId) => switch (taskId) {
+  _kBobTaskId   => 'Kitchen',
+  _kAliceTaskId => 'Shower',
+  _kCarlaTaskId => 'Bathroom',
+  _             => taskId,
+};
+
 // ── Harness ───────────────────────────────────────────────────────────────────
 
 /// Pumps a [NotificationPanel] inside a [MaterialApp] with a fixed-size
@@ -54,6 +65,7 @@ Future<StreamController<List<SwapRequest>>> _pump(
   WidgetTester tester, {
   void Function(SwapRequest, SwapRequestStatus)? onRespond,
   ScrollController? scrollController,
+  Stream<List<SwapRequest>>? stream,
 }) async {
   final controller = StreamController<List<SwapRequest>>();
   final scroll     = scrollController ?? ScrollController();
@@ -65,10 +77,11 @@ Future<StreamController<List<SwapRequest>>> _pump(
         body: SizedBox(
           height: 600,
           child: NotificationPanel(
-            requestStream:   controller.stream,
-            getRequesterName: _nameFor,
-            scrollController: scroll,
-            onRespond:        onRespond ?? (_, __) {},
+            requestStream:        stream ?? controller.stream,
+            getRequesterName:     _nameFor,
+            getRequesterTaskName: _taskNameFor,
+            scrollController:     scroll,
+            onRespond:            onRespond ?? (_, __) {},
           ),
         ),
       ),
@@ -276,6 +289,108 @@ void main() {
 
         expect(find.text(buttonAccept), findsNothing);
         expect(find.text(labelNoNotifications), findsOneWidget);
+      },
+    );
+  });
+
+  // ── Situation 6: requester task name shown in tile ─────────────────────────
+
+  group('Situation 6 — requester task name is shown in each tile', () {
+    testWidgets(
+      'Given a request from Bob who holds the Kitchen task, '
+      'when the panel renders, '
+      "then the tile shows Bob's name and 'Kitchen'",
+      (tester) async {
+        final ctrl = await _pump(tester);
+        addTearDown(ctrl.close);
+        ctrl.add([_request()]);
+        await tester.pump();
+
+        expect(find.textContaining('Bob'),     findsOneWidget,
+          reason: 'Requester name must appear in the tile.');
+        expect(find.textContaining('Kitchen'), findsOneWidget,
+          reason: "Requester's task name must appear so the recipient knows "
+              'what they are swapping into.');
+      },
+    );
+
+    testWidgets(
+      'Given requests from Bob (Kitchen), Alice (Shower), and Carla (Bathroom), '
+      'when the panel renders, '
+      'then each tile shows the correct name and task',
+      (tester) async {
+        final ctrl = await _pump(tester);
+        addTearDown(ctrl.close);
+        ctrl.add([
+          _request(id: 'r1'),
+          _request(id: 'r2', requesterUid: _kAliceUid, requesterTaskId: _kAliceTaskId),
+          _request(id: 'r3', requesterUid: _kCarlaUid, requesterTaskId: _kCarlaTaskId),
+        ]);
+        await tester.pump();
+
+        expect(find.textContaining('Bob'),     findsOneWidget);
+        expect(find.textContaining('Kitchen'), findsOneWidget);
+        expect(find.textContaining('Alice'),   findsOneWidget);
+        expect(find.textContaining('Shower'),  findsOneWidget);
+        expect(find.textContaining('Carla'),   findsOneWidget);
+        expect(find.textContaining('Bathroom'), findsOneWidget);
+      },
+    );
+  });
+
+  // ── Situation 9: stream stability regression ────────────────────────────────
+  //
+  // Bug: the notification count in the badge grew by 1 on each tab switch
+  // because streams were created inside StatelessWidget.build() and
+  // DraggableScrollableSheet.builder, causing multiple overlapping Firestore
+  // subscriptions. Fix: streams are created once and passed as stable references.
+
+  group('Situation 9 — stream is not re-subscribed when widget rebuilds', () {
+    testWidgets(
+      'Given NotificationPanel shows 1 request, '
+      'when the widget tree is pumped again (simulating a parent rebuild), '
+      'then it still shows 1 tile and has not reset to the loading state',
+      (tester) async {
+        // The observable regression: creating a new stream on each rebuild would
+        // cause StreamBuilder to reset to ConnectionState.waiting (spinner) and
+        // then re-emit, which the user sees as the count jumping or flickering.
+        final ctrl = await _pump(tester);
+        addTearDown(ctrl.close);
+
+        ctrl.add([_request()]);
+        await tester.pump();
+        expect(find.text(buttonAccept), findsOneWidget,
+          reason: 'One tile must be visible after the first emission.');
+
+        // Simulate a parent rebuild — the stream reference must stay stable.
+        await tester.pump();
+
+        expect(find.text(buttonAccept), findsOneWidget,
+          reason: 'Rebuild must not reset the panel to loading/empty state.');
+        expect(find.byType(CircularProgressIndicator), findsNothing,
+          reason: 'Panel must not flash the spinner on rebuild.');
+      },
+    );
+
+    testWidgets(
+      'Given NotificationPanel shows 1 request, '
+      'when the stream emits the same list a second time (cache/server double-fire), '
+      'then still exactly 1 tile is shown (StreamBuilder de-duplicates by design)',
+      (tester) async {
+        final ctrl = await _pump(tester);
+        addTearDown(ctrl.close);
+
+        ctrl.add([_request()]);
+        await tester.pump();
+        expect(find.text(buttonAccept), findsOneWidget);
+
+        // Second emission with the same single request — simulates Firestore
+        // emitting once from cache and once from the server.
+        ctrl.add([_request()]);
+        await tester.pump();
+
+        expect(find.text(buttonAccept), findsOneWidget,
+          reason: 'A second identical emission must not create a second tile.');
       },
     );
   });

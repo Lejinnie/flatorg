@@ -204,7 +204,12 @@ class _TasksBody extends StatelessWidget {
 }
 
 /// App bar action showing the notification bell with a live badge count.
-class _NotificationBadge extends StatelessWidget {
+///
+/// Stateful so that stream subscriptions are created once in initState and
+/// reused across rebuilds. Creating streams inside build (the StatelessWidget
+/// anti-pattern) causes a new Firestore listener on every parent rebuild,
+/// which makes the badge count grow by 1 on each tab switch.
+class _NotificationBadge extends StatefulWidget {
   const _NotificationBadge({
     required this.flatId,
     required this.currentUid,
@@ -216,61 +221,92 @@ class _NotificationBadge extends StatelessWidget {
   final String currentPersonName;
 
   @override
-  // Stream members so we can resolve UIDs to display names in the panel.
-  Widget build(BuildContext context) => StreamBuilder<List<Person>>(
-      stream: PersonRepository().watchMembers(flatId),
-      builder: (ctx, memberSnap) {
-        final memberMap = <String, String>{};
-        for (final m in (memberSnap.data ?? <Person>[])) {
-          memberMap[m.uid] = m.name.isNotEmpty ? m.name : m.email;
-        }
+  State<_NotificationBadge> createState() => _NotificationBadgeState();
+}
 
-    return StreamBuilder<List<SwapRequest>>(
-      stream: SwapRequestRepository().watchPendingRequestsForUser(flatId, currentUid),
-      builder: (ctx, snap) {
-        final count = snap.data?.length ?? 0;
+class _NotificationBadgeState extends State<_NotificationBadge> {
+  late Stream<List<Person>>      _membersStream;
+  late Stream<List<Task>>        _tasksStream;
+  late Stream<List<SwapRequest>> _swapStream;
 
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              tooltip: labelNotifications,
-              onPressed: () {
-                NotificationPanel.show(
-                  ctx,
-                  flatId: flatId,
-                  currentUid: currentUid,
-                  getRequesterName: (uid) => memberMap[uid] ?? uid,
-                );
-              },
-            ),
-            if (count > 0)
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.stateNotDone,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-      }, // outer members StreamBuilder
-    );
+  @override
+  void initState() {
+    super.initState();
+    _membersStream = PersonRepository().watchMembers(widget.flatId);
+    _tasksStream   = TaskRepository().watchTasks(widget.flatId);
+    _swapStream    = SwapRequestRepository()
+        .watchPendingRequestsForUser(widget.flatId, widget.currentUid);
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      // Stream members and tasks so we can resolve IDs to display names in
+      // the panel without re-creating Firestore listeners on each rebuild.
+      StreamBuilder<List<Person>>(
+        stream: _membersStream,
+        builder: (ctx, memberSnap) {
+          final memberMap = <String, String>{};
+          for (final m in (memberSnap.data ?? <Person>[])) {
+            memberMap[m.uid] = m.name.isNotEmpty ? m.name : m.email;
+          }
+
+          return StreamBuilder<List<Task>>(
+            stream: _tasksStream,
+            builder: (ctx, taskSnap) {
+              final taskMap = <String, String>{};
+              for (final t in (taskSnap.data ?? <Task>[])) {
+                taskMap[t.id] = t.name;
+              }
+
+              return StreamBuilder<List<SwapRequest>>(
+                stream: _swapStream,
+                builder: (ctx, snap) {
+                  final count = snap.data?.length ?? 0;
+
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined),
+                        tooltip: labelNotifications,
+                        onPressed: () {
+                          NotificationPanel.show(
+                            ctx,
+                            flatId:               widget.flatId,
+                            currentUid:           widget.currentUid,
+                            getRequesterName:     (uid)    => memberMap[uid]    ?? uid,
+                            getRequesterTaskName: (taskId) => taskMap[taskId]   ?? taskId,
+                          );
+                        },
+                      ),
+                      if (count > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.stateNotDone,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$count',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
 }
