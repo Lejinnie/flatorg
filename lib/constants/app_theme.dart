@@ -10,26 +10,31 @@ class AppTheme {
 
   // ── Background colours ────────────────────────────────────────────────────
 
-  /// Page/scaffold background — light mode.
-  static const bgLight = Color(0xFFEEEEEE);
+  /// Page/scaffold background — light mode. hsl(108, 50%, 90%)
+  static const bgLight = Color(0xFFDEF2D9);
 
-  /// Page/scaffold background — dark mode.
-  static const bgDark = Color(0xFF0a0a0a);
+  /// Page/scaffold background — dark mode. hsl(108, 50%, 10%)
+  static const bgDark = Color(0xFF12260D);
 
   // ── Brand palette ─────────────────────────────────────────────────────────
 
-  /// Muted sage green — buttons, navigation highlights, primary actions.
+  /// Dark card background in dark mode — slightly lighter than [bgDark].
+  static const cardColorDark = Color(0xFF1C3815);
 
-  /// Dark card background — dark teal, consistent with featureColor.
-  static const cardColorDark = Color(0xFF1F3535);
+  /// Interactive / feature colour — light mode. hsl(168, 80%, 20%)
+  static const featureColor = Color(0xFF0A5C4B);
 
-  static const featureColor = Color(0xFF508484);
+  /// Interactive / feature colour — dark mode. hsl(168, 80%, 80%)
+  static const featureColorDark = Color(0xFFA3F5E4);
 
-  /// featureColor +10% saturation and +10% lightness — used for selected card backgrounds in dark mode.
-  static const selectionColor = Color(0xFF59AEAE);
+  /// Selected-card background in dark mode — same hue as [featureColorDark].
+  static const selectionColor = Color(0xFF3BBEA8);
 
-  /// highlight color for highlighting stuff.
-  static const highlightColor = Color(0xFFFFCB77);
+  /// Accent / highlight colour — light mode. hsl(48, 80%, 20%)
+  static const highlightColor = Color(0xFF5C4B0A);
+
+  /// Accent / highlight colour — dark mode. hsl(48, 80%, 80%)
+  static const highlightColorDark = Color(0xFFF5E4A3);
 
   // ── Task-state colours (ONLY for the 4 px top bar on task cards) ──────────
 
@@ -53,8 +58,8 @@ class AppTheme {
   /// Unit labels and non-critical annotations — lighter than grayMid.
   static const secondaryTextColor = Color(0xFF9CA3AF);
 
-  /// Primary body text (light mode).
-  static const grayDark = Color(0xFF374151);
+  /// Primary body text (light mode). hsl(108, 50%, 10%) — matches [bgDark].
+  static const grayDark = Color(0xFF12260D);
 
   // ── Font sizes (3 centralised values) ────────────────────────────────────
 
@@ -136,9 +141,8 @@ class AppTheme {
         primary: featureColor,
         secondary: highlightColor,
         surface: bgLight,
-        onPrimary: Color(0xFF374151),
-        onSecondary: Color(0xFF374151),
-        onSurface: Color(0xFF374151),
+        // featureColor is dark teal → white text on primary buttons (Material default).
+        onSurface: grayDark,
         error: stateNotDone,
       ),
       textTheme: textTheme,
@@ -179,7 +183,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: featureColor,
-          foregroundColor: grayDark,
+          // featureColor is dark teal — white text is readable.
+          foregroundColor: Colors.white,
           textStyle:
               textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
@@ -225,11 +230,11 @@ class AppTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: bgDark,
       colorScheme: const ColorScheme.dark(
-        primary: featureColor,
-        secondary: highlightColor,
+        primary: featureColorDark,
+        secondary: highlightColorDark,
         surface: bgDark,
-        onPrimary: Colors.white,
-
+        // featureColorDark is light teal → dark bg text is readable (Material default).
+        onPrimary: bgDark,
         error: stateNotDone,
       ),
       textTheme: textTheme,
@@ -248,7 +253,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF333333),
+        fillColor: const Color(0xFF1C3815),
         hintStyle: const TextStyle(color: grayMid),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
@@ -260,7 +265,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
-          borderSide: const BorderSide(color: featureColor, width: 2),
+          borderSide: const BorderSide(color: featureColorDark, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: spacingMd,
@@ -269,7 +274,8 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: featureColor,
+          backgroundColor: featureColorDark,
+          // featureColorDark is light teal — dark bg text is readable.
           foregroundColor: bgDark,
           textStyle:
               textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -300,7 +306,7 @@ class AppTheme {
       dividerTheme: const DividerThemeData(color: grayMid, space: 1),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: bgDark,
-        selectedItemColor: featureColor,
+        selectedItemColor: featureColorDark,
         unselectedItemColor: grayMid,
         elevation: 8,
       ),

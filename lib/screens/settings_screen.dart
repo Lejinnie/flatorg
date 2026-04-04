@@ -15,6 +15,7 @@ import '../models/person.dart';
 import '../models/task.dart';
 import '../providers/auth_provider.dart';
 import '../providers/flat_provider.dart';
+import '../providers/theme_mode_provider.dart';
 import '../repositories/flat_repository.dart';
 import '../repositories/person_repository.dart';
 import '../repositories/task_repository.dart';
@@ -223,6 +224,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         appBar: AppBar(
           title: const Text(headingSettings),
           leading: BackButton(onPressed: () => context.pop()),
+          actions: [
+            Consumer<ThemeModeProvider>(
+              builder: (ctx, themeProv, _) => IconButton(
+                icon: Icon(
+                  themeProv.isDark ? Icons.wb_sunny_outlined : Icons.nightlight_round,
+                ),
+                tooltip: themeProv.isDark ? tooltipSwitchToLight : tooltipSwitchToDark,
+                onPressed: themeProv.toggle,
+              ),
+            ),
+          ],
         ),
         body: ListView(
           padding: const EdgeInsets.all(AppTheme.spacingMd),

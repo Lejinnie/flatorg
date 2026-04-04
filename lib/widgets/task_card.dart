@@ -165,7 +165,7 @@ class _TaskCardState extends State<TaskCard> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.spacingMd,
-          AppTheme.spacingSm,
+          AppTheme.spacingMd,
           AppTheme.spacingMd,
           AppTheme.spacingMd,
         ),

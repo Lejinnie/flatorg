@@ -115,6 +115,8 @@ const headingCreateFlat = 'Create a new flat';
 const headingJoinFlat = 'Join an existing flat';
 const headingAssignTasks = "Let's assign tasks!";
 const headingSettings = 'Settings';
+const tooltipSwitchToDark = 'Switch to dark mode';
+const tooltipSwitchToLight = 'Switch to light mode';
 
 const swapRequestAccepted = 'Swap request accepted';
 const swapRequestDeclined = 'Swap request declined';

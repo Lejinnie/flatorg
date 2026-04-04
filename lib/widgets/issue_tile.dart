@@ -49,11 +49,11 @@ class IssueTile extends StatelessWidget {
     final Color checkboxColor;
     if (isSelected) {
       // Coloured selection background — use explicit dark text for contrast.
-      cardColor = isDark ? AppTheme.selectionColor : AppTheme.highlightColor;
+      cardColor = isDark ? AppTheme.selectionColor : AppTheme.highlightColorDark;
       descriptionTextColor = AppTheme.grayDark;
       titleTextColor = onCooldown ? AppTheme.grayMid : AppTheme.grayDark;
       checkboxIcon = Icons.check_box;
-      checkboxColor = isDark ? AppTheme.highlightColor : AppTheme.featureColor;
+      checkboxColor = isDark ? AppTheme.highlightColorDark : AppTheme.featureColor;
     } else {
       // Default card — let the theme drive text colour via null.
       cardColor = defaultCardColor;
