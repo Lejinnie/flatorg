@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
+import '../models/app_notification.dart';
 import '../models/issue.dart';
 import '../models/person.dart';
 import '../models/task.dart';
 import '../providers/flat_provider.dart';
+import '../repositories/notification_repository.dart';
 import '../repositories/person_repository.dart';
 import '../repositories/swap_request_repository.dart';
 import '../repositories/task_repository.dart';
@@ -146,6 +151,17 @@ class _TasksBody extends StatelessWidget {
         onVacation: false,
       );
     }
+    // Notify all flat members via FCM (Android) and Firestore in-app docs (iOS).
+    // Fire-and-forget: notification failure must never block the task-completion UX.
+    unawaited(
+      FirebaseFunctions.instance
+          .httpsCallable(callableNotifyTaskCompleted)
+          .call<Map<String, dynamic>>({
+            'flatId':         flatId,
+            'taskId':         task.id,
+            'completedByUid': task.assignedTo,
+          }),
+    );
   }
 
   Future<void> _markVacation(
@@ -199,6 +215,18 @@ class _TasksBody extends StatelessWidget {
     // approval — accept immediately so the token is deducted right away.
     if (isImmediate) {
       await repo.respondToSwapRequest(flatId, request, SwapRequestStatus.accepted);
+    } else {
+      // Send an FCM push to the target on Android.  iOS already sees the
+      // request in the panel via the swapRequests Firestore stream.
+      // Fire-and-forget: failure must never block the swap-request UX.
+      unawaited(
+        FirebaseFunctions.instance
+            .httpsCallable(callableNotifySwapRequest)
+            .call<Map<String, dynamic>>({
+              'flatId':         flatId,
+              'swapRequestId':  request.id,
+            }),
+      );
     }
   }
 }
@@ -225,9 +253,10 @@ class _NotificationBadge extends StatefulWidget {
 }
 
 class _NotificationBadgeState extends State<_NotificationBadge> {
-  late Stream<List<Person>>      _membersStream;
-  late Stream<List<Task>>        _tasksStream;
-  late Stream<List<SwapRequest>> _swapStream;
+  late Stream<List<Person>>          _membersStream;
+  late Stream<List<Task>>            _tasksStream;
+  late Stream<List<SwapRequest>>     _swapStream;
+  late Stream<List<AppNotification>> _notifStream;
 
   @override
   void initState() {
@@ -236,6 +265,8 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
     _tasksStream   = TaskRepository().watchTasks(widget.flatId);
     _swapStream    = SwapRequestRepository()
         .watchPendingRequestsForUser(widget.flatId, widget.currentUid);
+    _notifStream   = NotificationRepository()
+        .watchNotificationsForUser(widget.flatId, widget.currentUid);
   }
 
   @override
@@ -260,50 +291,54 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
 
               return StreamBuilder<List<SwapRequest>>(
                 stream: _swapStream,
-                builder: (ctx, snap) {
-                  final count = snap.data?.length ?? 0;
+                builder: (ctx, swapSnap) => StreamBuilder<List<AppNotification>>(
+                  stream: _notifStream,
+                  builder: (ctx, notifSnap) {
+                    final count = (swapSnap.data?.length ?? 0)
+                        + (notifSnap.data?.length ?? 0);
 
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined),
-                        tooltip: labelNotifications,
-                        onPressed: () {
-                          NotificationPanel.show(
-                            ctx,
-                            flatId:               widget.flatId,
-                            currentUid:           widget.currentUid,
-                            getRequesterName:     (uid)    => memberMap[uid]    ?? uid,
-                            getRequesterTaskName: (taskId) => taskMap[taskId]   ?? taskId,
-                          );
-                        },
-                      ),
-                      if (count > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              color: AppTheme.stateNotDone,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '$count',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined),
+                          tooltip: labelNotifications,
+                          onPressed: () {
+                            NotificationPanel.show(
+                              ctx,
+                              flatId:               widget.flatId,
+                              currentUid:           widget.currentUid,
+                              getRequesterName:     (uid)    => memberMap[uid]    ?? uid,
+                              getRequesterTaskName: (taskId) => taskMap[taskId]   ?? taskId,
+                            );
+                          },
+                        ),
+                        if (count > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              width: 16,
+                              height: 16,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.stateNotDone,
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$count',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               );
             },
           );

@@ -12,14 +12,19 @@ from typing import Any, ClassVar, cast
 
 from constants.strings import (
     COLLECTION_FLATS,
+    COLLECTION_MEMBERS,
+    COLLECTION_NOTIFICATIONS,
     COLLECTION_SWAP_REQUESTS,
     ERROR_INSUFFICIENT_SWAP_TOKENS,
     ERROR_SWAP_NOT_PENDING,
     FIELD_FLAT_LAST_WEEK_RESET_AT,
+    FIELD_NOTIF_TYPE,
     FIELD_TASK_DAY_BEFORE_REMINDER_SENT,
     FIELD_TASK_HOURS_BEFORE_REMINDER_SENT,
     LOG_WEEK_RESET_COMPLETE,
     LOG_WEEK_RESET_START,
+    NOTIF_TYPE_GRACE_PERIOD,
+    NOTIF_TYPE_REMINDER,
 )
 from models.person import Person
 from models.swap_request import SwapRequestStatus, swap_request_from_firestore
@@ -104,7 +109,32 @@ class WeekResetService:
             )
 
         _run(self._db.transaction())
+
+        # Clean up stale reminder and grace_period in-app notifications.
+        # Must run outside the transaction — Firestore sub-collection deletes
+        # are not supported inside a read-write transaction.
+        persons = self._person_repo.get_all_members(flat_id)
+        self._clear_reminder_notifications(flat_id, persons)
+
         logger.info("%s %s", LOG_WEEK_RESET_COMPLETE, flat_id)
+
+    def _clear_reminder_notifications(self, flat_id: str, persons: list[Person]) -> None:
+        """Delete reminder and grace_period in-app notification docs for all members.
+
+        Called after each successful week reset so stale reminders don't persist
+        in the iOS in-app panel after task assignments have been refreshed.
+        """
+        for person in persons:
+            notif_ref = (
+                self._db.collection(COLLECTION_FLATS)
+                .document(flat_id)
+                .collection(COLLECTION_MEMBERS)
+                .document(person.uid)
+                .collection(COLLECTION_NOTIFICATIONS)
+            )
+            docs = notif_ref.where(FIELD_NOTIF_TYPE, "in", [NOTIF_TYPE_REMINDER, NOTIF_TYPE_GRACE_PERIOD]).stream()
+            for doc in docs:
+                doc.reference.delete()
 
     def completed_task(self, flat_id: str, task_id: str) -> None:
         """Mark a task as completed and clear the assignee's on_vacation flag.

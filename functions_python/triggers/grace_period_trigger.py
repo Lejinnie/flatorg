@@ -4,6 +4,9 @@ Each task has its own due_date_time. When that timestamp passes, Cloud Scheduler
 calls enter_grace_period_http with {"flatId": "<id>", "taskId": "<id>"}.
 The transition is idempotent — calling again when the task is already NotDone or
 Completed is a no-op.
+
+After transitioning, sends a grace-period notification to the assignee via FCM
+(Android) and writes an in-app notification document (iOS).
 """
 
 from __future__ import annotations
@@ -15,10 +18,32 @@ from firebase_functions import https_fn
 from google.cloud import firestore
 
 from constants.strings import LOG_GRACE_PERIOD_TRANSITION
-from models.task import TaskState
+from models.task import TaskState, effective_assigned_to
+from repository.flat_repository import FlatRepository
 from repository.task_repository import TaskRepository
+from services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
+
+
+def _notify_grace_period(db: Any, flat_id: str, task_id: str) -> None:
+    """Send a grace-period notification to the task assignee.
+
+    Looks up the task and flat to build the notification body.  Skips silently
+    if the task has no assignee (vacant slot).
+    """
+    task = TaskRepository(db).get_task(flat_id, task_id)
+    assignee_uid = effective_assigned_to(task)
+    if not assignee_uid:
+        return
+    flat = FlatRepository(db).get_flat(flat_id)
+    NotificationService(db).send_grace_period_notification(
+        flat_id,
+        assignee_uid,
+        task.name,
+        flat.grace_period_hours,
+        task_id=task_id,
+    )
 
 
 @https_fn.on_call()
@@ -33,7 +58,12 @@ def enter_grace_period_callable(req: https_fn.CallableRequest[Any]) -> dict[str,
             message="flatId and taskId are required",
         )
     db = firestore.Client()
-    TaskRepository(db).enter_grace_period(flat_id, task_id)
+    task_repo = TaskRepository(db)
+    task = task_repo.get_task(flat_id, task_id)
+    # Only transition and notify if still pending — idempotent guard.
+    if task.state == TaskState.Pending:
+        task_repo.enter_grace_period(flat_id, task_id)
+        _notify_grace_period(db, flat_id, task_id)
     logger.info("%s flat=%s task=%s", LOG_GRACE_PERIOD_TRANSITION, flat_id, task_id)
     return {"success": True}
 
@@ -59,6 +89,7 @@ def enter_grace_period_all_callable(req: https_fn.CallableRequest[Any]) -> dict[
     pending = [t for t in tasks if t.state == TaskState.Pending]
     for task in pending:
         repo.enter_grace_period(flat_id, task.id)
+        _notify_grace_period(db, flat_id, task.id)
     logger.info("%s flat=%s count=%d", LOG_GRACE_PERIOD_TRANSITION, flat_id, len(pending))
     return {"success": True, "count": len(pending)}
 
@@ -78,7 +109,11 @@ def enter_grace_period_http(req: Any) -> Any:
         )
     try:
         db = firestore.Client()
-        TaskRepository(db).enter_grace_period(flat_id, task_id)
+        task_repo = TaskRepository(db)
+        task = task_repo.get_task(flat_id, task_id)
+        if task.state == TaskState.Pending:
+            task_repo.enter_grace_period(flat_id, task_id)
+            _notify_grace_period(db, flat_id, task_id)
         logger.info("%s flat=%s task=%s", LOG_GRACE_PERIOD_TRANSITION, flat_id, task_id)
         return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined]
     except Exception as exc:

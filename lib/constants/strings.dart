@@ -9,6 +9,7 @@ const collectionMembers = 'members';
 const collectionIssues = 'issues';
 const collectionSwapRequests = 'swapRequests';
 const collectionShoppingItems = 'shoppingItems';
+const collectionNotifications = 'notifications';
 
 // ── Task field names ──────────────────────────────────────────────────────────
 
@@ -58,6 +59,23 @@ const fieldShoppingIsBought = 'is_bought';
 const fieldShoppingBoughtAt = 'bought_at';
 const fieldShoppingOrder = 'order';
 
+// ── Notification field names ──────────────────────────────────────────────────
+
+const fieldNotifType      = 'type';
+const fieldNotifTitle     = 'title';
+const fieldNotifBody      = 'body';
+const fieldNotifTaskId    = 'task_id';
+const fieldNotifCreatedAt = 'created_at';
+
+/// In-app notification type values — must match the Python NOTIF_TYPE_* constants.
+const notifTypeReminder      = 'reminder';
+const notifTypeGracePeriod   = 'grace_period';
+const notifTypeTaskCompleted = 'task_completed';
+
+/// Cloud Function callable names.
+const callableNotifyTaskCompleted = 'notify_task_completed_callable';
+const callableNotifySwapRequest   = 'notify_swap_request_callable';
+
 // ── Swap request field names ──────────────────────────────────────────────────
 
 const fieldSwapRequesterUid = 'requester_uid';
@@ -68,7 +86,7 @@ const fieldSwapCreatedAt = 'created_at';
 
 // ── Livit email ───────────────────────────────────────────────────────────────
 
-const livitEmailAddress = 'studentvillage@ch.issworld.com';
+const livitEmailAddress = 'serviceline@ch.issworld.com';
 const livitEmailSubject = 'Mängelmeldung für die Wohnung HWB 33';
 const livitFlatReference = 'HWB 33';
 
@@ -180,6 +198,7 @@ const buttonCompleteTask = 'Mark as Done';
 const buttonVacation = 'Vacation';
 const labelNoNotifications = 'No notifications';
 const labelNotifications = 'Notifications';
+const buttonDismissNotification = 'Dismiss';
 
 // ── Swap request ──────────────────────────────────────────────────────────────
 

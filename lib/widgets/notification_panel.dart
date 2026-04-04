@@ -4,50 +4,56 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_theme.dart';
 import '../constants/strings.dart';
+import '../models/app_notification.dart';
 import '../models/issue.dart';
+import '../repositories/notification_repository.dart';
 import '../repositories/swap_request_repository.dart';
 
-/// Bottom-sheet notification panel showing pending swap requests.
+/// Bottom-sheet notification panel showing pending swap requests and
+/// general in-app notifications (reminders, grace-period alerts, task-completed
+/// broadcasts).
 ///
-/// Each request shows who wants to swap, what task they hold, and offers
-/// Yes/No buttons. Accepting or declining removes the item from the list
-/// immediately (the Firestore stream will confirm).
+/// Swap-request tiles have Yes/No buttons (no dismiss needed — responding
+/// removes them).  General notification tiles have a Dismiss button only.
+///
+/// Both streams are injected so the widget has no direct Firebase dependency
+/// and can be tested with plain [StreamController]s.
 class NotificationPanel extends StatelessWidget {
   const NotificationPanel({
     required this.requestStream,
+    required this.notifStream,
     required this.getRequesterName,
     required this.getRequesterTaskName,
     required this.scrollController,
     required this.onRespond,
+    required this.onDismiss,
     super.key,
   });
 
   /// Live stream of pending swap requests targeting the current user's tasks.
-  /// Injected so the widget has no direct Firebase dependency and can be
-  /// tested with a plain [StreamController].
-  ///
-  /// Must be a stable reference — do NOT create this stream inside a builder
-  /// callback that fires on every frame (e.g. DraggableScrollableSheet.builder)
-  /// because each new Stream object causes StreamBuilder to re-subscribe,
-  /// which accumulates duplicate Firestore listener registrations.
+  /// Must be a stable reference — do NOT create inside a builder callback.
   final Stream<List<SwapRequest>> requestStream;
+
+  /// Live stream of general in-app notifications for the current user.
+  /// Must be a stable reference — do NOT create inside a builder callback.
+  final Stream<List<AppNotification>> notifStream;
 
   /// Callback to look up a member's display name by UID.
   final String Function(String uid) getRequesterName;
 
   /// Callback to look up a task's display name by task ID.
-  /// Shows the requester's task name so the recipient knows what they would
-  /// be swapping into.
   final String Function(String taskId) getRequesterTaskName;
 
   /// Provided by [DraggableScrollableSheet] so the inner list and the sheet
   /// drag gesture share the same scroll physics — prevents flickering.
   final ScrollController scrollController;
 
-  /// Called when the user taps Accept or Decline on a tile.
-  /// Returns a [Future] so each tile can await the write and roll back its
-  /// optimistic hide if the request fails.
-  final Future<void> Function(SwapRequest request, SwapRequestStatus response) onRespond;
+  /// Called when the user taps Accept or Decline on a swap-request tile.
+  final Future<void> Function(SwapRequest request, SwapRequestStatus response)
+      onRespond;
+
+  /// Called when the user taps Dismiss on a general notification tile.
+  final Future<void> Function(AppNotification notif) onDismiss;
 
   static void show(
     BuildContext context, {
@@ -56,16 +62,17 @@ class NotificationPanel extends StatelessWidget {
     required String Function(String uid) getRequesterName,
     required String Function(String taskId) getRequesterTaskName,
   }) {
-    final repo = SwapRequestRepository();
-    // Stream created once here — NOT inside DraggableScrollableSheet.builder.
-    // The sheet's builder fires on every drag frame; creating the stream there
-    // would cause a new Firestore listener on each frame and accumulate counts.
-    final requestStream = repo.watchPendingRequestsForUser(flatId, currentUid);
+    final swapRepo  = SwapRequestRepository();
+    final notifRepo = NotificationRepository();
+
+    // Streams created once here — NOT inside DraggableScrollableSheet.builder.
+    // The sheet builder fires on every drag frame; creating streams there
+    // would accumulate Firestore listener registrations.
+    final requestStream = swapRepo.watchPendingRequestsForUser(flatId, currentUid);
+    final notifStream   = notifRepo.watchNotificationsForUser(flatId, currentUid);
+
     unawaited(showModalBottomSheet<void>(
       context: context,
-      // isScrollControlled is required for DraggableScrollableSheet to work
-      // correctly — without it the sheet is capped at 50 % height and the
-      // drag handle fights the inner ListView for scroll events.
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -75,16 +82,17 @@ class NotificationPanel extends StatelessWidget {
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.45,
         maxChildSize: 0.85,
-        // expand: false keeps the sheet within the bottom-sheet frame rather
-        // than filling the entire screen when dragged to max.
         expand: false,
         builder: (ctx, scrollController) => NotificationPanel(
           requestStream:        requestStream,
+          notifStream:          notifStream,
           getRequesterName:     getRequesterName,
           getRequesterTaskName: getRequesterTaskName,
           scrollController:     scrollController,
           onRespond: (req, response) =>
-              repo.respondToSwapRequest(flatId, req, response),
+              swapRepo.respondToSwapRequest(flatId, req, response),
+          onDismiss: (notif) =>
+              notifRepo.dismissNotification(flatId, currentUid, notif.id),
         ),
       ),
     ));
@@ -96,88 +104,112 @@ class NotificationPanel extends StatelessWidget {
 
     return StreamBuilder<List<SwapRequest>>(
       stream: requestStream,
-      builder: (ctx, snap) {
-        final requests = snap.data ?? [];
+      builder: (ctx, swapSnap) {
+        final requests = swapSnap.data ?? <SwapRequest>[];
 
-        return CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spacingMd,
-                  AppTheme.spacingMd,
-                  AppTheme.spacingMd,
-                  AppTheme.spacingSm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Drag handle
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppTheme.grayLight,
-                          borderRadius: BorderRadius.circular(2),
+        return StreamBuilder<List<AppNotification>>(
+          stream: notifStream,
+          builder: (ctx, notifSnap) {
+            final notifs = notifSnap.data ?? <AppNotification>[];
+
+            final isLoading = swapSnap.connectionState == ConnectionState.waiting
+                || notifSnap.connectionState == ConnectionState.waiting;
+            final isEmpty = requests.isEmpty && notifs.isEmpty;
+
+            return CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTheme.spacingMd,
+                      AppTheme.spacingMd,
+                      AppTheme.spacingMd,
+                      AppTheme.spacingSm,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Drag handle
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppTheme.grayLight,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spacingMd),
-                    Text(
-                      labelNotifications,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppTheme.spacingSm),
-                  ],
-                ),
-              ),
-            ),
-
-            if (snap.connectionState == ConnectionState.waiting)
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (requests.isEmpty)
-              SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    labelNoNotifications,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.grayMid,
+                        const SizedBox(height: AppTheme.spacingMd),
+                        Text(
+                          labelNotifications,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                      ],
                     ),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingMd,
-                ),
-                sliver: SliverList.separated(
-                  itemCount: requests.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (ctx, i) {
-                    final req      = requests[i];
-                    final name     = getRequesterName(req.requesterUid);
-                    final taskName = getRequesterTaskName(req.requesterTaskId);
-                    return _SwapRequestTile(
-                      requesterName:     name,
-                      requesterTaskName: taskName,
-                      onAccept:  () => onRespond(req, SwapRequestStatus.accepted),
-                      onDecline: () => onRespond(req, SwapRequestStatus.declined),
-                      key: ValueKey(req.id),
-                    );
-                  },
-                ),
-              ),
-          ],
+
+                if (isLoading)
+                  const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Text(
+                        labelNoNotifications,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.grayMid,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingMd,
+                    ),
+                    sliver: SliverList.separated(
+                      itemCount: requests.length + notifs.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (ctx, i) {
+                        // Swap-request tiles come first.
+                        if (i < requests.length) {
+                          final req      = requests[i];
+                          final name     = getRequesterName(req.requesterUid);
+                          final taskName = getRequesterTaskName(req.requesterTaskId);
+                          return _SwapRequestTile(
+                            requesterName:     name,
+                            requesterTaskName: taskName,
+                            onAccept:  () => onRespond(req, SwapRequestStatus.accepted),
+                            onDecline: () => onRespond(req, SwapRequestStatus.declined),
+                            key: ValueKey(req.id),
+                          );
+                        }
+                        // General notification tiles follow.
+                        final notif = notifs[i - requests.length];
+                        return _AppNotificationTile(
+                          title:     notif.title,
+                          body:      notif.body,
+                          onDismiss: () => onDismiss(notif),
+                          key: ValueKey(notif.id),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            );
+          },
         );
       },
     );
   }
 }
+
+// ── Swap request tile ─────────────────────────────────────────────────────────
 
 /// A single swap-request row with optimistic hide-on-respond behaviour.
 ///
@@ -196,15 +228,9 @@ class _SwapRequestTile extends StatefulWidget {
   final String requesterName;
 
   /// The display name of the task the requester currently holds.
-  /// Shown so the recipient knows what they would be swapping into.
   final String requesterTaskName;
 
-  /// Called when the user taps Yes.  Returns a [Future] so the tile can
-  /// detect failure and roll back its optimistic hide.
   final Future<void> Function() onAccept;
-
-  /// Called when the user taps No.  Returns a [Future] so the tile can
-  /// detect failure and roll back its optimistic hide.
   final Future<void> Function() onDecline;
 
   @override
@@ -212,8 +238,6 @@ class _SwapRequestTile extends StatefulWidget {
 }
 
 class _SwapRequestTileState extends State<_SwapRequestTile> {
-  /// True after the user responds; collapses the tile immediately while the
-  /// write is in flight.  Reverted to false if the write fails.
   var _responded = false;
 
   Future<void> _handleRespond(
@@ -228,7 +252,6 @@ class _SwapRequestTileState extends State<_SwapRequestTile> {
       if (!mounted) {
         return;
       }
-      // Roll back the optimistic hide so the user can try again.
       setState(() => _responded = false);
       messenger.showSnackBar(
         const SnackBar(content: Text(errorGeneric)),
@@ -238,8 +261,6 @@ class _SwapRequestTileState extends State<_SwapRequestTile> {
 
   @override
   Widget build(BuildContext context) {
-    // Collapsed while the write is in flight or after a successful response
-    // (Firestore stream will remove this item on the next snapshot).
     if (_responded) {
       return const SizedBox.shrink();
     }
@@ -284,6 +305,80 @@ class _SwapRequestTileState extends State<_SwapRequestTile> {
                 child: const Text(buttonDecline),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── General notification tile ─────────────────────────────────────────────────
+
+/// A single in-app notification tile (reminder, grace-period, task-completed).
+///
+/// Shows title + body text and a Dismiss button.  Uses the same optimistic-hide
+/// pattern as [_SwapRequestTile]: the tile hides immediately on dismiss and
+/// rolls back if the Firestore delete fails.
+class _AppNotificationTile extends StatefulWidget {
+  const _AppNotificationTile({
+    required this.title,
+    required this.body,
+    required this.onDismiss,
+    super.key,
+  });
+
+  final String title;
+  final String body;
+  final Future<void> Function() onDismiss;
+
+  @override
+  State<_AppNotificationTile> createState() => _AppNotificationTileState();
+}
+
+class _AppNotificationTileState extends State<_AppNotificationTile> {
+  var _dismissed = false;
+
+  Future<void> _handleDismiss(BuildContext context) async {
+    setState(() => _dismissed = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await widget.onDismiss();
+    } on Exception catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _dismissed = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text(errorGeneric)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_dismissed) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.title, style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          )),
+          const SizedBox(height: 4),
+          Text(widget.body, style: theme.textTheme.bodySmall),
+          const SizedBox(height: AppTheme.spacingSm),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              foregroundColor: AppTheme.grayMid,
+            ),
+            onPressed: () => _handleDismiss(context),
+            child: const Text(buttonDismissNotification),
           ),
         ],
       ),

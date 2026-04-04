@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flatorg/constants/app_theme.dart';
 import 'package:flatorg/constants/strings.dart';
+import 'package:flatorg/models/app_notification.dart';
 import 'package:flatorg/models/issue.dart';
 import 'package:flatorg/widgets/notification_panel.dart';
 import 'package:flutter/material.dart';
@@ -64,11 +65,16 @@ String _taskNameFor(String taskId) => switch (taskId) {
 Future<StreamController<List<SwapRequest>>> _pump(
   WidgetTester tester, {
   Future<void> Function(SwapRequest, SwapRequestStatus)? onRespond,
+  Future<void> Function(AppNotification)? onDismiss,
   ScrollController? scrollController,
   Stream<List<SwapRequest>>? stream,
+  Stream<List<AppNotification>>? notifStream,
 }) async {
   final controller = StreamController<List<SwapRequest>>();
   final scroll     = scrollController ?? ScrollController();
+
+  // Default notif stream: empty list, never updates.
+  final emptyNotifStream = Stream<List<AppNotification>>.value([]);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -78,10 +84,12 @@ Future<StreamController<List<SwapRequest>>> _pump(
           height: 600,
           child: NotificationPanel(
             requestStream:        stream ?? controller.stream,
+            notifStream:          notifStream ?? emptyNotifStream,
             getRequesterName:     _nameFor,
             getRequesterTaskName: _taskNameFor,
             scrollController:     scroll,
             onRespond:            onRespond ?? (_, __) async {},
+            onDismiss:            onDismiss  ?? (_) async {},
           ),
         ),
       ),

@@ -100,21 +100,37 @@ def _run_for_flat(flat_id: str, now: datetime, db: Any) -> None:
     for task in actions.tasks_needing_day_before_reminder:
         assignee_uid = effective_assigned_to(task)
         if assignee_uid:
-            notification_svc.send_day_before_reminder(flat_id, assignee_uid, task.name)
+            # send_day_before_reminder writes both FCM (Android) and in-app doc (iOS).
+            notification_svc.send_day_before_reminder(flat_id, assignee_uid, task.name, task_id=task.id)
         task_repo.update_task(flat_id, task.id, {FIELD_TASK_DAY_BEFORE_REMINDER_SENT: True})
         logger.info("%s flat=%s task=%s", LOG_REMINDER_DAY_BEFORE_SENT, flat_id, task.id)
 
     for task in actions.tasks_needing_hours_before_reminder:
         assignee_uid = effective_assigned_to(task)
         if assignee_uid:
+            # send_hours_before_reminder writes both FCM (Android) and in-app doc (iOS).
             notification_svc.send_hours_before_reminder(
-                flat_id, assignee_uid, task.name, flat.reminder_hours_before_deadline
+                flat_id,
+                assignee_uid,
+                task.name,
+                flat.reminder_hours_before_deadline,
+                task_id=task.id,
             )
         task_repo.update_task(flat_id, task.id, {FIELD_TASK_HOURS_BEFORE_REMINDER_SENT: True})
         logger.info("%s flat=%s task=%s", LOG_REMINDER_HOURS_BEFORE_SENT, flat_id, task.id)
 
     for task in actions.tasks_needing_grace_period:
         task_repo.enter_grace_period(flat_id, task.id)
+        # Notify the assignee that their deadline passed and how long until reset.
+        assignee_uid = effective_assigned_to(task)
+        if assignee_uid:
+            notification_svc.send_grace_period_notification(
+                flat_id,
+                assignee_uid,
+                task.name,
+                flat.grace_period_hours,
+                task_id=task.id,
+            )
         logger.info("%s flat=%s task=%s", LOG_GRACE_PERIOD_AUTO, flat_id, task.id)
 
     if actions.should_run_week_reset:

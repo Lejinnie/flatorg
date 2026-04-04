@@ -22,6 +22,10 @@ from triggers.grace_period_trigger import (  # noqa: F401, E402
     enter_grace_period_callable,
     enter_grace_period_http,
 )
+from triggers.notify_swap_request_trigger import notify_swap_request_callable  # noqa: F401, E402
+
+# ── Push / in-app notification callables ─────────────────────────────────────
+from triggers.notify_task_completed_trigger import notify_task_completed_callable  # noqa: F401, E402
 
 # ── Task reminder notifications ───────────────────────────────────────────────
 from triggers.reminder_trigger import (  # noqa: F401, E402

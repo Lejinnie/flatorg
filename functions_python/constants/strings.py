@@ -8,6 +8,20 @@ COLLECTION_MEMBERS = "members"
 COLLECTION_ISSUES = "issues"
 COLLECTION_SWAP_REQUESTS = "swapRequests"
 COLLECTION_SHOPPING_ITEMS = "shoppingItems"
+COLLECTION_NOTIFICATIONS = "notifications"
+
+# ── In-app notification field names ──────────────────────────────────────────
+
+FIELD_NOTIF_TYPE = "type"
+FIELD_NOTIF_TITLE = "title"
+FIELD_NOTIF_BODY = "body"
+FIELD_NOTIF_TASK_ID = "task_id"
+FIELD_NOTIF_CREATED_AT = "created_at"
+
+# In-app notification type values — must match Dart notifType* constants.
+NOTIF_TYPE_REMINDER = "reminder"
+NOTIF_TYPE_GRACE_PERIOD = "grace_period"
+NOTIF_TYPE_TASK_COMPLETED = "task_completed"
 
 # ── Firestore field names ─────────────────────────────────────────────────────
 
@@ -98,6 +112,10 @@ NOTIFICATION_BODY_REMINDER_HOURS_BEFORE = (
 )
 NOTIFICATION_TITLE_TASK_COMPLETED = "Task Completed"
 NOTIFICATION_BODY_TASK_COMPLETED = '{person_name} completed the task "{task_name}".'
+NOTIFICATION_TITLE_GRACE_PERIOD = "Task Overdue"
+NOTIFICATION_BODY_GRACE_PERIOD = (
+    'Your task "{task_name}" deadline has passed. ' "You have {hours} hour(s) until week reset."
+)
 NOTIFICATION_TITLE_SWAP_REQUEST = "Task Swap Request"
 NOTIFICATION_BODY_SWAP_REQUEST = (
     "{requester_name} wants to swap tasks with you. " "You have {tokens}/3 tokens remaining."

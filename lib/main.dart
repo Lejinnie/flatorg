@@ -10,6 +10,7 @@ import 'constants/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/flat_provider.dart';
 import 'providers/theme_mode_provider.dart';
+import 'repositories/person_repository.dart';
 import 'router/app_router.dart';
 
 /// Top-level FCM background message handler — must be a top-level function.
@@ -75,11 +76,42 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
       themeModeProvider.init(),
     ]);
 
+    // Register this device's FCM token so Cloud Functions can send push
+    // notifications to it. Fire-and-forget — a registration failure must
+    // never block the app from launching.
+    unawaited(_registerFcmToken(authProvider, flatProvider));
+
     if (mounted) {
       setState(() {
         _routerWrapper = GoRouterWrapper(context);
         _initialised = true;
       });
+    }
+  }
+
+  /// Retrieves the FCM device token and persists it in Firestore so that
+  /// Cloud Functions can send push notifications to this device.
+  ///
+  /// Only runs when both uid and flatId are available (i.e. the user is
+  /// logged in and has already joined a flat).  Silently swallows errors
+  /// because notification registration failure must not crash the app.
+  Future<void> _registerFcmToken(
+    AuthProvider authProvider,
+    FlatProvider flatProvider,
+  ) async {
+    final uid    = authProvider.currentUser?.uid ?? '';
+    final flatId = flatProvider.flatId;
+    if (uid.isEmpty || flatId.isEmpty) {
+      return;
+    }
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await PersonRepository().saveFcmToken(flatId, uid, token);
+      }
+    } on Exception catch (e) {
+      // Log but never throw — push notification setup is best-effort.
+      debugPrint('FCM token registration failed: $e');
     }
   }
 
