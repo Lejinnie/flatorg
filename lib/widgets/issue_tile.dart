@@ -73,7 +73,10 @@ class IssueTile extends StatelessWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          onTap: onTap,
+          // In selection mode the whole tile toggles selection; tapping the
+          // text area to open the detail view is secondary to making the
+          // hit target large enough to be comfortable.
+          onTap: isSelectionMode ? onToggleSelect : onTap,
           child: Padding(
             padding: const EdgeInsets.all(AppTheme.spacingMd),
             child: Row(
@@ -106,15 +109,9 @@ class IssueTile extends StatelessWidget {
                   ),
                 ),
                 if (isSelectionMode)
-                  GestureDetector(
-                    onTap: onToggleSelect,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: AppTheme.spacingSm),
-                      child: Icon(
-                        checkboxIcon,
-                        color: checkboxColor,
-                      ),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: AppTheme.spacingSm),
+                    child: Icon(checkboxIcon, color: checkboxColor),
                   ),
               ],
             ),
