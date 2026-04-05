@@ -4,8 +4,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     match /flats/{flatId} {
-      // Any authenticated member of the flat can read the flat document.
-      allow read: if isMember(flatId);
+      // Any authenticated user can read flat docs.
+      // This is required so that unenrolled users can look up a flat by invite
+      // code before they have been added as a member.
+      allow read: if request.auth != null;
       // Only admin can write flat-level settings.
       allow write: if isAdmin(flatId);
 
@@ -37,11 +39,6 @@ service cloud.firestore {
       }
     }
 
-    // New flat creation: any authenticated user can create a flat doc
-    // (they will add themselves as a member immediately after).
-    match /flats/{flatId} {
-      allow create: if request.auth != null;
-    }
 
     function isMember(flatId) {
       return request.auth != null
