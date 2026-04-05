@@ -87,7 +87,7 @@ class WeekResetService:
 
         logger.info("%s %s", LOG_WEEK_RESET_START, flat_id)
 
-        @transactional
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
             flat = self._flat_repo.get_flat_in_transaction(flat_id, transaction)
             tasks = self._task_repo.get_all_tasks_in_transaction(flat_id, transaction)
@@ -143,7 +143,7 @@ class WeekResetService:
         """
         from google.cloud.firestore_v1.transaction import transactional
 
-        @transactional
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
             task = self._task_repo.get_task_in_transaction(flat_id, task_id, transaction)
             self._task_repo.update_task_in_transaction(
@@ -199,7 +199,7 @@ class WeekResetService:
             .document(swap_request_id)
         )
 
-        @transactional
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
             swap_doc = swap_ref.get(transaction=transaction)
             swap = swap_request_from_firestore(swap_doc.id, swap_doc.to_dict())

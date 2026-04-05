@@ -70,7 +70,7 @@ class TaskRepository:
 
         task_ref = self._task_ref(flat_id, task_id)
 
-        @transactional
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _update_in_tx(tx: Any) -> None:
             doc = task_ref.get(transaction=tx)
             if not doc.exists:
