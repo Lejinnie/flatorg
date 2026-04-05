@@ -8,16 +8,49 @@ There are two ways to work on this project:
 
 ### Option A — Dev Container (recommended)
 
-Uses Docker to give everyone an identical environment with Python 3.12, Firebase CLI, Flutter, and all linters pre-installed. No manual tool installation needed.
+The devcontainer gives every contributor an identical, pre-configured environment. No manual tool installation needed.
 
-**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) + [VS Code](https://code.visualstudio.com/) + the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+**Prerequisites**
 
-1. Clone the repo and open it in VS Code.
-2. When prompted "Reopen in Container", click it (or run **Dev Containers: Reopen in Container** from the command palette).
-3. Wait for the image to build — on first run this takes a few minutes (Flutter SDK download).
-4. Done. `postCreateCommand` automatically runs `pip install`, `flutter pub get`, and `pre-commit install`.
+- [Docker](https://docs.docker.com/get-docker/) (Desktop or Engine)
+- [VS Code](https://code.visualstudio.com/)
+- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
-> **`flutter run` on a physical device:** run this from a terminal on your **host machine** (outside the container), not inside it. The project folder is the same files — edits made inside the container are immediately visible on the host.
+**What's inside the container**
+
+| Component | Version / detail |
+|---|---|
+| OS | Ubuntu 22.04 |
+| Python | 3.12 (default `python3`) |
+| Node.js | 20 LTS |
+| Firebase CLI | latest (`firebase-tools` via npm) |
+| Flutter SDK | stable channel, pre-cached for Linux/web (no Android SDK) |
+| pre-commit | latest |
+
+VS Code extensions are auto-installed on container start:
+- **Dart-Code.flutter** and **Dart-Code.dart-code** — Flutter/Dart language support
+- **ms-python.python** and **ms-python.mypy-type-checker** — Python language support
+- **charliermarsh.ruff** — linting and formatting for Python
+
+Format-on-save is enabled for both Python (Ruff) and Dart (Dart formatter).
+
+**Steps**
+
+1. Clone the repo and open the folder in VS Code.
+2. When prompted *"Reopen in Container"*, click it — or open the command palette and run **Dev Containers: Reopen in Container**.
+3. Wait for the image to build. The first build downloads the Flutter SDK and takes a few minutes; subsequent starts are fast.
+4. Once the container is ready, `postCreateCommand` runs automatically:
+   ```
+   pip3 install -r functions_python/requirements.txt \
+                -r functions_python/requirements-dev.txt   # Python Cloud Function deps
+   flutter pub get                                         # Dart/Flutter deps
+   pre-commit install                                      # Git hooks
+   ```
+   The environment is immediately ready to use — no extra commands needed.
+
+> **Git identity inside the container:** `~/.gitconfig` is bind-mounted from your host, so commits made inside the container carry your correct author name and email automatically.
+
+> **`flutter run` on a physical device:** the container has no Android SDK, so run `flutter run` from a terminal on your **host machine** instead. Your source files are the same on both sides — edits inside the container are immediately visible on the host.
 
 ---
 
