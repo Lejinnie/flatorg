@@ -83,6 +83,9 @@ const fieldSwapTargetTaskId = 'target_task_id';
 const fieldSwapRequesterTaskId = 'requester_task_id';
 const fieldSwapStatus = 'status';
 const fieldSwapCreatedAt = 'created_at';
+/// True when the requester is taking a vacation person's slot (costs 1 token).
+/// False for mutual non-vacation swaps (costs 0 tokens).
+const fieldSwapIsVacationSwap = 'is_vacation_swap';
 
 // ── Livit email ───────────────────────────────────────────────────────────────
 
