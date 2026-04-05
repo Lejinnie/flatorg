@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from models.flat import Flat
-from models.task import TaskState
+from models.task import Task, TaskState
 from services.deadline_check_service import compute_deadline_actions
 from tests.helpers import make_task
 
@@ -53,7 +53,7 @@ def _task(
     due_offset_hours: float = 48.0,
     day_before_sent: bool = False,
     hours_before_sent: bool = False,
-) -> object:
+) -> Task:
     """Create a task with a due date relative to _NOW."""
     base = make_task(ring_index, f"p{ring_index}", state)
     return replace(

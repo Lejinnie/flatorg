@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 
 from constants.strings import (
     COLLECTION_FLATS,
@@ -342,4 +342,4 @@ def run_week_reset_algorithm(
     for strategy in strategies:
         strategy.execute(ctx)
 
-    return cast("list[str]", ctx.next_assignments)
+    return ctx.next_assignments
