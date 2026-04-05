@@ -15,13 +15,15 @@ class ShoppingRepository {
           .doc(flatId)
           .collection(collectionShoppingItems);
 
-  /// Returns a real-time stream of all shopping items.
-  /// Unbought items are returned before bought ones (Firestore orderBy on bool not supported;
-  /// ordering is done client-side in the UI).
+  /// Returns a real-time stream of all shopping items sorted newest-first.
+  /// Sorting is done client-side because the `order` field may be absent on items
+  /// created before this field was introduced.
   Stream<List<ShoppingItem>> watchShoppingItems(String flatId) =>
-      _shoppingCollection(flatId)
-          .snapshots()
-          .map((snap) => snap.docs.map(ShoppingItem.fromFirestore).toList());
+      _shoppingCollection(flatId).snapshots().map((snap) {
+        final items = snap.docs.map(ShoppingItem.fromFirestore).toList()
+          ..sort((a, b) => b.order.compareTo(a.order)); // DESC → newest at top
+        return items;
+      });
 
   /// Adds a new shopping item.
   Future<void> addShoppingItem(String flatId, ShoppingItem item) async {
@@ -36,8 +38,33 @@ class ShoppingRepository {
     });
   }
 
+  /// Moves a bought item back to the active shopping list.
+  Future<void> markUnbought(String flatId, String itemId) async {
+    await _shoppingCollection(flatId).doc(itemId).update({
+      fieldShoppingIsBought: false,
+      fieldShoppingBoughtAt: null,
+    });
+  }
+
   /// Deletes a shopping item.
   Future<void> deleteItem(String flatId, String itemId) async {
     await _shoppingCollection(flatId).doc(itemId).delete();
+  }
+
+  /// Batch-writes [fieldShoppingOrder] for each item after a drag reorder.
+  ///
+  /// Assigns descending values (items.length−1 down to 0) so that position 0
+  /// (top of list) carries the highest value, matching the DESC sort used in
+  /// [watchShoppingItems].  New items still sort above these because they use
+  /// [DateTime.now().millisecondsSinceEpoch] as their initial order value.
+  Future<void> updateItemOrders(String flatId, List<ShoppingItem> items) async {
+    final batch = _db.batch();
+    for (var i = 0; i < items.length; i++) {
+      batch.update(
+        _shoppingCollection(flatId).doc(items[i].id),
+        {fieldShoppingOrder: items.length - 1 - i},
+      );
+    }
+    await batch.commit();
   }
 }

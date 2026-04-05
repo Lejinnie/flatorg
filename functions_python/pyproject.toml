@@ -4,6 +4,11 @@ strict = true
 ignore_missing_imports = true
 # TYPE_CHECKING guards are used to defer Firestore imports to static analysis
 # only; mypy handles this pattern correctly out of the box.
+#
+# NOTE: Run mypy from within this directory to avoid the "source file found
+# twice" error that occurs when invoking mypy on functions_python/ from the
+# project root:
+#   cd functions_python && python -m mypy .
 
 [tool.ruff]
 target-version = "py312"
@@ -19,9 +24,10 @@ ignore = [
     "D104",   # Missing docstring in public package
     "D107",   # Missing docstring in __init__
     "D205",   # 1 blank line required between summary line and description
-    "TC001",  # typing-only-first-party-import — conflicts with TYPE_CHECKING pattern
-    "TC002",  # typing-only-third-party-import — same
-    "TC003",  # typing-only-standard-library-import — same
+    "TCH001",  # typing-only-first-party-import — conflicts with TYPE_CHECKING pattern
+    "TCH002",  # typing-only-third-party-import — same
+    "TCH003",  # typing-only-standard-library-import — same
+    "ANN101",  # missing-type-self — annotating self is noisy and not useful
     "PT013",  # pytest-incorrect-pytest-import
     "PYI034", # non-self-return-type — clashes with mypy
     "PGH003", # blanket-type-ignore

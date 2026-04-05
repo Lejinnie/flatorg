@@ -16,6 +16,7 @@ from services.eth_semester_calendar import EthSemesterCalendar
 
 # ── ISO week number ────────────────────────────────────────────────────────────
 
+
 class TestIsoWeekNumber:
     def test_returns_week_1_for_jan_4(self) -> None:
         """Jan 4 is always in week 1 per ISO 8601."""
@@ -31,6 +32,7 @@ class TestIsoWeekNumber:
 
 
 # ── isInSemester ──────────────────────────────────────────────────────────────
+
 
 class TestIsInSemester:
     def test_returns_true_during_hs_week_38(self) -> None:
@@ -60,6 +62,7 @@ class TestIsInSemester:
 
 # ── currentSemesterStart ──────────────────────────────────────────────────────
 
+
 class TestCurrentSemesterStart:
     def test_returns_monday_of_week_38_when_inside_hs(self) -> None:
         """Returns the Monday of week 38 when inside HS."""
@@ -81,6 +84,7 @@ class TestCurrentSemesterStart:
 
 
 # ── nextSemesterStart ─────────────────────────────────────────────────────────
+
 
 class TestNextSemesterStart:
     def test_returns_hs_start_week_38_when_before_hs_same_year(self) -> None:

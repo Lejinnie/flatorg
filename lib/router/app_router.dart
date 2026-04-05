@@ -83,13 +83,38 @@ GoRouter buildAppRouter(BuildContext context) {
       GoRoute(path: routeEntry,       builder: (_, __) => const EntryScreen()),
       GoRoute(path: routeCreateFlat,  builder: (_, __) => const CreateFlatScreen()),
       GoRoute(path: routeJoinFlat,    builder: (_, __) => const JoinFlatScreen()),
-      GoRoute(path: routeTasks,       builder: (_, __) => const TasksScreen()),
-      GoRoute(path: routeShopping,    builder: (_, __) => const ShoppingScreen()),
-      GoRoute(path: routeIssues,      builder: (_, __) => const IssuesScreen()),
-      GoRoute(path: routeSettings,    builder: (_, __) => const SettingsScreen()),
+      // Tab routes slide horizontally in the direction of the tab bar.
+      GoRoute(
+        path: routeTasks,
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const TasksScreen()),
+      ),
+      GoRoute(
+        path: routeShopping,
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const ShoppingScreen()),
+      ),
+      GoRoute(
+        path: routeIssues,
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const IssuesScreen()),
+      ),
+      GoRoute(
+        path: routeSettings,
+        pageBuilder: (_, state) => _fadePage(state.pageKey, const SettingsScreen()),
+      ),
     ],
   );
 }
+
+/// Builds a [CustomTransitionPage] with a crossfade.
+/// Used for all route transitions.
+CustomTransitionPage<void> _fadePage(ValueKey<String> key, Widget child) =>
+    CustomTransitionPage<void>(
+      key: key,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 200),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      transitionsBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
 
 /// Combines multiple [Listenable]s into one so `GoRouter.refreshListenable`
 /// reacts to any provider change.

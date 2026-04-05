@@ -7,15 +7,24 @@ runs inside a single Firestore transaction to guarantee atomicity.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 from constants.strings import (
     COLLECTION_FLATS,
+    COLLECTION_MEMBERS,
+    COLLECTION_NOTIFICATIONS,
     COLLECTION_SWAP_REQUESTS,
     ERROR_INSUFFICIENT_SWAP_TOKENS,
     ERROR_SWAP_NOT_PENDING,
+    FIELD_FLAT_LAST_WEEK_RESET_AT,
+    FIELD_NOTIF_TYPE,
+    FIELD_TASK_DAY_BEFORE_REMINDER_SENT,
+    FIELD_TASK_HOURS_BEFORE_REMINDER_SENT,
     LOG_WEEK_RESET_COMPLETE,
     LOG_WEEK_RESET_START,
+    NOTIF_TYPE_GRACE_PERIOD,
+    NOTIF_TYPE_REMINDER,
 )
 from models.person import Person
 from models.swap_request import SwapRequestStatus, swap_request_from_firestore
@@ -78,7 +87,7 @@ class WeekResetService:
 
         logger.info("%s %s", LOG_WEEK_RESET_START, flat_id)
 
-        @transactional  # type: ignore[untyped-decorator]
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
             flat = self._flat_repo.get_flat_in_transaction(flat_id, transaction)
             tasks = self._task_repo.get_all_tasks_in_transaction(flat_id, transaction)
@@ -86,19 +95,46 @@ class WeekResetService:
 
             updated_tasks = _increment_weeks_not_cleaned(tasks, persons)
 
-            ctx = build_week_reset_context(
-                updated_tasks, persons, flat.vacation_threshold_weeks
-            )
+            ctx = build_week_reset_context(updated_tasks, persons, flat.vacation_threshold_weeks)
             for strategy in self._STRATEGIES:
                 strategy.execute(ctx)
 
             _write_reset_results(
-                flat_id, updated_tasks, persons, ctx, transaction,
-                self._task_repo, self._person_repo,
+                flat_id,
+                updated_tasks,
+                ctx,
+                transaction,
+                self._task_repo,
+                self._flat_repo,
             )
 
         _run(self._db.transaction())
+
+        # Clean up stale reminder and grace_period in-app notifications.
+        # Must run outside the transaction — Firestore sub-collection deletes
+        # are not supported inside a read-write transaction.
+        persons = self._person_repo.get_all_members(flat_id)
+        self._clear_reminder_notifications(flat_id, persons)
+
         logger.info("%s %s", LOG_WEEK_RESET_COMPLETE, flat_id)
+
+    def _clear_reminder_notifications(self, flat_id: str, persons: list[Person]) -> None:
+        """Delete reminder and grace_period in-app notification docs for all members.
+
+        Called after each successful week reset so stale reminders don't persist
+        in the iOS in-app panel after task assignments have been refreshed.
+        """
+        for person in persons:
+            notif_ref = (
+                self._db.collection(COLLECTION_FLATS)
+                .document(flat_id)
+                .collection(COLLECTION_MEMBERS)
+                .document(person.uid)
+                .collection(COLLECTION_NOTIFICATIONS)
+            )
+            docs = notif_ref.where(FIELD_NOTIF_TYPE, "in", [NOTIF_TYPE_REMINDER, NOTIF_TYPE_GRACE_PERIOD]).stream()
+            for doc in docs:
+                doc.reference.delete()
 
     def completed_task(self, flat_id: str, task_id: str) -> None:
         """Mark a task as completed and clear the assignee's on_vacation flag.
@@ -107,19 +143,18 @@ class WeekResetService:
         """
         from google.cloud.firestore_v1.transaction import transactional
 
-        @transactional  # type: ignore[untyped-decorator]
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
             task = self._task_repo.get_task_in_transaction(flat_id, task_id, transaction)
             self._task_repo.update_task_in_transaction(
-                flat_id, task_id,
+                flat_id,
+                task_id,
                 {"state": TaskState.Completed.value, "weeks_not_cleaned": 0},
                 transaction,
             )
             uid = effective_assigned_to(task)
             if uid != "":
-                self._person_repo.update_member_in_transaction(
-                    flat_id, uid, {"on_vacation": False}, transaction
-                )
+                self._person_repo.update_member_in_transaction(flat_id, uid, {"on_vacation": False}, transaction)
 
         _run(self._db.transaction())
 
@@ -137,10 +172,7 @@ class WeekResetService:
         from google.cloud.firestore_v1 import SERVER_TIMESTAMP
 
         swap_ref = (
-            self._db.collection(COLLECTION_FLATS)
-            .document(flat_id)
-            .collection(COLLECTION_SWAP_REQUESTS)
-            .document()
+            self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_SWAP_REQUESTS).document()
         )
         swap_ref.set(
             {
@@ -167,9 +199,9 @@ class WeekResetService:
             .document(swap_request_id)
         )
 
-        @transactional  # type: ignore[untyped-decorator]
+        @transactional  # type: ignore[untyped-decorator, unused-ignore]
         def _run(transaction: Any) -> None:
-            swap_doc = transaction.get(swap_ref)
+            swap_doc = swap_ref.get(transaction=transaction)
             swap = swap_request_from_firestore(swap_doc.id, swap_doc.to_dict())
 
             if swap.status != SwapRequestStatus.Pending:
@@ -179,15 +211,12 @@ class WeekResetService:
             if requester.swap_tokens_remaining <= 0:
                 raise ValueError(ERROR_INSUFFICIENT_SWAP_TOKENS)
 
-            requester_task = self._task_repo.get_task_in_transaction(
-                flat_id, swap.requester_task_id, transaction
-            )
-            target_task = self._task_repo.get_task_in_transaction(
-                flat_id, swap.target_task_id, transaction
-            )
+            requester_task = self._task_repo.get_task_in_transaction(flat_id, swap.requester_task_id, transaction)
+            target_task = self._task_repo.get_task_in_transaction(flat_id, swap.target_task_id, transaction)
 
             self._task_repo.update_task_in_transaction(
-                flat_id, swap.requester_task_id,
+                flat_id,
+                swap.requester_task_id,
                 {
                     "assigned_to": target_task.assigned_to,
                     "original_assigned_to": requester_task.assigned_to,
@@ -195,7 +224,8 @@ class WeekResetService:
                 transaction,
             )
             self._task_repo.update_task_in_transaction(
-                flat_id, swap.target_task_id,
+                flat_id,
+                swap.target_task_id,
                 {
                     "assigned_to": requester_task.assigned_to,
                     "original_assigned_to": target_task.assigned_to,
@@ -203,7 +233,8 @@ class WeekResetService:
                 transaction,
             )
             self._person_repo.update_member_in_transaction(
-                flat_id, swap.requester_uid,
+                flat_id,
+                swap.requester_uid,
                 {"swap_tokens_remaining": requester.swap_tokens_remaining - 1},
                 transaction,
             )
@@ -213,6 +244,7 @@ class WeekResetService:
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
+
 
 def _increment_weeks_not_cleaned(tasks: list[Task], persons: list[Person]) -> list[Task]:
     """Increment weeks_not_cleaned on every task whose assignee is on vacation or Vacant.
@@ -228,6 +260,7 @@ def _increment_weeks_not_cleaned(tasks: list[Task], persons: list[Person]) -> li
         assignee_on_vacation = effective_uid != "" and effective_uid in vacation_uids
         if is_vacant or assignee_on_vacation:
             from dataclasses import replace
+
             result.append(replace(task, weeks_not_cleaned=task.weeks_not_cleaned + 1))
         else:
             result.append(task)
@@ -237,11 +270,10 @@ def _increment_weeks_not_cleaned(tasks: list[Task], persons: list[Person]) -> li
 def _write_reset_results(
     flat_id: str,
     tasks: list[Task],
-    persons: list[Person],
     ctx: WeekResetContext,
     transaction: Any,
     task_repo: TaskRepository,
-    person_repo: PersonRepository,
+    flat_repo: FlatRepository,
 ) -> None:
     """Apply all computed next-week assignments and reset task/person state in the transaction."""
     task_by_ring_index = {task.ring_index: task for task in tasks}
@@ -258,17 +290,30 @@ def _write_reset_results(
                 "original_assigned_to": "",
                 "state": TaskState.Pending.value,
                 "weeks_not_cleaned": task.weeks_not_cleaned,
+                # Reset reminder flags so they fire again in the new week.
+                FIELD_TASK_DAY_BEFORE_REMINDER_SENT: False,
+                FIELD_TASK_HOURS_BEFORE_REMINDER_SENT: False,
             },
             transaction,
         )
 
-    for person in persons:
-        person_repo.update_member_in_transaction(
-            flat_id, person.uid, {"on_vacation": False}, transaction
-        )
+    # Record when this reset ran so deadline_check can skip re-triggering
+    # within the same weekly cycle.
+    flat_repo.update_flat_settings_in_transaction(
+        flat_id,
+        {FIELD_FLAT_LAST_WEEK_RESET_AT: datetime.now(UTC)},
+        transaction,
+    )
+
+    # on_vacation is intentionally NOT cleared here.
+    # Per spec, only completed_task() clears on_vacation — when a person
+    # completes their assigned task they are considered back from vacation.
+    # Clearing it on reset would show vacation-assigned tasks as yellow
+    # instead of blue.
 
 
 # ── Exported helper: pure in-memory algorithm for testing ────────────────────
+
 
 def run_week_reset_algorithm(
     tasks: list[Task],
@@ -279,11 +324,7 @@ def run_week_reset_algorithm(
 
     Used for unit and BDD tests. Returns next_assignments as a list[str].
     """
-    threshold = (
-        flat["vacation_threshold_weeks"]
-        if isinstance(flat, dict)
-        else flat.vacation_threshold_weeks
-    )
+    threshold = flat["vacation_threshold_weeks"] if isinstance(flat, dict) else flat.vacation_threshold_weeks
 
     updated_tasks = _increment_weeks_not_cleaned(tasks, persons)
     ctx = build_week_reset_context(updated_tasks, persons, threshold)

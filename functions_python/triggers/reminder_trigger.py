@@ -23,8 +23,9 @@ logger = logging.getLogger(__name__)
 
 # ── Day-before reminder ───────────────────────────────────────────────────────
 
-@https_fn.on_call()  # type: ignore[untyped-decorator]
-def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
+
+@https_fn.on_call()  # type: ignore[untyped-decorator, unused-ignore]
+def send_day_before_reminder_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     """HTTP-callable: send the day-before reminder to a task's assignee."""
     data = req.data or {}
     flat_id: str = data.get("flatId", "")
@@ -38,28 +39,27 @@ def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str
     return {"success": True}
 
 
-@https_fn.on_request()  # type: ignore[untyped-decorator]
-def send_day_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
+@https_fn.on_request()  # type: ignore[untyped-decorator, unused-ignore]
+def send_day_before_reminder_http(req: Any) -> Any:
     """HTTP trigger for Cloud Scheduler. Expects JSON: {"flatId": ..., "taskId": ...}"""
     body = req.get_json(silent=True) or {}
     flat_id: str = body.get("flatId", "")
     task_id: str = body.get("taskId", "")
     if not flat_id or not task_id:
-        return https_fn.Response(
-            {"error": "flatId and taskId are required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId and taskId are required"}, status=400, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     try:
         _dispatch_day_before_reminder(flat_id, task_id)
-        return https_fn.Response({"success": True}, status=200, mimetype="application/json")
+        return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     except Exception as exc:
         logger.error("send_day_before_reminder_http failed flat=%s task=%s error=%s", flat_id, task_id, exc)
-        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")
+        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
 
 
 # ── Hours-before reminder ─────────────────────────────────────────────────────
 
-@https_fn.on_call()  # type: ignore[untyped-decorator]
-def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
+
+@https_fn.on_call()  # type: ignore[untyped-decorator, unused-ignore]
+def send_hours_before_reminder_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     """HTTP-callable: send the X-hours-before reminder to a task's assignee."""
     data = req.data or {}
     flat_id: str = data.get("flatId", "")
@@ -73,25 +73,24 @@ def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict[s
     return {"success": True}
 
 
-@https_fn.on_request()  # type: ignore[untyped-decorator]
-def send_hours_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
+@https_fn.on_request()  # type: ignore[untyped-decorator, unused-ignore]
+def send_hours_before_reminder_http(req: Any) -> Any:
     """HTTP trigger for Cloud Scheduler. Expects JSON: {"flatId": ..., "taskId": ...}"""
     body = req.get_json(silent=True) or {}
     flat_id: str = body.get("flatId", "")
     task_id: str = body.get("taskId", "")
     if not flat_id or not task_id:
-        return https_fn.Response(
-            {"error": "flatId and taskId are required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId and taskId are required"}, status=400, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     try:
         _dispatch_hours_before_reminder(flat_id, task_id)
-        return https_fn.Response({"success": True}, status=200, mimetype="application/json")
+        return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     except Exception as exc:
         logger.error("send_hours_before_reminder_http failed flat=%s task=%s error=%s", flat_id, task_id, exc)
-        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")
+        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _dispatch_day_before_reminder(flat_id: str, task_id: str) -> None:
     db = firestore.Client()

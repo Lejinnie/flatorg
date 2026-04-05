@@ -27,9 +27,7 @@ class FlatRepository:
 
     def get_flat_in_transaction(self, flat_id: str, transaction: Any) -> Flat:
         """Fetch a flat within a transaction; raise ValueError if not found."""
-        doc = transaction.get(self._flat_ref(flat_id))
-        # transaction.get() returns an iterator for collections; for a doc ref it
-        # returns the DocumentSnapshot directly in the Python Admin SDK.
+        doc = self._flat_ref(flat_id).get(transaction=transaction)
         if not doc.exists:
             raise ValueError(f"{ERROR_FLAT_NOT_FOUND}: {flat_id}")
         return flat_from_firestore(doc.id, doc.to_dict())
@@ -52,14 +50,13 @@ class FlatRepository:
         """Update specific admin-configurable settings on a flat."""
         self._flat_ref(flat_id).update(updates)
 
+    def update_flat_settings_in_transaction(self, flat_id: str, updates: dict[str, Any], transaction: Any) -> None:
+        """Update specific flat fields within an existing Firestore transaction."""
+        transaction.update(self._flat_ref(flat_id), updates)
+
     def find_flat_by_invite_code(self, invite_code: str) -> Flat | None:
         """Look up a flat by its invite code. Returns None when no match found."""
-        snapshot = (
-            self._db.collection(COLLECTION_FLATS)
-            .where("invite_code", "==", invite_code)
-            .limit(1)
-            .stream()
-        )
+        snapshot = self._db.collection(COLLECTION_FLATS).where("invite_code", "==", invite_code).limit(1).stream()
         docs = list(snapshot)
         if not docs:
             return None

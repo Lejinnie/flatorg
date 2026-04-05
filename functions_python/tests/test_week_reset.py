@@ -40,6 +40,7 @@ L1_SLOTS = [2, 5, 8]
 
 # ── Scenario: all Green, no vacations ─────────────────────────────────────────
 
+
 class TestAllGreenNoVacations:
     """Scenario: all 9 people completed their tasks.
 
@@ -87,6 +88,7 @@ class TestAllGreenNoVacations:
 
 # ── Scenario: Green L3 forward scan ───────────────────────────────────────────
 
+
 class TestGreenL3ForwardScan:
     """Scenario: Green L3 person scans forward for free L2."""
 
@@ -105,6 +107,7 @@ class TestGreenL3ForwardScan:
 
 # ── Scenario: Red L2 moves up to L3 ──────────────────────────────────────────
 
+
 class TestRedL2MovesUpToL3:
     """Scenario: Red L2 person moves up to L3."""
 
@@ -122,6 +125,7 @@ class TestRedL2MovesUpToL3:
 
 
 # ── Scenario: Red L1 moves up to L2 ──────────────────────────────────────────
+
 
 class TestRedL1MovesUpToL2:
     """Scenario: Red L1 person moves up to L2."""
@@ -155,6 +159,7 @@ class TestRedL1MovesUpToL2:
 
 # ── Scenario: Red L3 stays at L3 ─────────────────────────────────────────────
 
+
 class TestRedL3StaysAtL3:
     """Scenario: Red L3 person stays at L3."""
 
@@ -185,6 +190,7 @@ class TestRedL3StaysAtL3:
 
 # ── Scenario: Blue short vacation (protected) ────────────────────────────────
 
+
 class TestBlueShortVacationProtected:
     """Scenario: Blue short vacation person gets a protected L1 slot."""
 
@@ -202,6 +208,7 @@ class TestBlueShortVacationProtected:
 
 
 # ── Scenario: Blue long vacation (unprotected, last) ─────────────────────────
+
 
 class TestBlueLongVacationUnprotected:
     """Scenario: Blue long vacation person is assigned last."""
@@ -223,6 +230,7 @@ class TestBlueLongVacationUnprotected:
 
 # ── Scenario: Red L1 escape (accepted tradeoff) ───────────────────────────────
 
+
 class TestRedL1EscapeAcceptedTradeoff:
     """Accepted tradeoff: Red L1 stays at L1 when all L2 and L3 slots are taken.
 
@@ -234,14 +242,14 @@ class TestRedL1EscapeAcceptedTradeoff:
         ids = [f"p{i}" for i in range(9)]
         task_states = {
             0: TaskState.Completed,  # p0 Toilet L3 green → moves to L2
-            1: TaskState.NotDone,    # p1 Kitchen L2 red  → moves to L3
-            2: TaskState.NotDone,    # p2 Recycling L1 red → tries L2 (full), stays at L1
+            1: TaskState.NotDone,  # p1 Kitchen L2 red  → moves to L3
+            2: TaskState.NotDone,  # p2 Recycling L1 red → tries L2 (full), stays at L1
             3: TaskState.Completed,  # p3 Shower L3 green  → moves to L2
-            4: TaskState.NotDone,    # p4 Floor(A) L2 red  → moves to L3
-            5: TaskState.NotDone,    # p5 Washing Rags L1 red → stays at L1
+            4: TaskState.NotDone,  # p4 Floor(A) L2 red  → moves to L3
+            5: TaskState.NotDone,  # p5 Washing Rags L1 red → stays at L1
             6: TaskState.Completed,  # p6 Bathroom L3 green → moves to L2
-            7: TaskState.NotDone,    # p7 Floor(B) L2 red  → moves to L3
-            8: TaskState.NotDone,    # p8 Shopping L1 red  → stays at L1
+            7: TaskState.NotDone,  # p7 Floor(B) L2 red  → moves to L3
+            8: TaskState.NotDone,  # p8 Shopping L1 red  → stays at L1
         }
 
         tasks, persons = build_full_scenario(ids, task_states)
@@ -262,6 +270,7 @@ class TestRedL1EscapeAcceptedTradeoff:
 
 # ── Scenario: Green L1 shortest ring distance ─────────────────────────────────
 
+
 class TestGreenL1ShortestRingDistance:
     """Scenario: Green L1 uses shortest forward ring distance."""
 
@@ -269,15 +278,15 @@ class TestGreenL1ShortestRingDistance:
         """Green L1 person is assigned to the free slot with minimum forward ring distance."""
         ids = [f"p{i}" for i in range(9)]
         task_states = {
-            0: TaskState.NotDone,   # Red L3 stays at Toilet (0)
-            1: TaskState.NotDone,   # Red L2 stays at L2 (no free L3)
-            2: TaskState.Completed, # Green L1
-            3: TaskState.NotDone,   # Red L3 stays at Shower (3)
-            4: TaskState.NotDone,   # Red L2
-            5: TaskState.Completed, # Green L1
-            6: TaskState.NotDone,   # Red L3 stays at Bathroom (6)
-            7: TaskState.NotDone,   # Red L2
-            8: TaskState.NotDone,   # Red L1
+            0: TaskState.NotDone,  # Red L3 stays at Toilet (0)
+            1: TaskState.NotDone,  # Red L2 stays at L2 (no free L3)
+            2: TaskState.Completed,  # Green L1
+            3: TaskState.NotDone,  # Red L3 stays at Shower (3)
+            4: TaskState.NotDone,  # Red L2
+            5: TaskState.Completed,  # Green L1
+            6: TaskState.NotDone,  # Red L3 stays at Bathroom (6)
+            7: TaskState.NotDone,  # Red L2
+            8: TaskState.NotDone,  # Red L1
         }
 
         tasks, persons = build_full_scenario(ids, task_states)
@@ -290,6 +299,7 @@ class TestGreenL1ShortestRingDistance:
 
 
 # ── Smoke test: no duplicates ─────────────────────────────────────────────────
+
 
 class TestSmokeNoDuplicates:
     """Smoke test: week_reset() never assigns two people to the same task."""
@@ -320,6 +330,7 @@ class TestSmokeNoDuplicates:
 
 # ── Scenario: weeks_not_cleaned increments ───────────────────────────────────
 
+
 class TestWeeksNotCleanedIncrements:
     """Scenario: weeks_not_cleaned increments before categorisation."""
 
@@ -349,6 +360,7 @@ class TestWeeksNotCleanedIncrements:
 
 
 # ── Scenario: effectiveAssignedTo respects swap ───────────────────────────────
+
 
 class TestEffectiveAssignedToSwap:
     """Scenario: swap does not affect rotation (effective_assigned_to)."""
@@ -385,6 +397,7 @@ class TestEffectiveAssignedToSwap:
 
 # ── Scenario: two short-vacation people ──────────────────────────────────────
 
+
 class TestTwoShortVacationPeopleGetL1Slots:
     """Scenario: two short-vacation people both receive L1 slots."""
 
@@ -403,6 +416,7 @@ class TestTwoShortVacationPeopleGetL1Slots:
 
 
 # ── Scenario: short-vacation overflow ────────────────────────────────────────
+
 
 class TestShortVacationOverflow:
     """Scenario: short-vacation overflow — L3 person gets L2 slot, not L1."""
@@ -433,6 +447,7 @@ class TestShortVacationOverflow:
 
 # ── Accepted tradeoff: vacation overflow blocks Green L3 reward ───────────────
 
+
 class TestVacationOverflowBlocksGreenL3Reward:
     """Accepted tradeoff: short-vacation overflow blocks Green L3 reward."""
 
@@ -444,14 +459,14 @@ class TestVacationOverflowBlocksGreenL3Reward:
         """
         ids = [f"p{i}" for i in range(9)]
         task_states = {
-            0: TaskState.Pending,   # vacation
+            0: TaskState.Pending,  # vacation
             1: TaskState.Pending,
             2: TaskState.Pending,
             3: TaskState.Pending,
-            4: TaskState.NotDone,   # Red L2 → goes to L3
+            4: TaskState.NotDone,  # Red L2 → goes to L3
             5: TaskState.Pending,
-            6: TaskState.Completed, # Green L3 → tries L2 but blocked
-            7: TaskState.NotDone,   # Red L2 → goes to L3
+            6: TaskState.Completed,  # Green L3 → tries L2 but blocked
+            7: TaskState.NotDone,  # Red L2 → goes to L3
             8: TaskState.Pending,
         }
         on_vacation = {"p0": True, "p1": True, "p2": True, "p3": True, "p5": True, "p8": True}

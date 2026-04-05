@@ -83,6 +83,99 @@ class TaskRepository {
     });
   }
 
+  /// Swaps the assignees of two tasks atomically using a single Firestore batch.
+  ///
+  /// After the call, [taskAId] will be assigned to [assigneeForA] and
+  /// [taskBId] will be assigned to [assigneeForB].
+  ///
+  /// Both task IDs and both assignee strings must be non-empty. The two task
+  /// IDs must be distinct — swapping a task with itself is a programmer error.
+  Future<void> swapTaskAssignees(
+    String flatId,
+    String taskAId,
+    String assigneeForA,
+    String taskBId,
+    String assigneeForB,
+  ) async {
+    assert(
+      flatId.isNotEmpty &&
+          taskAId.isNotEmpty &&
+          taskBId.isNotEmpty,
+      'swapTaskAssignees: flatId, taskAId, and taskBId must not be empty. '
+      'Got flatId="$flatId" taskAId="$taskAId" taskBId="$taskBId"',
+    );
+    assert(
+      taskAId != taskBId,
+      'swapTaskAssignees: taskAId and taskBId must differ — '
+      'cannot swap a task with itself (id="$taskAId").',
+    );
+
+    final batch = _db.batch()
+      ..update(
+        _tasksCollection(flatId).doc(taskAId),
+        {fieldTaskAssignedTo: assigneeForA},
+      )
+      ..update(
+        _tasksCollection(flatId).doc(taskBId),
+        {fieldTaskAssignedTo: assigneeForB},
+      );
+    await batch.commit();
+  }
+
+  /// Assigns [newAssigneeUid] to [taskId], automatically swapping assignees
+  /// with any task that already holds [newAssigneeUid] so that no person ends
+  /// up on two tasks simultaneously.
+  ///
+  /// Fetches a **fresh** task list from Firestore rather than trusting a
+  /// potentially-stale in-memory snapshot, which prevents the class of bug
+  /// where a StreamBuilder snapshot lags behind writes that happened earlier
+  /// in the same async call stack.
+  ///
+  /// Assigning an empty [newAssigneeUid] clears the slot (makes it vacant)
+  /// without any conflict check.
+  Future<void> assignTask(
+    String flatId,
+    String taskId,
+    String newAssigneeUid,
+  ) async {
+    assert(flatId.isNotEmpty, 'assignTask: flatId must not be empty.');
+    assert(taskId.isNotEmpty, 'assignTask: taskId must not be empty.');
+
+    if (newAssigneeUid.isEmpty) {
+      await updateTask(flatId, taskId, {fieldTaskAssignedTo: ''});
+      return;
+    }
+
+    // Fetch fresh data so conflict detection cannot be fooled by a stale snapshot.
+    final allTasks = await fetchTasks(flatId);
+
+    final currentTask = allTasks.where((t) => t.id == taskId).firstOrNull;
+    assert(
+      currentTask != null,
+      'assignTask: task "$taskId" not found in flat "$flatId". '
+      'This is a programmer error — the task must exist before assigning.',
+    );
+    if (currentTask == null) {
+      return;
+    }
+
+    // If new assignee already holds a different task, swap both atomically so
+    // no person is ever on two tasks at the same time.
+    final conflictTask = allTasks
+        .where((t) => t.id != taskId && t.assignedTo == newAssigneeUid)
+        .firstOrNull;
+
+    if (conflictTask != null) {
+      await swapTaskAssignees(
+        flatId,
+        taskId,           newAssigneeUid,
+        conflictTask.id,  currentTask.assignedTo,
+      );
+    } else {
+      await updateTask(flatId, taskId, {fieldTaskAssignedTo: newAssigneeUid});
+    }
+  }
+
   /// Updates the task's name and description (admin only).
   Future<void> updateTaskDetails(
     String flatId,

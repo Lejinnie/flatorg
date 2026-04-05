@@ -10,26 +10,38 @@ class AppTheme {
 
   // ── Background colours ────────────────────────────────────────────────────
 
-  /// Page/scaffold background — light mode.
-  static const bgLight = Color(0xFFEEEEEE);
+  /// Page/scaffold background — light mode. hsl(108, 50%, 90%)
+  static const bgLight = Color(0xFFDEF2D9);
 
-  /// Page/scaffold background — dark mode.
-  static const bgDark = Color(0xFF262626);
+  /// Page/scaffold background — dark mode. hsl(108, 50%, 10%)
+  static const bgDark = Color(0xFF12260D);
 
   // ── Brand palette ─────────────────────────────────────────────────────────
 
-  /// Muted sage green — buttons, navigation highlights, primary actions.
-  static const featureColor = Color(0xFFACBFA4);
+  /// Dark card background in dark mode — slightly lighter than [bgDark].
+  static const cardColorDark = Color(0xFF1C3815);
 
-  /// Light sage — card surfaces, input backgrounds, secondary highlights.
-  static const accentColor = Color(0xFFE2E8CE);
+  /// Interactive / feature colour — light mode. hsl(168, 80%, 20%)
+  static const featureColor = Color(0xFF0A5C4B);
+
+  /// Interactive / feature colour — dark mode. hsl(168, 80%, 80%)
+  static const featureColorDark = Color(0xFFA3F5E4);
+
+  /// Selected-card background in dark mode — same hue as [featureColorDark].
+  static const selectionColor = Color(0xFF3BBEA8);
+
+  /// Accent / highlight colour — light mode. hsl(48, 80%, 20%)
+  static const highlightColor = Color(0xFF5C4B0A);
+
+  /// Accent / highlight colour — dark mode. hsl(48, 80%, 80%)
+  static const highlightColorDark = Color(0xFFF5E4A3);
 
   // ── Task-state colours (ONLY for the 4 px top bar on task cards) ──────────
 
   static const stateCompleted = Color(0xFF10B981); // green
-  static const statePending   = Color(0xFFF59E0B); // amber
-  static const stateNotDone   = Color(0xFFEF4444); // red
-  static const stateVacant    = Color(0xFF3B82F6); // blue
+  static const statePending = Color(0xFFF59E0B); // amber
+  static const stateNotDone = Color(0xFFEF4444); // red
+  static const stateVacant = Color(0xFF3B82F6); // blue
 
   // ── Destructive colour (remove member, irreversible confirm dialogs) ───────
 
@@ -43,14 +55,17 @@ class AppTheme {
   /// Secondary / hint text.
   static const grayMid = Color(0xFF6B7280);
 
-  /// Primary body text (light mode).
-  static const grayDark = Color(0xFF374151);
+  /// Unit labels and non-critical annotations — lighter than grayMid.
+  static const secondaryTextColor = Color(0xFF9CA3AF);
+
+  /// Primary body text (light mode). hsl(108, 50%, 10%) — matches [bgDark].
+  static const grayDark = Color(0xFF12260D);
 
   // ── Font sizes (3 centralised values) ────────────────────────────────────
 
-  static const fontSmall  = 12.0;
+  static const fontSmall = 12.0;
   static const fontMedium = 16.0;
-  static const fontLarge  = 24.0;
+  static const fontLarge = 24.0;
 
   // ── Spacing ───────────────────────────────────────────────────────────────
 
@@ -68,22 +83,49 @@ class AppTheme {
 
   // ── Task-state colour bar height ──────────────────────────────────────────
 
-  static const taskStateBarHeight = 4.0;
+  static const taskStateBarHeight = 6.0;
 
   // ── Public Sans text theme ────────────────────────────────────────────────
 
   static TextTheme _buildTextTheme(Color bodyColor, Color displayColor) =>
       GoogleFonts.publicSansTextTheme(
         TextTheme(
-          displayLarge:  TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w700, color: displayColor),
-          titleLarge:    TextStyle(fontSize: fontLarge,  fontWeight: FontWeight.w600, color: displayColor),
-          titleMedium:   TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w600, color: displayColor),
-          bodyLarge:     TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-          bodyMedium:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w400, color: bodyColor),
-          bodySmall:     TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w400, color: bodyColor),
-          labelSmall:    TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-          labelMedium:   TextStyle(fontSize: fontSmall,  fontWeight: FontWeight.w500, color: bodyColor),
-          labelLarge:    TextStyle(fontSize: fontMedium, fontWeight: FontWeight.w500, color: bodyColor),
+          displayLarge: TextStyle(
+              fontSize: fontLarge,
+              fontWeight: FontWeight.w700,
+              color: displayColor),
+          titleLarge: TextStyle(
+              fontSize: fontLarge,
+              fontWeight: FontWeight.w600,
+              color: displayColor),
+          titleMedium: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w600,
+              color: displayColor),
+          bodyLarge: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          bodyMedium: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          bodySmall: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w400,
+              color: bodyColor),
+          labelSmall: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
+          labelMedium: TextStyle(
+              fontSize: fontSmall,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
+          labelLarge: TextStyle(
+              fontSize: fontMedium,
+              fontWeight: FontWeight.w500,
+              color: bodyColor),
         ),
       );
 
@@ -97,11 +139,10 @@ class AppTheme {
       scaffoldBackgroundColor: bgLight,
       colorScheme: const ColorScheme.light(
         primary: featureColor,
-        secondary: accentColor,
+        secondary: highlightColor,
         surface: bgLight,
-        onPrimary: Color(0xFF374151),
-        onSecondary: Color(0xFF374151),
-        onSurface: Color(0xFF374151),
+        // featureColor is dark teal → white text on primary buttons (Material default).
+        onSurface: grayDark,
         error: stateNotDone,
       ),
       textTheme: textTheme,
@@ -113,7 +154,8 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 1,
+        elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: 0.15),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
         ),
@@ -142,8 +184,10 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: featureColor,
-          foregroundColor: grayDark,
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+          // featureColor is dark teal — white text is readable.
+          foregroundColor: Colors.white,
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -157,7 +201,8 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: grayDark,
           side: const BorderSide(color: grayLight),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -180,37 +225,37 @@ class AppTheme {
   // ── Dark theme ────────────────────────────────────────────────────────────
 
   static ThemeData get darkTheme {
-    final textTheme = _buildTextTheme(accentColor, accentColor);
+    final textTheme = _buildTextTheme(Colors.white, Colors.white);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: bgDark,
       colorScheme: const ColorScheme.dark(
-        primary: featureColor,
-        secondary: accentColor,
-        surface: Color(0xFF333333),
-        onPrimary: Color(0xFF262626),
-        onSecondary: Color(0xFF262626),
-        onSurface: accentColor,
+        primary: featureColorDark,
+        secondary: highlightColorDark,
+        surface: bgDark,
+        // featureColorDark is light teal → dark bg text is readable (Material default).
+        onPrimary: bgDark,
         error: stateNotDone,
       ),
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: bgDark,
-        foregroundColor: accentColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: textTheme.titleLarge,
       ),
       cardTheme: CardThemeData(
-        color: const Color(0xFF333333),
-        elevation: 1,
+        color: cardColorDark,
+        elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: 0.4),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusMd),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF333333),
+        fillColor: const Color(0xFF1C3815),
         hintStyle: const TextStyle(color: grayMid),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
@@ -222,7 +267,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
-          borderSide: const BorderSide(color: featureColor, width: 2),
+          borderSide: const BorderSide(color: featureColorDark, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: spacingMd,
@@ -231,9 +276,11 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: featureColor,
+          backgroundColor: featureColorDark,
+          // featureColorDark is light teal — dark bg text is readable.
           foregroundColor: bgDark,
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -245,9 +292,10 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: accentColor,
+          foregroundColor: Colors.white,
           side: const BorderSide(color: grayMid),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+          textStyle:
+              textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
@@ -260,7 +308,7 @@ class AppTheme {
       dividerTheme: const DividerThemeData(color: grayMid, space: 1),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: bgDark,
-        selectedItemColor: featureColor,
+        selectedItemColor: featureColorDark,
         unselectedItemColor: grayMid,
         elevation: 8,
       ),

@@ -21,30 +21,19 @@ class PersonRepository:
         self._db = db
 
     def _member_ref(self, flat_id: str, uid: str) -> Any:
-        return (
-            self._db.collection(COLLECTION_FLATS)
-            .document(flat_id)
-            .collection(COLLECTION_MEMBERS)
-            .document(uid)
-        )
+        return self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_MEMBERS).document(uid)
 
     def _members_collection(self, flat_id: str) -> Any:
-        return (
-            self._db.collection(COLLECTION_FLATS)
-            .document(flat_id)
-            .collection(COLLECTION_MEMBERS)
-        )
+        return self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_MEMBERS)
 
     def get_all_members(self, flat_id: str) -> list[Person]:
         """Fetch all members of a flat."""
         snapshot = self._members_collection(flat_id).stream()
         return [person_from_firestore(doc.id, doc.to_dict()) for doc in snapshot]
 
-    def get_all_members_in_transaction(
-        self, flat_id: str, transaction: Any
-    ) -> list[Person]:
+    def get_all_members_in_transaction(self, flat_id: str, transaction: Any) -> list[Person]:
         """Fetch all members within a transaction."""
-        docs = transaction.get(self._members_collection(flat_id))
+        docs = self._members_collection(flat_id).stream(transaction=transaction)
         return [person_from_firestore(doc.id, doc.to_dict()) for doc in docs]
 
     def get_member(self, flat_id: str, uid: str) -> Person:
@@ -58,9 +47,7 @@ class PersonRepository:
         """Update specific fields on a member document."""
         self._member_ref(flat_id, uid).update(updates)
 
-    def update_member_in_transaction(
-        self, flat_id: str, uid: str, updates: dict[str, Any], transaction: Any
-    ) -> None:
+    def update_member_in_transaction(self, flat_id: str, uid: str, updates: dict[str, Any], transaction: Any) -> None:
         """Update specific fields on a member document within a transaction."""
         transaction.update(self._member_ref(flat_id, uid), updates)
 

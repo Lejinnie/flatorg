@@ -71,8 +71,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Saves [name] as the Firebase Auth display name for the current user.
   /// Called once after registration so create/join flat screens can read it.
+  ///
+  /// Reloads the user after updating to ensure `currentUser.displayName` is
+  /// immediately available — without this, the in-memory object can still return
+  /// null if the authStateChanges() stream hasn't fired yet.
   Future<void> saveDisplayName(String name) async {
     await (_currentUser ?? _auth.currentUser)?.updateDisplayName(name);
+    await _auth.currentUser?.reload();
+    _currentUser = _auth.currentUser;
   }
 
   /// Sends an email-verification link to the current user's address.

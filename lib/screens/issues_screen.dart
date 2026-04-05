@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +13,7 @@ import '../models/task.dart';
 import '../providers/flat_provider.dart';
 import '../repositories/issue_repository.dart';
 import '../repositories/task_repository.dart';
+import '../router/app_router.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../widgets/issue_detail_dialog.dart';
 import '../widgets/issue_tile.dart';
@@ -26,9 +28,9 @@ class IssuesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const MainScaffold(
-    currentIndex: 2,
-    child: _IssuesBody(),
-  );
+        currentIndex: 2,
+        child: _IssuesBody(),
+      );
 }
 
 class _IssuesBody extends StatefulWidget {
@@ -41,6 +43,24 @@ class _IssuesBody extends StatefulWidget {
 class _IssuesBodyState extends State<_IssuesBody> {
   var _selectionMode = false;
   final Set<String> _selectedIds = {};
+
+  // Cached per flatId so a setState (e.g. toggle-select) never recreates the
+  // stream or future — which would reset StreamBuilder/FutureBuilder to their
+  // waiting state and cause the visible flicker.
+  String? _cachedFlatId;
+  Stream<List<Issue>>? _issuesStream;
+  Future<List<Task>>? _tasksFuture;
+
+  /// Call from build() before using _issuesStream / _tasksFuture.
+  /// Re-initialises only when flatId changes (e.g. after switching flat).
+  void _initStreamsIfNeeded(String flatId) {
+    if (flatId == _cachedFlatId) {
+      return;
+    }
+    _cachedFlatId  = flatId;
+    _issuesStream  = IssueRepository().watchIssues(flatId);
+    _tasksFuture   = TaskRepository().fetchTasks(flatId);
+  }
 
   void _enterSelection(String firstId) {
     setState(() {
@@ -60,6 +80,10 @@ class _IssuesBodyState extends State<_IssuesBody> {
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
+        // Exit selection mode automatically when the last item is deselected.
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
       } else {
         _selectedIds.add(id);
       }
@@ -74,42 +98,89 @@ class _IssuesBodyState extends State<_IssuesBody> {
     String creatorUid,
   ) async {
     final titleCtrl = TextEditingController();
-    final descCtrl  = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    // Use a List as a mutable holder so triedSubmit persists across StatefulBuilder rebuilds.
+    final triedSubmit = [false];
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        ),
-        title: const Text(buttonAddIssue),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(hintText: hintIssueTitle),
-              textInputAction: TextInputAction.next,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          // Wider than the default — the description field needs more room.
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: AppTheme.spacingMd,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          ),
+          title: const Text(buttonAddIssue),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 280),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(hintText: hintIssueTitle),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                if (triedSubmit[0] && titleCtrl.text.trim().isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                    child: Text(
+                      errorIssueTitleRequired,
+                      style: TextStyle(
+                        color: AppTheme.destructiveRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: descCtrl,
+                  decoration: const InputDecoration(hintText: hintIssueDescription),
+                  // newline so Enter inserts a line break rather than submitting.
+                  maxLines: 8,
+                  textInputAction: TextInputAction.newline,
+                  keyboardType: TextInputType.multiline,
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                if (triedSubmit[0] && descCtrl.text.trim().isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppTheme.spacingXs),
+                    child: Text(
+                      errorIssueDescRequired,
+                      style: TextStyle(
+                        color: AppTheme.destructiveRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: AppTheme.spacingSm),
-            TextField(
-              controller: descCtrl,
-              decoration: const InputDecoration(hintText: hintIssueDescription),
-              maxLines: 4,
-              textInputAction: TextInputAction.done,
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(buttonCancel),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleCtrl.text.trim().isEmpty ||
+                    descCtrl.text.trim().isEmpty) {
+                  setDialogState(() => triedSubmit[0] = true);
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text(buttonConfirm),
             ),
           ],
         ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(buttonCancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(buttonConfirm),
-          ),
-        ],
       ),
     );
 
@@ -117,7 +188,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
       return;
     }
     final title = titleCtrl.text.trim();
-    final desc  = descCtrl.text.trim();
+    final desc = descCtrl.text.trim();
     if (title.isEmpty) {
       return;
     }
@@ -165,7 +236,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
     // Pick a random email template.
     final templateIndex = Random().nextInt(3) + 1;
-    final templatePath  = 'email_templates/issue_template_$templateIndex.txt';
+    final templatePath = 'email_templates/issue_template_$templateIndex.txt';
 
     // Load the template from assets.
     String template;
@@ -181,9 +252,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
         .join('\n');
 
     // Split sender name.
-    final parts     = senderName.trim().split(' ');
+    final parts = senderName.trim().split(' ');
     final firstName = parts.first;
-    final lastName  = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
 
     final body = template
         .replaceAll('{{issues}}', issueLines)
@@ -224,6 +295,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
       title: confirmResolvedTitle,
       message: confirmResolvedMessage,
       confirmLabel: confirmResolvedLabel,
+      confirmColor: AppTheme.stateCompleted,
+      confirmTextColor: Colors.white,
     );
     if (!confirmed) {
       return;
@@ -240,48 +313,68 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
   @override
   Widget build(BuildContext context) {
-    final flatProvider  = context.watch<FlatProvider>();
-    final flatId        = flatProvider.flatId;
+    final flatProvider = context.watch<FlatProvider>();
+    final flatId = flatProvider.flatId;
     final currentPerson = flatProvider.currentPerson;
-    final currentUid    = currentPerson?.uid ?? '';
-    final senderName    = currentPerson?.name ?? '';
+    final currentUid = currentPerson?.uid ?? '';
+    final senderName = currentPerson?.name ?? '';
+
+    _initStreamsIfNeeded(flatId);
 
     return Scaffold(
-      appBar: _selectionMode
-          ? _selectionAppBar(context, flatId)
-          : AppBar(title: const Text(headingIssues)),
+      appBar: AppBar(
+        title: const Text(headingIssues),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: headingSettings,
+            onPressed: () => context.push(routeSettings),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Issue>>(
-        stream: IssueRepository().watchIssues(flatId),
+        stream: _issuesStream,
         builder: (ctx, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
+          final allIssues = snap.data ?? [];
+          final sendable   = allIssues.where((i) => !i.isOnCooldown).toList();
+          final onCooldown = allIssues.where((i) => i.isOnCooldown).toList();
+
+          return Column(
+            children: [
+              if (_selectionMode)
+                _SelectionBar(
+                  onGoBack: _exitSelection,
+                  allIssues: allIssues,
+                  onSelectAll: (issues) {
+                    setState(() => _selectedIds.addAll(issues.map((i) => i.id)));
+                  },
+                ),
+              Expanded(child: Builder(builder: (ctx) {
+          if (snap.connectionState == ConnectionState.waiting && allIssues.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final allIssues   = snap.data ?? [];
-          final sendable    = allIssues.where((i) => !i.isOnCooldown).toList();
-          final onCooldown  = allIssues.where((i) => i.isOnCooldown).toList();
-
           // Determine whether the current user can send (assigned to Shopping).
           return FutureBuilder<List<Task>>(
-            future: TaskRepository().fetchTasks(flatId),
+            future: _tasksFuture,
             builder: (ctx, taskSnap) {
-              final tasks     = taskSnap.data ?? [];
-              final shopTask  = tasks.where(
+              final tasks = taskSnap.data ?? [];
+              final shopTask = tasks.where(
                 (t) => t.ringIndex == shoppingRingIndex,
               );
-              final canSend   = shopTask.isNotEmpty &&
+              final canSend = shopTask.isNotEmpty &&
                   shopTask.first.assignedTo == currentUid;
 
-              final selectedSendable = sendable
-                  .where((i) => _selectedIds.contains(i.id))
-                  .toList();
-              final selectedAll = allIssues
-                  .where((i) => _selectedIds.contains(i.id))
-                  .toList();
+              final selectedSendable =
+                  sendable.where((i) => _selectedIds.contains(i.id)).toList();
+              final selectedAll =
+                  allIssues.where((i) => _selectedIds.contains(i.id)).toList();
 
               return Stack(
                 children: [
-                  ListView(
+                  RefreshIndicator(
+                    onRefresh: () async {},
+                  child: ListView(
                     padding: EdgeInsets.only(
                       bottom: _selectionMode ? 80 : AppTheme.spacingSm,
                       top: AppTheme.spacingXs,
@@ -328,8 +421,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
                           child: Text(
                             labelRecentlySent,
                             style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.grayMid,
-                            ),
+                                  color: AppTheme.grayMid,
+                                ),
                           ),
                         ),
                         ...onCooldown.map(
@@ -344,7 +437,8 @@ class _IssuesBodyState extends State<_IssuesBody> {
                         ),
                       ],
                     ],
-                  ),
+                  ), // ListView
+                  ), // RefreshIndicator
 
                   // Selection mode bottom action bar.
                   if (_selectionMode)
@@ -372,43 +466,51 @@ class _IssuesBodyState extends State<_IssuesBody> {
               );
             },
           );
-        },
-      ),
+        })), // Builder + Expanded
+            ],
+          ); // Column
+        }, // StreamBuilder.builder
+      ), // StreamBuilder (body)
     );
   }
+}
 
-  AppBar _selectionAppBar(BuildContext context, String flatId) =>
-      AppBar(
-      leading: TextButton(
-        onPressed: _exitSelection,
-        child: const Text(buttonCancel),
-      ),
-      leadingWidth: 80,
-      title: const Text(headingIssues),
-      actions: [
-        StreamBuilder<List<Issue>>(
-          stream: IssueRepository().watchIssues(flatId),
-          builder: (ctx, snap) {
-            final all         = snap.data ?? [];
-            final allSelected = all.every((i) => _selectedIds.contains(i.id));
+/// Bar shown below the AppBar title when selection mode is active.
+/// Provides "Go Back" (exit selection) and "Select All" controls.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.onGoBack,
+    required this.onSelectAll,
+    required this.allIssues,
+  });
 
-            return TextButton(
-              onPressed: () {
-                setState(() {
-                  if (allSelected) {
-                    _selectedIds.clear();
-                  } else {
-                    _selectedIds.addAll(all.map((i) => i.id));
-                  }
-                });
-              },
-              child: Text(
-                allSelected ? buttonDeselectAllIssues : buttonSelectAll,
-              ),
-            );
-          },
+  final VoidCallback onGoBack;
+  final void Function(List<Issue> allIssues) onSelectAll;
+
+  /// Current issue list passed down from the parent StreamBuilder so this
+  /// widget does not need its own Firestore subscription.
+  final List<Issue> allIssues;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: Theme.of(context).colorScheme.surface,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingSm,
+          vertical: AppTheme.spacingXs,
         ),
-      ],
+        child: Row(
+          children: [
+            TextButton(
+              onPressed: onGoBack,
+              child: const Text(buttonGoBack),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => onSelectAll(allIssues),
+              child: const Text(buttonSelectAll),
+            ),
+          ],
+        ),
       );
 }
 
@@ -429,7 +531,7 @@ class _SelectionActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bg    = theme.brightness == Brightness.dark
+    final bg = theme.brightness == Brightness.dark
         ? const Color(0xFF333333)
         : Colors.white;
 
@@ -442,12 +544,16 @@ class _SelectionActionBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.send_outlined),
-              label: const Text(buttonSend),
-              onPressed: canSend ? onSend : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: canSend ? AppTheme.featureColor : AppTheme.grayLight,
+            child: Tooltip(
+              message: canSend ? '' : tooltipSendRestricted,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.send_outlined),
+                label: const Text(buttonSend),
+                onPressed: canSend ? onSend : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      canSend ? AppTheme.featureColor : AppTheme.grayLight,
+                ),
               ),
             ),
           ),
@@ -458,7 +564,8 @@ class _SelectionActionBar extends StatelessWidget {
               label: const Text(buttonResolved),
               onPressed: canResolve ? onResolve : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: canResolve ? AppTheme.stateCompleted : AppTheme.grayLight,
+                backgroundColor:
+                    canResolve ? AppTheme.stateCompleted : AppTheme.grayLight,
                 foregroundColor: canResolve ? Colors.white : AppTheme.grayMid,
               ),
             ),

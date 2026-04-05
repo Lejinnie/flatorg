@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from constants.task_constants import (
@@ -29,6 +30,9 @@ class Flat:
     reminder_hours_before_deadline: int = DEFAULT_REMINDER_HOURS_BEFORE_DEADLINE
     # Hours before bought shopping items are auto-deleted. Default: 6.
     shopping_cleanup_hours: int = DEFAULT_SHOPPING_CLEANUP_HOURS
+    # When week_reset() last ran (UTC). Used by deadline_check to prevent
+    # double-triggering within the same weekly cycle. None if never reset.
+    last_week_reset_at: datetime | None = None
 
 
 def flat_from_firestore(doc_id: str, data: dict[str, Any]) -> Flat:
@@ -44,4 +48,5 @@ def flat_from_firestore(doc_id: str, data: dict[str, Any]) -> Flat:
             "reminder_hours_before_deadline", DEFAULT_REMINDER_HOURS_BEFORE_DEADLINE
         ),
         shopping_cleanup_hours=data.get("shopping_cleanup_hours", DEFAULT_SHOPPING_CLEANUP_HOURS),
+        last_week_reset_at=data.get("last_week_reset_at"),
     )

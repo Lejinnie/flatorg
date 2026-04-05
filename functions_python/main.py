@@ -10,11 +10,22 @@ import firebase_admin
 firebase_admin.initialize_app()
 
 # ── Week reset ────────────────────────────────────────────────────────────────
+# ── Automatic deadline / reminder / week-reset scheduler ─────────────────────
+from triggers.deadline_check_trigger import (  # noqa: F401, E402
+    check_deadlines_http,
+    check_deadlines_scheduled,
+)
+
 # ── Grace period (pending → not_done) ────────────────────────────────────────
 from triggers.grace_period_trigger import (  # noqa: F401, E402
+    enter_grace_period_all_callable,
     enter_grace_period_callable,
     enter_grace_period_http,
 )
+from triggers.notify_swap_request_trigger import notify_swap_request_callable  # noqa: F401, E402
+
+# ── Push / in-app notification callables ─────────────────────────────────────
+from triggers.notify_task_completed_trigger import notify_task_completed_callable  # noqa: F401, E402
 
 # ── Task reminder notifications ───────────────────────────────────────────────
 from triggers.reminder_trigger import (  # noqa: F401, E402

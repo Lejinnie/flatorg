@@ -8,15 +8,15 @@ from __future__ import annotations
 # ── Task ring ─────────────────────────────────────────────────────────────────
 
 TASK_RING_NAMES: tuple[str, ...] = (
-    "Toilet",       # 0 — L3
-    "Kitchen",      # 1 — L2
-    "Recycling",    # 2 — L1
-    "Shower",       # 3 — L3
-    "Floor(A)",     # 4 — L2
-    "Washing Rags", # 5 — L1
-    "Bathroom",     # 6 — L3
-    "Floor(B)",     # 7 — L2
-    "Shopping",     # 8 — L1
+    "Toilet",  # 0 — L3
+    "Kitchen",  # 1 — L2
+    "Recycling",  # 2 — L1
+    "Shower",  # 3 — L3
+    "Floor(A)",  # 4 — L2
+    "Washing Rags",  # 5 — L1
+    "Bathroom",  # 6 — L3
+    "Floor(B)",  # 7 — L2
+    "Shopping",  # 8 — L1
 )
 
 TOTAL_TASKS: int = 9

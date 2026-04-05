@@ -21,6 +21,7 @@ from models.task import Task, TaskLevel, TaskState, effective_assigned_to
 
 # ── Shared context ────────────────────────────────────────────────────────────
 
+
 @dataclass
 class WeekResetContext:
     """Mutable working state shared across all assignment strategy steps.
@@ -52,6 +53,7 @@ def build_week_reset_context(
 
 # ── Categorisation helpers ────────────────────────────────────────────────────
 
+
 @dataclass
 class PersonTaskPair:
     """Resolved view of a person and their associated task for this week."""
@@ -70,7 +72,9 @@ def _build_uid_to_task_map(tasks: list[Task]) -> dict[str, Task]:
     return mapping
 
 
-def categorise_persons(ctx: WeekResetContext) -> tuple[
+def categorise_persons(
+    ctx: WeekResetContext,
+) -> tuple[
     list[PersonTaskPair],  # green
     list[PersonTaskPair],  # red
     list[PersonTaskPair],  # blue_short
@@ -105,7 +109,7 @@ def categorise_persons(ctx: WeekResetContext) -> tuple[
             red.append(PersonTaskPair(person=person, task=task))
 
     def by_ring_index(pair: PersonTaskPair) -> int:
-        return pair.task.ring_index
+        return int(pair.task.ring_index)
 
     return (
         sorted(green, key=by_ring_index),
@@ -116,6 +120,7 @@ def categorise_persons(ctx: WeekResetContext) -> tuple[
 
 
 # ── Slot helpers ──────────────────────────────────────────────────────────────
+
 
 def level_of_slot(ring_index: int) -> TaskLevel:
     """Return the TaskLevel of a slot by its ring index."""
@@ -143,41 +148,32 @@ def assign_slot(ctx: WeekResetContext, ring_index: int, uid: str) -> None:
     ctx.next_assignments[ring_index] = uid
 
 
-def scan_forward_for_free_slot(
-    ctx: WeekResetContext, start_ring_index: int, level: TaskLevel
-) -> int:
+def scan_forward_for_free_slot(ctx: WeekResetContext, start_ring_index: int, level: TaskLevel) -> int:
     """Scan forward in the task ring for the next unassigned slot at the given level.
 
     Returns the ring index of the found slot, or -1 if none exists.
     """
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index + offset) % TOTAL_TASKS
+        candidate: int = (start_ring_index + offset) % TOTAL_TASKS
         if level_of_slot(candidate) == level and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
 
 
-def scan_forward_for_lower_free_slot(
-    ctx: WeekResetContext, start_ring_index: int, current_level: TaskLevel
-) -> int:
+def scan_forward_for_lower_free_slot(ctx: WeekResetContext, start_ring_index: int, current_level: TaskLevel) -> int:
     """Scan forward for the first free slot at ANY level strictly lower than current_level.
 
     Returns -1 if no eligible free slot exists.
     """
     current_weight = level_weight(current_level)
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index + offset) % TOTAL_TASKS
-        if (
-            level_weight(level_of_slot(candidate)) < current_weight
-            and ctx.next_assignments[candidate] == ""
-        ):
+        candidate: int = (start_ring_index + offset) % TOTAL_TASKS
+        if level_weight(level_of_slot(candidate)) < current_weight and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
 
 
-def scan_backward_for_higher_free_slot(
-    ctx: WeekResetContext, start_ring_index: int, current_level: TaskLevel
-) -> int:
+def scan_backward_for_higher_free_slot(ctx: WeekResetContext, start_ring_index: int, current_level: TaskLevel) -> int:
     """Scan backward in the task ring for the first free slot strictly higher than current_level.
 
     Returns -1 if no eligible free slot exists.
@@ -185,11 +181,8 @@ def scan_backward_for_higher_free_slot(
     """
     current_weight = level_weight(current_level)
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index - offset) % TOTAL_TASKS
-        if (
-            level_weight(level_of_slot(candidate)) > current_weight
-            and ctx.next_assignments[candidate] == ""
-        ):
+        candidate: int = (start_ring_index - offset) % TOTAL_TASKS
+        if level_weight(level_of_slot(candidate)) > current_weight and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
 
@@ -199,11 +192,12 @@ def forward_ring_distance(from_index: int, to_index: int) -> int:
 
     Always returns 1–TOTAL_TASKS.
     """
-    dist = (to_index - from_index + TOTAL_TASKS) % TOTAL_TASKS
-    return dist if dist != 0 else TOTAL_TASKS
+    dist: int = (to_index - from_index + TOTAL_TASKS) % TOTAL_TASKS
+    return int(dist if dist != 0 else TOTAL_TASKS)
 
 
 # ── Strategy interface ────────────────────────────────────────────────────────
+
 
 class AssignmentStrategy(ABC):
     """Strategy pattern: each step in week_reset() implements this interface.
@@ -216,6 +210,7 @@ class AssignmentStrategy(ABC):
 
 
 # ── Step 1: Blue short vacation ───────────────────────────────────────────────
+
 
 class BlueShortVacationStrategy(AssignmentStrategy):
     """Assign short-vacation people (weeks_not_cleaned ≤ threshold) to protected slots.
@@ -248,6 +243,7 @@ class BlueShortVacationStrategy(AssignmentStrategy):
 
 # ── Step 2: Green L3 ──────────────────────────────────────────────────────────
 
+
 class GreenL3Strategy(AssignmentStrategy):
     """Green L3 people scan forward for the first free slot at any lower difficulty.
 
@@ -271,6 +267,7 @@ class GreenL3Strategy(AssignmentStrategy):
 
 # ── Step 3: Green L2 ──────────────────────────────────────────────────────────
 
+
 class GreenL2Strategy(AssignmentStrategy):
     """Green L2 people scan forward for the next free L1 slot.
 
@@ -292,6 +289,7 @@ class GreenL2Strategy(AssignmentStrategy):
 
 
 # ── Step 4: Red L3 ────────────────────────────────────────────────────────────
+
 
 class RedL3Strategy(AssignmentStrategy):
     """Red L3 people stay at L3.
@@ -315,6 +313,7 @@ class RedL3Strategy(AssignmentStrategy):
 
 
 # ── Step 5: Red L2 ────────────────────────────────────────────────────────────
+
 
 class RedL2Strategy(AssignmentStrategy):
     """Red L2 people scan backward for the nearest free L3 slot (punishment).
@@ -340,6 +339,7 @@ class RedL2Strategy(AssignmentStrategy):
 
 
 # ── Step 6: Red L1 ────────────────────────────────────────────────────────────
+
 
 class RedL1Strategy(AssignmentStrategy):
     """Red L1 people scan backward to find a harder task (punishment).
@@ -392,6 +392,7 @@ class RedL1Strategy(AssignmentStrategy):
 
 # ── Step 7: Green L1 ─────────────────────────────────────────────────────────
 
+
 class GreenL1Strategy(AssignmentStrategy):
     """Green L1 people fill remaining slots using shortest forward ring distance.
 
@@ -402,9 +403,9 @@ class GreenL1Strategy(AssignmentStrategy):
     def execute(self, ctx: WeekResetContext) -> None:
         green, _, _, _ = categorise_persons(ctx)
         unassigned_green_l1 = [
-            p for p in green
-            if level_of_slot(p.task.ring_index) == TaskLevel.L1
-            and p.person.uid not in ctx.next_assignments
+            p
+            for p in green
+            if level_of_slot(p.task.ring_index) == TaskLevel.L1 and p.person.uid not in ctx.next_assignments
         ]
 
         if not unassigned_green_l1:
@@ -432,6 +433,7 @@ class GreenL1Strategy(AssignmentStrategy):
 
 
 # ── Step 8: Blue long vacation ────────────────────────────────────────────────
+
 
 class BlueLongVacationStrategy(AssignmentStrategy):
     """Long-vacation people fill whatever slots remain last.

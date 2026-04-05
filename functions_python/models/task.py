@@ -60,6 +60,12 @@ class Task:
     weeks_not_cleaned: int
     # Position in the canonical task ring (0–8).
     ring_index: int
+    # Set to True once the 24-hour-before reminder has been sent this week.
+    # Reset to False by week_reset() so reminders fire once per cycle.
+    day_before_reminder_sent: bool = False
+    # Set to True once the reminder_hours_before_deadline reminder has been sent.
+    # Reset to False by week_reset().
+    hours_before_reminder_sent: bool = False
 
 
 def effective_assigned_to(task: Task) -> str:
@@ -82,6 +88,8 @@ def task_from_firestore(doc_id: str, data: dict[str, Any]) -> Task:
         state=TaskState(data.get("state", TaskState.Pending)),
         weeks_not_cleaned=data.get("weeks_not_cleaned", 0),
         ring_index=data.get("ring_index", -1),
+        day_before_reminder_sent=data.get("day_before_reminder_sent", False),
+        hours_before_reminder_sent=data.get("hours_before_reminder_sent", False),
     )
 
 
@@ -96,4 +104,6 @@ def task_to_firestore(task: Task) -> dict[str, Any]:
         "state": task.state.value,
         "weeks_not_cleaned": task.weeks_not_cleaned,
         "ring_index": task.ring_index,
+        "day_before_reminder_sent": task.day_before_reminder_sent,
+        "hours_before_reminder_sent": task.hours_before_reminder_sent,
     }
