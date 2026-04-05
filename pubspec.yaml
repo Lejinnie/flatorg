@@ -26,6 +26,7 @@ dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/logo.png
     - email_templates/issue_template_1.txt
     - email_templates/issue_template_2.txt
     - email_templates/issue_template_3.txt
