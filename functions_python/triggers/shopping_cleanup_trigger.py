@@ -39,24 +39,18 @@ def shopping_cleanup_http(req: https_fn.Request) -> https_fn.Response:
     body = req.get_json(silent=True) or {}
     flat_id: str = body.get("flatId", "")
     if not flat_id:
-        return https_fn.Response(
-            {"error": "flatId is required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId is required"}, status=400, mimetype="application/json")
     try:
         db = firestore.Client()
         flat = FlatRepository(db).get_flat(flat_id)
         deleted = _delete_expired_shopping_items(flat_id, flat.shopping_cleanup_hours, db)
-        return https_fn.Response(
-            {"success": True, "deleted": deleted}, status=200, mimetype="application/json"
-        )
+        return https_fn.Response({"success": True, "deleted": deleted}, status=200, mimetype="application/json")
     except Exception as exc:
         logger.error("shopping_cleanup_http failed flat=%s error=%s", flat_id, exc)
         return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")
 
 
-def _delete_expired_shopping_items(
-    flat_id: str, cleanup_hours: int, db: Client
-) -> int:
+def _delete_expired_shopping_items(flat_id: str, cleanup_hours: int, db: Client) -> int:
     """Delete all bought shopping items in a flat older than cleanup_hours.
 
     Returns the number of items deleted.

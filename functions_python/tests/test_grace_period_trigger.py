@@ -81,8 +81,7 @@ class TestEnterGracePeriodAll:
         _run_grace_period_all(repo, _FLAT_ID)
 
         assert repo.enter_grace_period.call_count == 2, (
-            "Only the 2 pending tasks should trigger enter_grace_period; "
-            "completed and not_done tasks must be skipped."
+            "Only the 2 pending tasks should trigger enter_grace_period; completed and not_done tasks must be skipped."
         )
         repo.enter_grace_period.assert_has_calls(
             [call(_FLAT_ID, "task-0"), call(_FLAT_ID, "task-2")],

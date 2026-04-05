@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 # ── Day-before reminder ───────────────────────────────────────────────────────
 
+
 @https_fn.on_call()  # type: ignore[untyped-decorator]
 def send_day_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
     """HTTP-callable: send the day-before reminder to a task's assignee."""
@@ -45,9 +46,7 @@ def send_day_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
     flat_id: str = body.get("flatId", "")
     task_id: str = body.get("taskId", "")
     if not flat_id or not task_id:
-        return https_fn.Response(
-            {"error": "flatId and taskId are required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId and taskId are required"}, status=400, mimetype="application/json")
     try:
         _dispatch_day_before_reminder(flat_id, task_id)
         return https_fn.Response({"success": True}, status=200, mimetype="application/json")
@@ -57,6 +56,7 @@ def send_day_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
 
 
 # ── Hours-before reminder ─────────────────────────────────────────────────────
+
 
 @https_fn.on_call()  # type: ignore[untyped-decorator]
 def send_hours_before_reminder_callable(req: https_fn.CallableRequest) -> dict[str, Any]:
@@ -80,9 +80,7 @@ def send_hours_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
     flat_id: str = body.get("flatId", "")
     task_id: str = body.get("taskId", "")
     if not flat_id or not task_id:
-        return https_fn.Response(
-            {"error": "flatId and taskId are required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId and taskId are required"}, status=400, mimetype="application/json")
     try:
         _dispatch_hours_before_reminder(flat_id, task_id)
         return https_fn.Response({"success": True}, status=200, mimetype="application/json")
@@ -92,6 +90,7 @@ def send_hours_before_reminder_http(req: https_fn.Request) -> https_fn.Response:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _dispatch_day_before_reminder(flat_id: str, task_id: str) -> None:
     db = firestore.Client()

@@ -105,21 +105,19 @@ TASK_LEVEL_L3 = "L3"
 
 NOTIFICATION_TITLE_REMINDER = "Task Reminder"
 NOTIFICATION_BODY_REMINDER_DAY_BEFORE = (
-    'Your task "{task_name}" is due tomorrow. ' "Please complete it or mark yourself as on vacation."
+    'Your task "{task_name}" is due tomorrow. Please complete it or mark yourself as on vacation.'
 )
 NOTIFICATION_BODY_REMINDER_HOURS_BEFORE = (
-    'Your task "{task_name}" is due in {hours} hour(s). ' "Please complete it or mark yourself as on vacation."
+    'Your task "{task_name}" is due in {hours} hour(s). Please complete it or mark yourself as on vacation.'
 )
 NOTIFICATION_TITLE_TASK_COMPLETED = "Task Completed"
 NOTIFICATION_BODY_TASK_COMPLETED = '{person_name} completed the task "{task_name}".'
 NOTIFICATION_TITLE_GRACE_PERIOD = "Task Overdue"
 NOTIFICATION_BODY_GRACE_PERIOD = (
-    'Your task "{task_name}" deadline has passed. ' "You have {hours} hour(s) until week reset."
+    'Your task "{task_name}" deadline has passed. You have {hours} hour(s) until week reset.'
 )
 NOTIFICATION_TITLE_SWAP_REQUEST = "Task Swap Request"
-NOTIFICATION_BODY_SWAP_REQUEST = (
-    "{requester_name} wants to swap tasks with you. " "You have {tokens}/3 tokens remaining."
-)
+NOTIFICATION_BODY_SWAP_REQUEST = "{requester_name} wants to swap tasks with you. You have {tokens}/3 tokens remaining."
 
 # ── Log messages ──────────────────────────────────────────────────────────────
 
