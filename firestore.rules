@@ -8,8 +8,10 @@ service cloud.firestore {
       // This is required so that unenrolled users can look up a flat by invite
       // code before they have been added as a member.
       allow read: if request.auth != null;
-      // Only admin can write flat-level settings.
-      allow write: if isAdmin(flatId);
+      // Any authenticated user can create a flat (they add themselves as member immediately after).
+      allow create: if request.auth != null;
+      // Only admin can update or delete flat-level settings.
+      allow update, delete: if isAdmin(flatId);
 
       match /tasks/{taskId} {
         allow read: if isMember(flatId);
