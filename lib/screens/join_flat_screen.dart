@@ -62,11 +62,14 @@ class _JoinFlatScreenState extends State<JoinFlatScreen> {
       }
 
       // 3. Write Person document.
+      // Preserve admin role if this user is the flat's designated admin —
+      // e.g. when the admin reinstalls and rejoins via invite code.
+      final role = user.uid == flat.adminUid ? PersonRole.admin : PersonRole.member;
       final person = Person(
         uid: user.uid,
         name: user.displayName ?? user.email ?? '',
         email: user.email ?? '',
-        role: PersonRole.member,
+        role: role,
         onVacation: false,
         swapTokensRemaining: swapTokensPerSemester,
       );
