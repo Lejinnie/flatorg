@@ -342,4 +342,4 @@ def run_week_reset_algorithm(
     for strategy in strategies:
         strategy.execute(ctx)
 
-    return cast(list[str], ctx.next_assignments)
+    return cast("list[str]", ctx.next_assignments)
