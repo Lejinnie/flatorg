@@ -84,6 +84,29 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 
 - When pushing to remote, use the `$GH_TOKEN` environment variable for authentication. Set the remote URL to `https://x-access-token:${GH_TOKEN}@github.com/<owner>/<repo>.git` before pushing.
 
+## Dev Environment
+
+The project ships a VS Code Dev Container (`.devcontainer/`). It is the standard development environment; all contributors are expected to use it unless they cannot run Docker.
+
+**Container contents (`.devcontainer/Dockerfile`):**
+- Base image: `mcr.microsoft.com/devcontainers/base:ubuntu-22.04`
+- Python 3.12 — installed from the `deadsnakes` PPA and set as the default `python3`
+- Node.js 20 LTS + Firebase CLI (`firebase-tools` via npm)
+- Flutter stable — cloned to `/opt/flutter`, pre-cached for Linux/web; **no Android SDK** is present inside the container
+- pre-commit — installed globally via pip
+
+**Container configuration (`.devcontainer/devcontainer.json`):**
+- Runs as the non-root `vscode` user
+- Bind-mounts `~/.gitconfig` from the host so commits carry the correct author identity
+- `postCreateCommand` runs on first container creation:
+  - `pip3 install -r functions_python/requirements.txt -r functions_python/requirements-dev.txt`
+  - `flutter pub get`
+  - `pre-commit install`
+- Auto-installs VS Code extensions: `Dart-Code.flutter`, `Dart-Code.dart-code`, `ms-python.python`, `ms-python.mypy-type-checker`, `charliermarsh.ruff`
+- Format-on-save: Ruff for Python, Dart formatter for Dart
+
+**`flutter run` on physical devices** must be run on the **host machine** (outside the container) because the container has no Android SDK. Source files are shared, so edits made inside the container are immediately visible on the host.
+
 ## Coding & Design Standards
 
 - https://en.wikipedia.org/wiki/Design_Patterns This book is basically your bible. I want you to explore the page and the links inside, and then implement these principles in this project.
