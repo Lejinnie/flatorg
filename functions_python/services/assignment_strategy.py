@@ -109,7 +109,7 @@ def categorise_persons(
             red.append(PersonTaskPair(person=person, task=task))
 
     def by_ring_index(pair: PersonTaskPair) -> int:
-        return pair.task.ring_index
+        return int(pair.task.ring_index)
 
     return (
         sorted(green, key=by_ring_index),
@@ -154,7 +154,7 @@ def scan_forward_for_free_slot(ctx: WeekResetContext, start_ring_index: int, lev
     Returns the ring index of the found slot, or -1 if none exists.
     """
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index + offset) % TOTAL_TASKS
+        candidate: int = (start_ring_index + offset) % TOTAL_TASKS
         if level_of_slot(candidate) == level and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
@@ -167,7 +167,7 @@ def scan_forward_for_lower_free_slot(ctx: WeekResetContext, start_ring_index: in
     """
     current_weight = level_weight(current_level)
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index + offset) % TOTAL_TASKS
+        candidate: int = (start_ring_index + offset) % TOTAL_TASKS
         if level_weight(level_of_slot(candidate)) < current_weight and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
@@ -181,7 +181,7 @@ def scan_backward_for_higher_free_slot(ctx: WeekResetContext, start_ring_index: 
     """
     current_weight = level_weight(current_level)
     for offset in range(1, TOTAL_TASKS + 1):
-        candidate = (start_ring_index - offset) % TOTAL_TASKS
+        candidate: int = (start_ring_index - offset) % TOTAL_TASKS
         if level_weight(level_of_slot(candidate)) > current_weight and ctx.next_assignments[candidate] == "":
             return candidate
     return -1
@@ -192,8 +192,8 @@ def forward_ring_distance(from_index: int, to_index: int) -> int:
 
     Always returns 1–TOTAL_TASKS.
     """
-    dist = (to_index - from_index + TOTAL_TASKS) % TOTAL_TASKS
-    return dist if dist != 0 else TOTAL_TASKS
+    dist: int = (to_index - from_index + TOTAL_TASKS) % TOTAL_TASKS
+    return int(dist if dist != 0 else TOTAL_TASKS)
 
 
 # ── Strategy interface ────────────────────────────────────────────────────────

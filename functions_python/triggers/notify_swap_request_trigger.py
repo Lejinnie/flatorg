@@ -28,7 +28,7 @@ from services.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 
-@https_fn.on_call()
+@https_fn.on_call()  # type: ignore[untyped-decorator, unused-ignore]
 def notify_swap_request_callable(
     req: https_fn.CallableRequest[Any],
 ) -> dict[str, Any]:

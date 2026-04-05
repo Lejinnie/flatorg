@@ -46,7 +46,7 @@ def _notify_grace_period(db: Any, flat_id: str, task_id: str) -> None:
     )
 
 
-@https_fn.on_call()
+@https_fn.on_call()  # type: ignore[untyped-decorator, unused-ignore]
 def enter_grace_period_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     """HTTP-callable Cloud Function that transitions a task from Pending → NotDone."""
     data = req.data or {}
@@ -68,7 +68,7 @@ def enter_grace_period_callable(req: https_fn.CallableRequest[Any]) -> dict[str,
     return {"success": True}
 
 
-@https_fn.on_call()
+@https_fn.on_call()  # type: ignore[untyped-decorator, unused-ignore]
 def enter_grace_period_all_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     """HTTP-callable Cloud Function that transitions every pending task in a flat to NotDone.
 
@@ -94,7 +94,7 @@ def enter_grace_period_all_callable(req: https_fn.CallableRequest[Any]) -> dict[
     return {"success": True, "count": len(pending)}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator, unused-ignore]
 def enter_grace_period_http(req: Any) -> Any:
     """HTTP trigger variant for Cloud Scheduler.
 
@@ -104,9 +104,7 @@ def enter_grace_period_http(req: Any) -> Any:
     flat_id: str = body.get("flatId", "")
     task_id: str = body.get("taskId", "")
     if not flat_id or not task_id:
-        return https_fn.Response(  # type: ignore[attr-defined]
-            {"error": "flatId and taskId are required"}, status=400, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "flatId and taskId are required"}, status=400, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     try:
         db = firestore.Client()
         task_repo = TaskRepository(db)
@@ -115,7 +113,7 @@ def enter_grace_period_http(req: Any) -> Any:
             task_repo.enter_grace_period(flat_id, task_id)
             _notify_grace_period(db, flat_id, task_id)
         logger.info("%s flat=%s task=%s", LOG_GRACE_PERIOD_TRANSITION, flat_id, task_id)
-        return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined]
+        return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     except Exception as exc:
         logger.error("enter_grace_period_http failed flat=%s task=%s error=%s", flat_id, task_id, exc)
-        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined]
+        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]

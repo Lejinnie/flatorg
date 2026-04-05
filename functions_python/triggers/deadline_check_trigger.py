@@ -43,7 +43,7 @@ from services.week_reset_service import WeekResetService
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(
+@scheduler_fn.on_schedule(  # type: ignore[untyped-decorator, unused-ignore]
     schedule="every 5 minutes",
     timezone=ZoneInfo("Europe/Zurich"),
 )
@@ -54,7 +54,7 @@ def check_deadlines_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     _run_for_all_flats(now, db)
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator, unused-ignore]
 def check_deadlines_http(req: Any) -> Any:
     """HTTP trigger for manual testing. Expects optional JSON: {"flatId": "<id>"}"""
     body = req.get_json(silent=True) or {}
@@ -66,14 +66,10 @@ def check_deadlines_http(req: Any) -> Any:
             _run_for_flat(flat_id_filter, now, db)
         else:
             _run_for_all_flats(now, db)
-        return https_fn.Response(  # type: ignore[attr-defined]
-            {"success": True}, status=200, mimetype="application/json"
-        )
+        return https_fn.Response({"success": True}, status=200, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     except Exception as exc:
         logger.error("check_deadlines_http failed error=%s", exc)
-        return https_fn.Response(  # type: ignore[attr-defined]
-            {"error": "Internal error"}, status=500, mimetype="application/json"
-        )
+        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
 
 
 # ── Orchestration helpers ─────────────────────────────────────────────────────

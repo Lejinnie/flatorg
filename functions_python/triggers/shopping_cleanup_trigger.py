@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
 
 from firebase_functions import https_fn, scheduler_fn
 from google.cloud import firestore
@@ -23,7 +25,7 @@ from repository.flat_repository import FlatRepository
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(schedule="every 1 hours", timezone="Europe/Zurich")  # type: ignore[untyped-decorator]
+@scheduler_fn.on_schedule(schedule="every 1 hours", timezone=ZoneInfo("Europe/Zurich"))  # type: ignore[untyped-decorator, unused-ignore]
 def shopping_cleanup_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     """Periodically delete bought shopping items older than the flat's threshold."""
     db = firestore.Client()
@@ -33,21 +35,21 @@ def shopping_cleanup_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
         _delete_expired_shopping_items(flat_doc.id, flat.shopping_cleanup_hours, db)
 
 
-@https_fn.on_request()  # type: ignore[untyped-decorator]
-def shopping_cleanup_http(req: https_fn.Request) -> https_fn.Response:
+@https_fn.on_request()  # type: ignore[untyped-decorator, unused-ignore]
+def shopping_cleanup_http(req: Any) -> Any:
     """HTTP trigger for manual testing. Expects JSON: {"flatId": "<id>"}"""
     body = req.get_json(silent=True) or {}
     flat_id: str = body.get("flatId", "")
     if not flat_id:
-        return https_fn.Response({"error": "flatId is required"}, status=400, mimetype="application/json")
+        return https_fn.Response({"error": "flatId is required"}, status=400, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     try:
         db = firestore.Client()
         flat = FlatRepository(db).get_flat(flat_id)
         deleted = _delete_expired_shopping_items(flat_id, flat.shopping_cleanup_hours, db)
-        return https_fn.Response({"success": True, "deleted": deleted}, status=200, mimetype="application/json")
+        return https_fn.Response({"success": True, "deleted": deleted}, status=200, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
     except Exception as exc:
         logger.error("shopping_cleanup_http failed flat=%s error=%s", flat_id, exc)
-        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")
+        return https_fn.Response({"error": "Internal error"}, status=500, mimetype="application/json")  # type: ignore[attr-defined, unused-ignore]
 
 
 def _delete_expired_shopping_items(flat_id: str, cleanup_hours: int, db: Client) -> int:
