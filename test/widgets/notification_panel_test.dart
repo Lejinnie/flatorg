@@ -36,6 +36,7 @@ SwapRequest _request({
       requesterTaskId: requesterTaskId,
       status:         SwapRequestStatus.pending,
       createdAt:      Timestamp.fromDate(DateTime(2099)),
+      isVacationSwap: false,
     );
 
 String _nameFor(String uid) => switch (uid) {
