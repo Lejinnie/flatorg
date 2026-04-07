@@ -7,6 +7,7 @@ import '../constants/task_constants.dart';
 import '../models/person.dart';
 import '../models/task.dart';
 import 'confirmation_dialog.dart';
+import 'task_detail_dialog.dart';
 
 /// A card displaying one household task.
 ///
@@ -72,8 +73,6 @@ class TaskCard extends StatefulWidget {
 }
 
 class _TaskCardState extends State<TaskCard> {
-  var _expanded = false;
-
   // ── Optimistic state ────────────────────────────────────────────────────────
 
   /// Locally overrides widget.task after an optimistic write until Firestore
@@ -162,7 +161,14 @@ class _TaskCardState extends State<TaskCard> {
         horizontal: AppTheme.spacingMd,
         vertical: AppTheme.spacingXs,
       ),
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        onTap: () => TaskDetailDialog.show(
+          context,
+          task: task,
+          assigneeName: widget.assigneeName,
+        ),
+        child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppTheme.spacingMd,
           AppTheme.spacingMd,
@@ -211,57 +217,6 @@ class _TaskCardState extends State<TaskCard> {
                   ),
                 ),
 
-                // ── Subtasks (expanded) ───────────────────────────────────
-                if (_expanded && task.description.isNotEmpty) ...[
-                  const SizedBox(height: AppTheme.spacingSm),
-                  const Divider(),
-                  ...task.description.map(
-                    (step) => Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppTheme.spacingXs,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('• '),
-                          Expanded(
-                            child: Text(
-                              step,
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-
-                // ── Show more / less toggle ───────────────────────────────
-                if (task.description.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => setState(() => _expanded = !_expanded),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: AppTheme.spacingXs),
-                      child: Row(
-                        children: [
-                          Text(
-                            _expanded ? buttonShowLess : buttonShowMore,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: AppTheme.featureColor,
-                            ),
-                          ),
-                          Icon(
-                            _expanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            size: 16,
-                            color: AppTheme.featureColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
                 const SizedBox(height: AppTheme.spacingSm),
 
                 // ── Action buttons ────────────────────────────────────────
@@ -271,6 +226,7 @@ class _TaskCardState extends State<TaskCard> {
           ],
         ),       // outer Column
       ),         // Padding
+      ),         // InkWell
     );
   }
 

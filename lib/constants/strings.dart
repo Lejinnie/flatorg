@@ -181,6 +181,9 @@ const labelWhatTasks = 'What tasks?';
 const buttonAddMore = 'Add more';
 const buttonRemoveTask = '−';
 const hintSubtasks = 'Subtasks (one per line)';
+const hintSubtaskItem = 'Subtask';
+const buttonAddSubtask = '+ Add subtask';
+const labelSubtasks = 'Subtasks';
 const hintDueDate = 'Due date & time';
 const labelFlatCreated = 'Flat created!';
 const labelJoined = 'Joined flat!';
@@ -202,6 +205,7 @@ const buttonVacation = 'Vacation';
 const labelNoNotifications = 'No notifications';
 const labelNotifications = 'Notifications';
 const buttonDismissNotification = 'Dismiss';
+const buttonDismiss = 'Close';
 
 // ── Swap request ──────────────────────────────────────────────────────────────
 
