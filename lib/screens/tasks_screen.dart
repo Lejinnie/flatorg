@@ -206,6 +206,9 @@ class _TasksBody extends StatelessWidget {
       requesterTaskId: myTask.id,
       status: SwapRequestStatus.pending,
       createdAt: Timestamp.now(),
+      // Vacation/vacant swaps happen immediately and cost 1 token.
+      // Mutual non-vacation swaps require agreement and cost 0 tokens.
+      isVacationSwap: isImmediate,
     );
 
     final repo = SwapRequestRepository();

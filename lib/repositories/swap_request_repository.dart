@@ -62,8 +62,9 @@ class SwapRequestRepository {
 
   /// Responds to a swap request (accepted or declined).
   ///
-  /// On accept: swaps assigned_to on both task documents and decrements
-  /// the requester's swap_tokens_remaining by 1 — all in a single batch.
+  /// On accept: swaps assigned_to on both task documents in a single batch.
+  /// Deducts 1 swap token from the requester only when [request.isVacationSwap]
+  /// is true — mutual non-vacation swaps are free.
   Future<void> respondToSwapRequest(
     String flatId,
     SwapRequest request,
@@ -90,11 +91,13 @@ class SwapRequestRepository {
         ..update(requesterTaskRef, {fieldTaskAssignedTo: targetUid})
         ..update(targetTaskRef,    {fieldTaskAssignedTo: requesterUid});
 
-      // Deduct one swap token from the requester.
-      final requesterRef = _membersCollection(flatId).doc(request.requesterUid);
-      final requesterSnap = await requesterRef.get();
-      final currentTokens = requesterSnap.data()?[fieldPersonSwapTokens] as int? ?? 0;
-      batch.update(requesterRef, {fieldPersonSwapTokens: (currentTokens - 1).clamp(0, 999)});
+      // Only vacation swaps cost a token (determined at request creation time).
+      if (request.isVacationSwap) {
+        final requesterRef  = _membersCollection(flatId).doc(request.requesterUid);
+        final requesterSnap = await requesterRef.get();
+        final currentTokens = requesterSnap.data()?[fieldPersonSwapTokens] as int? ?? 0;
+        batch.update(requesterRef, {fieldPersonSwapTokens: (currentTokens - 1).clamp(0, 999)});
+      }
     }
 
     await batch.commit();
