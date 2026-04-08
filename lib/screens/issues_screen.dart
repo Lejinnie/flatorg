@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -234,6 +235,10 @@ class _IssuesBodyState extends State<_IssuesBody> {
       return;
     }
 
+    // Translate titles and descriptions to German via Cloud Function.
+    // Falls back to original text on any error so the send is never blocked.
+    final translated = await _translateIssues(sendableSelected);
+
     // Pick a random email template.
     final templateIndex = Random().nextInt(3) + 1;
     final templatePath = 'email_templates/issue_template_$templateIndex.txt';
@@ -246,9 +251,9 @@ class _IssuesBodyState extends State<_IssuesBody> {
       template = '{{issues}}';
     }
 
-    // Build the bullet list of selected issues.
-    final issueLines = sendableSelected
-        .map((i) => '- ${i.title}: ${i.description}')
+    // Build the bullet list: "- **title**: description" for each issue.
+    final issueLines = translated
+        .map((i) => '- **${i['title']}**: ${i['description']}')
         .join('\n');
 
     // Split sender name.
@@ -281,6 +286,46 @@ class _IssuesBodyState extends State<_IssuesBody> {
     }
 
     _exitSelection();
+  }
+
+  /// Calls the DeepL translation Cloud Function to convert issue titles and
+  /// descriptions to German. All texts are batched in one call to minimise
+  /// API character usage on the free tier.
+  ///
+  /// Returns a list of maps with 'title' and 'description' keys (translated).
+  /// Falls back to the original text on any network or function error.
+  Future<List<Map<String, String>>> _translateIssues(
+    List<Issue> issues,
+  ) async {
+    try {
+      final callable = FirebaseFunctions.instance
+          .httpsCallable(callableTranslateIssues);
+      final result = await callable.call<Map<String, dynamic>>({
+        'issues': issues
+            .map((i) => {'title': i.title, 'description': i.description})
+            .toList(),
+      });
+
+      final rawList = (result.data['issues'] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
+      return rawList
+          .map(
+            (m) => {
+              'title': m['title'] as String,
+              'description': m['description'] as String,
+            },
+          )
+          .toList();
+    } on Exception catch (e) {
+      // Best-effort: translation failure must never prevent sending the email.
+      debugPrint(
+        'translateIssues: Cloud Function call failed — $e. '
+        'Falling back to original text.',
+      );
+      return issues
+          .map((i) => {'title': i.title, 'description': i.description})
+          .toList();
+    }
   }
 
   // ── Resolve issues ────────────────────────────────────────────────────────

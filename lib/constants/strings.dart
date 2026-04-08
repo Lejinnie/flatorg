@@ -75,6 +75,7 @@ const notifTypeTaskCompleted = 'task_completed';
 /// Cloud Function callable names.
 const callableNotifyTaskCompleted = 'notify_task_completed_callable';
 const callableNotifySwapRequest   = 'notify_swap_request_callable';
+const callableTranslateIssues     = 'translate_issues_callable';
 
 // ── Swap request field names ──────────────────────────────────────────────────
 

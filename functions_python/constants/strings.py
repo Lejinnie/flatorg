@@ -121,6 +121,12 @@ NOTIFICATION_BODY_SWAP_REQUEST = "{requester_name} wants to swap tasks with you.
 
 # ── Log messages ──────────────────────────────────────────────────────────────
 
+LOG_TRANSLATE_ISSUES = "translate_issues_callable: translated %d issue(s), %d characters consumed"
+ERROR_DEEPL_KEY_MISSING = (
+    "DEEPL_API_KEY secret is not configured. "
+    "Run: firebase functions:secrets:set DEEPL_API_KEY"
+)
+
 LOG_WEEK_RESET_START = "week_reset: starting for flat"
 LOG_WEEK_RESET_COMPLETE = "week_reset: completed for flat"
 LOG_GRACE_PERIOD_TRANSITION = "enter_grace_period: task transitioned to not_done"
