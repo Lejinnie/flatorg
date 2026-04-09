@@ -39,7 +39,7 @@ class TaskDetailDialog extends StatelessWidget {
         assigneeName.isEmpty ? labelUnassigned : assigneeName;
 
     return AlertDialog(
-      title: Text(task.name, style: theme.textTheme.titleMedium),
+      title: Text(task.name, style: theme.textTheme.titleLarge),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,8 +62,8 @@ class TaskDetailDialog extends StatelessWidget {
               const SizedBox(height: AppTheme.spacingMd),
               const Divider(),
               const SizedBox(height: AppTheme.spacingXs),
-              Text(labelSubtasks, style: theme.textTheme.labelSmall),
-              const SizedBox(height: AppTheme.spacingXs),
+              Text(labelSubtasks, style: theme.textTheme.titleMedium),
+              const SizedBox(height: AppTheme.spacingSm),
               ...task.description.map(
                 (step) => Padding(
                   padding: const EdgeInsets.symmetric(
@@ -72,9 +72,19 @@ class TaskDetailDialog extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('• '),
+                      const Padding(
+                        padding: EdgeInsets.only(
+                          top: 5,
+                          right: AppTheme.spacingSm,
+                        ),
+                        child: Icon(
+                          Icons.circle,
+                          size: 6,
+                          color: AppTheme.grayMid,
+                        ),
+                      ),
                       Expanded(
-                        child: Text(step, style: theme.textTheme.bodySmall),
+                        child: Text(step, style: theme.textTheme.bodyMedium),
                       ),
                     ],
                   ),
