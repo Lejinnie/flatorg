@@ -16,6 +16,8 @@ import deepl
 from firebase_functions import https_fn
 from firebase_functions.params import SecretParam
 
+from services.translation_service import translate_issues
+
 logger = logging.getLogger(__name__)
 
 # API key stored in Google Cloud Secret Manager — never embedded in the APK.
@@ -72,18 +74,13 @@ def translate_issues_callable(
             ),
         )
 
-    # Interleave: [title_0, desc_0, title_1, desc_1, ...]
-    # One API call for all texts → minimum free-tier character usage.
-    flat_texts: list[str] = []
-    for item in issues:
-        flat_texts.append(item["title"])
-        flat_texts.append(item["description"])
-
-    total_chars = sum(len(t) for t in flat_texts)
+    total_chars = sum(
+        len(item["title"]) + len(item["description"]) for item in issues
+    )
 
     try:
         translator = deepl.Translator(api_key)
-        results = translator.translate_text(flat_texts, target_lang="DE")
+        translated = translate_issues(issues, translator)
     except deepl.DeepLException as exc:
         # Best-effort translation: fall back to originals so the user can
         # still send the email without waiting for a retry.
@@ -91,19 +88,10 @@ def translate_issues_callable(
             "translate_issues_callable: DeepL API error (%s). "
             "Falling back to original texts. flat_texts=%r",
             exc,
-            flat_texts,
+            [item for issue in issues for item in (issue["title"], issue["description"])],
             exc_info=True,
         )
         return {"issues": issues}
-
-    translated: list[dict[str, str]] = []
-    for i in range(len(issues)):
-        translated.append(
-            {
-                "title": results[i * 2].text,
-                "description": results[i * 2 + 1].text,
-            }
-        )
 
     logger.info(
         "translate_issues_callable: translated %d issue(s), %d characters consumed",
