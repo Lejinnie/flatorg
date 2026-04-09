@@ -62,8 +62,8 @@ class TaskDetailDialog extends StatelessWidget {
               const SizedBox(height: AppTheme.spacingMd),
               const Divider(),
               const SizedBox(height: AppTheme.spacingXs),
-              Text(labelSubtasks, style: theme.textTheme.titleMedium),
-              const SizedBox(height: AppTheme.spacingSm),
+              Text(labelSubtasks, style: theme.textTheme.bodySmall),
+              const SizedBox(height: AppTheme.spacingXs),
               ...task.description.map(
                 (step) => Padding(
                   padding: const EdgeInsets.symmetric(
