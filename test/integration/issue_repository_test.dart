@@ -31,7 +31,7 @@ Issue _makeIssue({
   title: title,
   description: description,
   createdBy: createdBy,
-  createdAt: createdAt ?? Timestamp.fromDate(DateTime(2026, 1, 1)),
+  createdAt: createdAt ?? Timestamp.fromDate(DateTime(2026)),
   lastSentAt: lastSentAt,
 );
 
@@ -45,7 +45,7 @@ group('Issue.isOnCooldown', () {
     'when isOnCooldown is read, '
     'then it is false',
     () {
-      final issue = _makeIssue(lastSentAt: null);
+      final issue = _makeIssue();
       expect(issue.isOnCooldown, isFalse);
     },
   );
@@ -122,7 +122,7 @@ group('IssueRepository.watchIssues', () {
       final older = _makeIssue(
         id: 'issue-old',
         title: 'Old issue',
-        createdAt: Timestamp.fromDate(DateTime(2026, 1, 1)),
+        createdAt: Timestamp.fromDate(DateTime(2026)),
       );
       final newer = _makeIssue(
         id: 'issue-new',
@@ -151,7 +151,6 @@ group('IssueRepository.createIssue', () {
       final db   = FakeFirebaseFirestore();
       final repo = IssueRepository(db: db);
       final issue = _makeIssue(
-        id: 'issue-1',
         title: 'Leaking tap',
         description: 'The kitchen tap drips constantly.',
       );
@@ -200,7 +199,7 @@ group('IssueRepository.createIssue', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = IssueRepository(db: db);
-      final issue = _makeIssue(lastSentAt: null);
+      final issue = _makeIssue();
 
       await repo.createIssue(_kFlatId, issue);
 
@@ -242,7 +241,7 @@ group('IssueRepository.deleteIssue', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = IssueRepository(db: db);
-      final issue = _makeIssue(id: 'issue-1');
+      final issue = _makeIssue();
 
       await repo.createIssue(_kFlatId, issue);
       await repo.deleteIssue(_kFlatId, 'issue-1');
@@ -287,7 +286,7 @@ group('IssueRepository.markIssueAsSent', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = IssueRepository(db: db);
-      final issue = _makeIssue(id: 'issue-1', lastSentAt: null);
+      final issue = _makeIssue();
 
       await repo.createIssue(_kFlatId, issue);
 
@@ -318,7 +317,7 @@ group('IssueRepository.markIssueAsSent', () {
       final oldSentAt = Timestamp.fromDate(
         DateTime.now().subtract(const Duration(days: 10)),
       );
-      final issue = _makeIssue(id: 'issue-1', lastSentAt: oldSentAt);
+      final issue = _makeIssue(lastSentAt: oldSentAt);
 
       await repo.createIssue(_kFlatId, issue);
       await repo.markIssueAsSent(_kFlatId, 'issue-1');
@@ -349,7 +348,7 @@ group('IssueRepository.markIssueAsSent', () {
         _makeIssue(
           id: 'issue-b',
           title: 'Issue B',
-          createdAt: Timestamp.fromDate(DateTime(2026, 1, 1)),
+          createdAt: Timestamp.fromDate(DateTime(2026)),
         ),
       );
 

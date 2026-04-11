@@ -139,7 +139,7 @@ group('respondToSwapRequest — vacation swap token cost', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = SwapRequestRepository(db: db);
-      await _seedScenario(db, requesterTokens: 3);
+      await _seedScenario(db);
       final request = _makeRequest(isVacationSwap: true);
       await repo.createSwapRequest(_kFlatId, request);
 
@@ -186,7 +186,7 @@ group('respondToSwapRequest — mutual swap, no token cost', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = SwapRequestRepository(db: db);
-      await _seedScenario(db, requesterTokens: 3);
+      await _seedScenario(db);
       final request = _makeRequest(isVacationSwap: false);
       await repo.createSwapRequest(_kFlatId, request);
 
@@ -253,7 +253,7 @@ group('respondToSwapRequest — decline', () {
     () async {
       final db   = FakeFirebaseFirestore();
       final repo = SwapRequestRepository(db: db);
-      await _seedScenario(db, requesterTokens: 3);
+      await _seedScenario(db);
       final request = _makeRequest(isVacationSwap: true);
       await repo.createSwapRequest(_kFlatId, request);
 

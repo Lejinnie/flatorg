@@ -63,7 +63,7 @@ class SwapRequestRepository {
   /// Responds to a swap request (accepted or declined).
   ///
   /// On accept: swaps assigned_to on both task documents in a single batch.
-  /// Deducts 1 swap token from the requester only when [request.isVacationSwap]
+  /// Deducts 1 swap token from the requester only when request.isVacationSwap
   /// is true — mutual non-vacation swaps are free.
   Future<void> respondToSwapRequest(
     String flatId,

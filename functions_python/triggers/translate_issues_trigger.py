@@ -43,6 +43,7 @@ def translate_issues_callable(
     Cost optimisation: titles and descriptions are interleaved into a single
     flat list and sent in one API call, halving the per-request overhead
     compared to translating each field separately.
+
     """
     data = req.data or {}
     issues: list[dict[str, str]] = data.get("issues", [])
@@ -52,15 +53,10 @@ def translate_issues_callable(
 
     # Validate payload — fail loudly so the client knows it sent bad data.
     for idx, item in enumerate(issues):
-        if not isinstance(item.get("title"), str) or not isinstance(
-            item.get("description"), str
-        ):
+        if not isinstance(item.get("title"), str) or not isinstance(item.get("description"), str):
             raise https_fn.HttpsError(
                 code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
-                message=(
-                    f"Issue at index {idx} must have string 'title' and "
-                    f"'description' fields. Got: {item!r}"
-                ),
+                message=(f"Issue at index {idx} must have string 'title' and 'description' fields. Got: {item!r}"),
             )
 
     api_key = DEEPL_API_KEY.value
@@ -68,28 +64,20 @@ def translate_issues_callable(
         # Secret is provisioned but empty — this is a misconfiguration.
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INTERNAL,
-            message=(
-                "DEEPL_API_KEY secret is not configured. "
-                "Run: firebase functions:secrets:set DEEPL_API_KEY"
-            ),
+            message=("DEEPL_API_KEY secret is not configured. Run: firebase functions:secrets:set DEEPL_API_KEY"),
         )
 
-    total_chars = sum(
-        len(item["title"]) + len(item["description"]) for item in issues
-    )
+    total_chars = sum(len(item["title"]) + len(item["description"]) for item in issues)
 
     try:
         translator = deepl.Translator(api_key)
         translated = translate_issues(issues, translator)
-    except deepl.DeepLException as exc:
+    except deepl.DeepLException:
         # Best-effort translation: fall back to originals so the user can
         # still send the email without waiting for a retry.
-        logger.error(
-            "translate_issues_callable: DeepL API error (%s). "
-            "Falling back to original texts. flat_texts=%r",
-            exc,
+        logger.exception(
+            "translate_issues_callable: DeepL API error. Falling back to original texts. flat_texts=%r",
             [item for issue in issues for item in (issue["title"], issue["description"])],
-            exc_info=True,
         )
         return {"issues": issues}
 

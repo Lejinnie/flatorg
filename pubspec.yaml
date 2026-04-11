@@ -33,6 +33,7 @@ flutter:
 
 dev_dependencies:
   fake_cloud_firestore: ^3.0.3
+  firebase_core_platform_interface: ^6.0.3
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.4
   flutter_test:

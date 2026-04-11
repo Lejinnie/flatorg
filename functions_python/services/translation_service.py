@@ -58,6 +58,7 @@ def translate_issues(
     Raises:
         deepl.DeepLException (or any exception from ``translate_text``) on
         API failure.  The caller is responsible for fallback handling.
+
     """
     if not issues:
         return []

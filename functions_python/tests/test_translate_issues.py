@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from services.translation_service import translate_issues
+from services.translation_service import TextResult, translate_issues
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fake translator infrastructure
@@ -51,7 +51,7 @@ class _FakeTranslator:
         self,
         text: list[str],
         target_lang: str,
-    ) -> list[_TextResult]:
+    ) -> list[TextResult]:
         self.calls.append((list(text), target_lang))
         if self._raise_exc is not None:
             raise self._raise_exc
@@ -91,8 +91,7 @@ class TestEmptyInput:
     def test_api_not_called(self) -> None:
         """Given an empty issue list, then the DeepL API is never called."""
         assert self.translator.calls == [], (
-            "translate_text must not be called for empty input — "
-            "every API call consumes free-tier characters."
+            "translate_text must not be called for empty input — every API call consumes free-tier characters."
         )
 
 
@@ -161,8 +160,7 @@ class TestBatchingTwoIssues:
     def test_exactly_one_api_call(self) -> None:
         """Given two issues, then only one translate_text call is made."""
         assert len(self.translator.calls) == 1, (
-            "All issues must be batched in a single API call to minimise "
-            "free-tier character consumption."
+            "All issues must be batched in a single API call to minimise free-tier character consumption."
         )
 
     def test_four_texts_sent_in_one_call(self) -> None:
@@ -252,9 +250,7 @@ class TestAlreadyGerman:
         german_text = "Heizung defekt"
         german_desc = "Macht laute Geräusche nachts."
         # Simulate DeepL returning the same text (German → German no-op).
-        self.translator = _translator(
-            {german_text: german_text, german_desc: german_desc}
-        )
+        self.translator = _translator({german_text: german_text, german_desc: german_desc})
         self.result = translate_issues(
             [{"title": german_text, "description": german_desc}],
             self.translator,
@@ -286,7 +282,7 @@ class TestDeepLApiFailure:
 
     def test_exception_propagates(self) -> None:
         """Given a DeepL failure, then the exception propagates to the caller."""
-        import deepl  # noqa: PLC0415 — only imported to access DeepLException
+        import deepl
 
         failing = _failing_translator(deepl.DeepLException("quota exceeded"))
 
@@ -386,10 +382,7 @@ class TestLargeBatchNineIssues:
 
     def setup_method(self) -> None:
         self.translator = _translator()
-        self.issues = [
-            {"title": f"Issue {i}", "description": f"Description {i}."}
-            for i in range(9)
-        ]
+        self.issues = [{"title": f"Issue {i}", "description": f"Description {i}."} for i in range(9)]
         self.result = translate_issues(self.issues, self.translator)
 
     def test_exactly_one_api_call_for_nine_issues(self) -> None:

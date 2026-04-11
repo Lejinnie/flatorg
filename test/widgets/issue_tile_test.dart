@@ -25,7 +25,7 @@ import 'package:google_fonts/google_fonts.dart';
 // Fixtures
 // ═══════════════════════════════════════════════════════════════════════════════
 
-final _kCreatedAt = Timestamp.fromDate(DateTime(2025, 1, 1));
+final _kCreatedAt = Timestamp.fromDate(DateTime(2025));
 
 /// Not-on-cooldown: never sent.
 Issue _sendableIssue({
@@ -135,7 +135,9 @@ class _IssueListHarnessState extends State<_IssueListHarness> {
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
-        if (_selectedIds.isEmpty) _selectionMode = false;
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
       } else {
         _selectedIds.add(id);
       }
@@ -261,7 +263,7 @@ void main() {
       'when the tile is rendered, '
       'then the issue title is visible',
       (tester) async {
-        await _pumpTile(tester, issue: _sendableIssue(title: 'Broken heater'));
+        await _pumpTile(tester, issue: _sendableIssue());
         expect(find.text('Broken heater'), findsOneWidget);
       },
     );
@@ -350,7 +352,6 @@ void main() {
           tester,
           issue: _sendableIssue(),
           isSelectionMode: true,
-          isSelected: false,
         );
         expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
         expect(find.byIcon(Icons.check_box), findsNothing);
@@ -762,7 +763,6 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [_sendableIssue(id: 'a')],
-          isShoppingAssignee: false, // not allowed to send
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -969,7 +969,6 @@ void main() {
             _sendableIssue(id: 'a'),
             _cooldownIssue(id: 'cool'),
           ],
-          isShoppingAssignee: false,
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -1100,7 +1099,6 @@ void main() {
             _sendableIssue(id: 'b'),
             _cooldownIssue(id: 'cool'),
           ],
-          isShoppingAssignee: false,
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -1123,7 +1121,6 @@ void main() {
             _cooldownIssue(id: 'cool'),
             _sendableIssue(id: 'a'),
           ],
-          isShoppingAssignee: false,
         );
 
         await tester.longPress(find.byKey(const Key('tile-cool')));
