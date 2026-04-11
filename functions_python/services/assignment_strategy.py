@@ -346,8 +346,8 @@ class RedL1Strategy(AssignmentStrategy):
 
     Phase 1 — nearest L2 (ring−1): if free, take it.
     Phase 2 — nearest L3 (ring−2): if free, take it.
-    Phase 3 — any free L3 (harder punishment preferred over L2).
-    Phase 4 — any free L2.
+    Phase 3 — any free L2.
+    Phase 4 — any free L3.
     Phase 5 — stay at L1 (no higher slot available).
     Reds do NOT cycle back to L1 during the search.
     """
@@ -369,16 +369,16 @@ class RedL1Strategy(AssignmentStrategy):
                 assign_slot(ctx, nearest_l3, pair.person.uid)
                 continue
 
-            # Phase 3: any free L3
-            free_l3 = free_slots_by_level(ctx, TaskLevel.L3)
-            if free_l3:
-                assign_slot(ctx, free_l3[0], pair.person.uid)
-                continue
-
-            # Phase 4: any free L2
+            # Phase 3: any free L2
             free_l2 = free_slots_by_level(ctx, TaskLevel.L2)
             if free_l2:
                 assign_slot(ctx, free_l2[0], pair.person.uid)
+                continue
+
+            # Phase 4: any free L3
+            free_l3 = free_slots_by_level(ctx, TaskLevel.L3)
+            if free_l3:
+                assign_slot(ctx, free_l3[0], pair.person.uid)
                 continue
 
             # Phase 5: stay at L1

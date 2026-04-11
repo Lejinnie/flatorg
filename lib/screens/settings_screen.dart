@@ -886,17 +886,17 @@ class _TaskEditTile extends StatefulWidget {
 class _TaskEditTileState extends State<_TaskEditTile> {
   var _expanded = false;
   late TextEditingController _nameCtrl;
-  late TextEditingController _subtasksCtrl;
+  late List<TextEditingController> _subtaskCtrls;
   late DateTime _dueDate;
   late String _assignedTo;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl     = TextEditingController(text: widget.task.name);
-    _subtasksCtrl = TextEditingController(
-      text: widget.task.description.join('\n'),
-    );
+    _nameCtrl    = TextEditingController(text: widget.task.name);
+    _subtaskCtrls = widget.task.description
+        .map((s) => TextEditingController(text: s))
+        .toList();
     _dueDate    = widget.task.dueDateTime.toDate();
     _assignedTo = widget.task.assignedTo;
   }
@@ -904,7 +904,9 @@ class _TaskEditTileState extends State<_TaskEditTile> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _subtasksCtrl.dispose();
+    for (final c in _subtaskCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -955,9 +957,8 @@ class _TaskEditTileState extends State<_TaskEditTile> {
       widget.flatId,
       widget.task.id,
       name: _nameCtrl.text.trim(),
-      description: _subtasksCtrl.text
-          .split('\n')
-          .map((s) => s.trim())
+      description: _subtaskCtrls
+          .map((c) => c.text.trim())
           .where((s) => s.isNotEmpty)
           .toList(),
     );
@@ -1034,10 +1035,43 @@ class _TaskEditTileState extends State<_TaskEditTile> {
                     textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
-                  TextField(
-                    controller: _subtasksCtrl,
-                    decoration: const InputDecoration(hintText: hintSubtasks),
-                    maxLines: 3,
+                  ...List.generate(_subtaskCtrls.length, (i) => Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _subtaskCtrls[i],
+                          decoration: InputDecoration(
+                            hintText: '$hintSubtaskItem ${i + 1}',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingSm,
+                              vertical: AppTheme.spacingSm,
+                            ),
+                          ),
+                          textInputAction: TextInputAction.next,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => setState(() {
+                          _subtaskCtrls[i].dispose();
+                          _subtaskCtrls.removeAt(i);
+                        }),
+                      ),
+                    ],
+                  )),
+                  TextButton.icon(
+                    onPressed: () => setState(
+                      () => _subtaskCtrls.add(TextEditingController()),
+                    ),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text(buttonAddSubtask),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
                   InkWell(

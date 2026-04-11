@@ -26,12 +26,31 @@ dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/logo.png
     - email_templates/issue_template_1.txt
     - email_templates/issue_template_2.txt
     - email_templates/issue_template_3.txt
 
 dev_dependencies:
   fake_cloud_firestore: ^3.0.3
+  firebase_core_platform_interface: ^6.0.3
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
   flutter_test:
     sdk: flutter
   lint_hard: ^7.1.2
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: 'assets/images/logo.png'
+  min_sdk_android: 21
+  adaptive_icon_background: '#FFFFFF'
+  adaptive_icon_foreground: 'assets/images/logo.png'
+
+flutter_native_splash:
+  color: '#FFFFFF'
+  color_dark: '#121212'
+  image: 'assets/images/logo.png'
+  android: true
+  ios: true

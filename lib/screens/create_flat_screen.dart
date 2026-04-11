@@ -120,9 +120,8 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
         tasks.add(Task(
           id: taskId,
           name: entry.nameCtrl.text.trim(),
-          description: entry.subtasksCtrl.text
-              .split('\n')
-              .map((s) => s.trim())
+          description: entry.subtaskCtrls
+              .map((c) => c.text.trim())
               .where((s) => s.isNotEmpty)
               .toList(),
           dueDateTime: Timestamp.fromDate(entry.dueDate),
@@ -309,11 +308,43 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
             ],
           ),
           const SizedBox(height: AppTheme.spacingSm),
-          TextFormField(
-            controller: entry.subtasksCtrl,
-            decoration: const InputDecoration(hintText: hintSubtasks),
-            maxLines: 3,
-            textInputAction: TextInputAction.newline,
+          ...List.generate(entry.subtaskCtrls.length, (si) => Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: entry.subtaskCtrls[si],
+                  decoration: InputDecoration(
+                    hintText: '$hintSubtaskItem ${si + 1}',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingSm,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => setState(() {
+                  entry.subtaskCtrls[si].dispose();
+                  entry.subtaskCtrls.removeAt(si);
+                }),
+              ),
+            ],
+          )),
+          TextButton.icon(
+            onPressed: () => setState(
+              () => entry.subtaskCtrls.add(TextEditingController()),
+            ),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text(buttonAddSubtask),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
           InkWell(
@@ -335,15 +366,17 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 /// Mutable state for one task entry in the creation form.
 class _TaskEntry {
   final TextEditingController nameCtrl;
-  final TextEditingController subtasksCtrl;
+  final List<TextEditingController> subtaskCtrls;
   DateTime dueDate;
 
   _TaskEntry({required String name, required this.dueDate})
-      : nameCtrl     = TextEditingController(text: name),
-        subtasksCtrl = TextEditingController();
+      : nameCtrl    = TextEditingController(text: name),
+        subtaskCtrls = [];
 
   void dispose() {
     nameCtrl.dispose();
-    subtasksCtrl.dispose();
+    for (final c in subtaskCtrls) {
+      c.dispose();
+    }
   }
 }

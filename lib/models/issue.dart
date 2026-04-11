@@ -99,6 +99,11 @@ class SwapRequest {
   final SwapRequestStatus status;
   final Timestamp createdAt;
 
+  /// Whether the requester is taking a vacation person's slot.
+  /// True  → costs 1 swap token (determined at request creation time).
+  /// False → mutual non-vacation swap, costs 0 tokens.
+  final bool isVacationSwap;
+
   const SwapRequest({
     required this.id,
     required this.requesterUid,
@@ -106,6 +111,7 @@ class SwapRequest {
     required this.requesterTaskId,
     required this.status,
     required this.createdAt,
+    required this.isVacationSwap,
   });
 
   factory SwapRequest.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -117,6 +123,7 @@ class SwapRequest {
       requesterTaskId: (data[fieldSwapRequesterTaskId] as String?) ?? '',
       status: _swapStatusFromString((data[fieldSwapStatus] as String?) ?? 'pending'),
       createdAt: data[fieldSwapCreatedAt] as Timestamp,
+      isVacationSwap: (data[fieldSwapIsVacationSwap] as bool?) ?? false,
     );
   }
 
@@ -126,6 +133,7 @@ class SwapRequest {
     fieldSwapRequesterTaskId: requesterTaskId,
     fieldSwapStatus: _swapStatusToString(status),
     fieldSwapCreatedAt: createdAt,
+    fieldSwapIsVacationSwap: isVacationSwap,
   };
 
   static SwapRequestStatus _swapStatusFromString(String value) {

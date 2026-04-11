@@ -84,6 +84,29 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 
 - When pushing to remote, use the `$GH_TOKEN` environment variable for authentication. Set the remote URL to `https://x-access-token:${GH_TOKEN}@github.com/<owner>/<repo>.git` before pushing.
 
+## Dev Environment
+
+The project ships a VS Code Dev Container (`.devcontainer/`). It is the standard development environment; all contributors are expected to use it unless they cannot run Docker.
+
+**Container contents (`.devcontainer/Dockerfile`):**
+- Base image: `mcr.microsoft.com/devcontainers/base:ubuntu-22.04`
+- Python 3.12 — installed from the `deadsnakes` PPA and set as the default `python3`
+- Node.js 20 LTS + Firebase CLI (`firebase-tools` via npm)
+- Flutter stable — cloned to `/opt/flutter`, pre-cached for Linux/web; **no Android SDK** is present inside the container
+- pre-commit — installed globally via pip
+
+**Container configuration (`.devcontainer/devcontainer.json`):**
+- Runs as the non-root `vscode` user
+- Bind-mounts `~/.gitconfig` from the host so commits carry the correct author identity
+- `postCreateCommand` runs on first container creation:
+  - `pip3 install -r functions_python/requirements.txt -r functions_python/requirements-dev.txt`
+  - `flutter pub get`
+  - `pre-commit install`
+- Auto-installs VS Code extensions: `Dart-Code.flutter`, `Dart-Code.dart-code`, `ms-python.python`, `ms-python.mypy-type-checker`, `charliermarsh.ruff`
+- Format-on-save: Ruff for Python, Dart formatter for Dart
+
+**`flutter run` on physical devices** must be run on the **host machine** (outside the container) because the container has no Android SDK. Source files are shared, so edits made inside the container are immediately visible on the host.
+
 ## Coding & Design Standards
 
 - https://en.wikipedia.org/wiki/Design_Patterns This book is basically your bible. I want you to explore the page and the links inside, and then implement these principles in this project.
@@ -124,7 +147,7 @@ The general idea is that we want to reward those that do a task by assigning the
 3. **Green L2** — scan forward in the task ring. Take the first free L1 slot (the only lower level), skipping L2 and L3. If no L1 slot is free, stay at L2 (no reward, no punishment).
 4. **Red L3** — stay at L3. Take their same task if unassigned, otherwise take another unassigned L3 task.
 5. **Red L2** — scan backward in the task ring from their current position for the nearest free L3 slot, skipping L2 and L1 slots. If no L3 slot is free, stay at their current L2 task.
-6. **Red L1** — scan backward in the ring: first check the nearest L2 (ring−1), then the nearest L3 (ring−2). If neither is free, try any free L3 slot (harder punishment preferred), then any free L2 slot. Reds do not cycle back to L1 during the search. If nothing is found, stay at L1.
+6. **Red L1** — scan backward in the ring: first check the nearest L2 (ring−1), then the nearest L3 (ring−2). If neither is free, try any free L2 slot, then any free L3 slot. Reds do not cycle back to L1 during the search. If nothing is found, stay at L1.
 7. **Green L1** — fill whatever slots remain, using **shortest ring distance** matching. For each remaining unassigned slot, find the Green L1 person with the shortest forward distance to it in the task ring and assign them to it. This ensures each person gets the task closest to their current position rather than an arbitrary leftover. Assigned last to avoid competing with Red people for harder slots.
 8. **Blue long vacation** (`weeks_not_cleaned > X`) — fill whatever slots remain after Green L1. Their slots are not protected and do not block Green people from moving down.
 
@@ -132,9 +155,9 @@ The general idea is that we want to reward those that do a task by assigning the
 
 ### Switching Tasks
 
-People can switch tasks 3 times per semester (3 tokens).
+People have 3 swap tokens per semester.
 
-They can switch to a vacation person's slot without asking (the requester's original slot becomes the new vacation slot, and the vacation person is reassigned there). They can also swap with a non-vacation person if that person agrees. The swap lasts one week only.
+They can switch to a vacation person's slot without asking (the requester's original slot becomes the new vacation slot, and the vacation person is reassigned there) — this costs 1 token. They can also swap with a non-vacation person if that person agrees — this costs no tokens. The swap lasts one week only.
 
 `week_reset()` always uses the person's **original** task (pre-swap) to determine their green/red status and next week's assignment. The swap has no lasting effect on the rotation schedule.
 
@@ -294,7 +317,7 @@ Each task is a state machine stored as a Firestore document.
 
 `completed_task()` — marks state as `completed` and resets `weeks_not_cleaned` to 0 on the task. Also clears the `on_vacation` flag on the assigned person. Does not modify `original_assigned_to` (swap tracking is independent of task completion).
 
-`request_change_task()` — fires an event to the target person requesting a task swap. Target person sees a pending request in the notification panel and can accept or decline. On accept: swap `assigned_to` on both tasks (original assignments unchanged). On decline: request is cancelled and shown as declined in the requester's notification tile. Each accepted swap costs one token from the requester's balance.
+`request_change_task()` — fires an event to the target person requesting a task swap. Target person sees a pending request in the notification panel and can accept or decline. On accept: swap `assigned_to` on both tasks (original assignments unchanged). On decline: request is cancelled and shown as declined in the requester's notification tile. Swapping with a vacation person's slot costs 1 token from the requester's balance. Swapping with a non-vacation person (mutual agreement) costs no tokens.
 
  
 
@@ -387,7 +410,7 @@ Settings accessible to all members and admin-only settings, consolidated in one 
 - Add members to the flat
 - Mark self as on vacation
 - Mark own task as done
-- Request a task swap (costs 1 token per accepted swap; 3 tokens per semester)
+- Request a task swap; costs 1 token only when taking a vacation person's slot (3 tokens per semester total)
 
 ### Login
 

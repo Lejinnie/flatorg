@@ -43,4 +43,5 @@ from triggers.shopping_cleanup_trigger import (  # noqa: F401, E402
 
 # ── Semester token reset ──────────────────────────────────────────────────────
 from triggers.token_reset_trigger import token_reset_http, token_reset_scheduled  # noqa: F401, E402
+from triggers.translate_issues_trigger import translate_issues_callable  # noqa: F401, E402
 from triggers.week_reset_trigger import week_reset_callable, week_reset_http  # noqa: F401, E402
