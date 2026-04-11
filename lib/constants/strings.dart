@@ -61,21 +61,21 @@ const fieldShoppingOrder = 'order';
 
 // ── Notification field names ──────────────────────────────────────────────────
 
-const fieldNotifType      = 'type';
-const fieldNotifTitle     = 'title';
-const fieldNotifBody      = 'body';
-const fieldNotifTaskId    = 'task_id';
+const fieldNotifType = 'type';
+const fieldNotifTitle = 'title';
+const fieldNotifBody = 'body';
+const fieldNotifTaskId = 'task_id';
 const fieldNotifCreatedAt = 'created_at';
 
 /// In-app notification type values — must match the Python NOTIF_TYPE_* constants.
-const notifTypeReminder      = 'reminder';
-const notifTypeGracePeriod   = 'grace_period';
+const notifTypeReminder = 'reminder';
+const notifTypeGracePeriod = 'grace_period';
 const notifTypeTaskCompleted = 'task_completed';
 
 /// Cloud Function callable names.
 const callableNotifyTaskCompleted = 'notify_task_completed_callable';
-const callableNotifySwapRequest   = 'notify_swap_request_callable';
-const callableTranslateIssues     = 'translate_issues_callable';
+const callableNotifySwapRequest = 'notify_swap_request_callable';
+const callableTranslateIssues = 'translate_issues_callable';
 
 // ── Swap request field names ──────────────────────────────────────────────────
 
@@ -84,6 +84,7 @@ const fieldSwapTargetTaskId = 'target_task_id';
 const fieldSwapRequesterTaskId = 'requester_task_id';
 const fieldSwapStatus = 'status';
 const fieldSwapCreatedAt = 'created_at';
+
 /// True when the requester is taking a vacation person's slot (costs 1 token).
 /// False for mutual non-vacation swaps (costs 0 tokens).
 const fieldSwapIsVacationSwap = 'is_vacation_swap';
@@ -183,7 +184,7 @@ const buttonAddMore = 'Add more';
 const buttonRemoveTask = '−';
 const hintSubtasks = 'Subtasks (one per line)';
 const hintSubtaskItem = 'Subtask';
-const buttonAddSubtask = '+ Add subtask';
+const buttonAddSubtask = 'Add subtask';
 const labelSubtasks = 'Subtasks';
 const hintDueDate = 'Due date & time';
 const labelFlatCreated = 'Flat created!';
@@ -275,10 +276,9 @@ const confirmResolvedMessage =
     'This will permanently DELETE the selected issues. They cannot be recovered.';
 const confirmResolvedLabel = 'Resolved';
 
-const confirmSendTitle = 'Send to Livit?';
-const confirmSendMessage =
-    'Did you write the complaints in German? Did you check the right problems to submit?';
-const confirmSendLabel = 'Send';
+const confirmSendTitle = 'Open Mail?';
+const confirmSendMessage = 'Did you check the right problems to submit?';
+const confirmSendLabel = 'Open';
 
 const buttonCancel = 'Cancel';
 const buttonConfirm = 'Confirm';
@@ -296,7 +296,7 @@ const shoppingDisappearsAfter = 'Disappears after {hours}h';
 
 const headingIssues = 'Flat Issues';
 const buttonAddIssue = 'Add Issue';
-const buttonSend = 'Send';
+const buttonSend = 'Mail';
 const buttonResolved = 'Resolved';
 const buttonSelectAll = 'Select All';
 const hintIssueImageOptional = 'Image (optional)';
@@ -333,28 +333,29 @@ const confirmResetLabel = 'Reset';
 
 // ── Next phase trigger ────────────────────────────────────────────────────────
 
-const buttonTriggerNextPhase       = 'Trigger next phase';
-const labelNextPhaseGracePeriod    = 'Grace Period';
-const labelNextPhaseNewAssignment  = 'New Assignment';
+const buttonTriggerNextPhase = 'Trigger next phase';
+const labelNextPhaseGracePeriod = 'Grace Period';
+const labelNextPhaseNewAssignment = 'New Assignment';
 
 // Grace period (Pending → NotDone)
-const confirmGracePeriodTitle      = 'Trigger Grace Period?';
-const confirmGracePeriodMessage    =
+const confirmGracePeriodTitle = 'Trigger Grace Period?';
+const confirmGracePeriodMessage =
     'This will mark all pending tasks as overdue (not done), '
     'starting the grace period. This cannot be undone.';
-const confirmGracePeriodLabel      = 'Trigger';
-const snackGracePeriodSuccess      = 'Grace period started.';
-const snackGracePeriodError        = 'Failed to trigger grace period — check the logs.';
+const confirmGracePeriodLabel = 'Trigger';
+const snackGracePeriodSuccess = 'Grace period started.';
+const snackGracePeriodError =
+    'Failed to trigger grace period — check the logs.';
 
 // New assignment (full week reset)
-const confirmWeekResetTitle     = 'Trigger new assignment?';
-const confirmWeekResetMessage   =
+const confirmWeekResetTitle = 'Trigger new assignment?';
+const confirmWeekResetMessage =
     'This will immediately run the full week reset: reassign all tasks, '
     'clear swap history, and update green/red/blue statuses. '
     'This cannot be undone.';
-const confirmWeekResetLabel     = 'Reset now';
-const snackWeekResetSuccess     = 'Week reset completed successfully.';
-const snackWeekResetError       = 'Week reset failed — check the logs.';
+const confirmWeekResetLabel = 'Reset now';
+const snackWeekResetSuccess = 'Week reset completed successfully.';
+const snackWeekResetError = 'Week reset failed — check the logs.';
 
 // ── Log out ───────────────────────────────────────────────────────────────────
 
@@ -371,11 +372,13 @@ const errorGeneric = 'Something went wrong. Please try again.';
 
 /// Shown when the complete-task write fails and the optimistic green state is
 /// rolled back to the previous card colour.
-const errorCompleteTaskFailed = 'Could not mark task as done. Please try again.';
+const errorCompleteTaskFailed =
+    'Could not mark task as done. Please try again.';
 
 /// Shown when the vacation write fails and the optimistic grayed-out button is
 /// rolled back.
-const errorVacationFailed = 'Could not update vacation status. Please try again.';
+const errorVacationFailed =
+    'Could not update vacation status. Please try again.';
 
 /// Shown when the swap-request write fails after the user confirmed the dialog.
 const errorSwapFailed = 'Could not send swap request. Please try again.';
