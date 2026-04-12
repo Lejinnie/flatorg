@@ -23,12 +23,19 @@ class _IssueDetailDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingMd,
+        vertical: AppTheme.spacingMd,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
       title: Text(issue.title, style: theme.textTheme.titleMedium),
-      content: SingleChildScrollView(
-        child: Text(issue.description, style: theme.textTheme.bodyMedium),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Text(issue.description, style: theme.textTheme.bodyMedium),
+        ),
       ),
       actions: [
         TextButton(
