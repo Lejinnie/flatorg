@@ -68,5 +68,12 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
+		<key>FirebaseMessagingAutoInitEnabled</key>
+		<true/>
 	</dict>
 </plist>
