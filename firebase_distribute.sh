@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # Firebase App Distribution script for FlatOrg.
+# Every run ships BOTH Android (locally) and iOS (via GitHub Actions).
+#
 # Usage:
-#   ./firebase_distribute.sh                    # auto-increments patch version (x.x.x -> x.x.x+1)
-#   ./firebase_distribute.sh -v 2.1.0           # sets version to 2.1.0
-#   ./firebase_distribute.sh -m "Fixed login"   # adds release notes
-#   ./firebase_distribute.sh -v 1.2.0 -m "New feature"
+#   ./firebase_distribute.sh                          # both, group: testing, auto-bump patch
+#   ./firebase_distribute.sh --release                # both, group: hwb-33
+#   ./firebase_distribute.sh -v 2.1.0 -m "notes"      # both, with version + notes
+#   ./firebase_distribute.sh --release -m "notes"     # both, hwb-33, with notes
 
 set -euo pipefail
 
@@ -13,12 +15,29 @@ cd /home/lejinnie/Projects/flatorg
 
 RELEASE_NOTES=""
 NEW_VERSION=""
+GROUP="testing"
 
-while getopts "m:v:" opt; do
-  case $opt in
-    m) RELEASE_NOTES="$OPTARG" ;;
-    v) NEW_VERSION="$OPTARG" ;;
-    *) echo "Usage: $0 [-m \"release notes\"] [-v x.x.x]"; exit 1 ;;
+# ── Argument parsing ────────────────────────────────────────────────────────
+# Manual loop to support both short (-m, -v) and long (--release) flags.
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -m)
+      RELEASE_NOTES="$2"
+      shift 2
+      ;;
+    -v)
+      NEW_VERSION="$2"
+      shift 2
+      ;;
+    --release)
+      GROUP="hwb-33"
+      shift
+      ;;
+    *)
+      echo "Usage: $0 [-m \"release notes\"] [-v x.x.x] [--release]"
+      exit 1
+      ;;
   esac
 done
 
@@ -48,6 +67,7 @@ fi
 BUILD=$((CURRENT_BUILD + 1))
 
 echo "Version: $CURRENT_VERSION+$CURRENT_BUILD -> $VERSION+$BUILD"
+echo "Distribution group: $GROUP"
 sed -i "s/^version: .*/version: ${VERSION}+${BUILD}/" pubspec.yaml
 
 # ── Release notes ────────────────────────────────────────────────────────────
@@ -56,17 +76,43 @@ if [ -z "$RELEASE_NOTES" ]; then
   RELEASE_NOTES="v${VERSION}+${BUILD} uploaded at $(date +%H:%M)"
 fi
 
-# ── Build & distribute ───────────────────────────────────────────────────────
+# ── Push version bump so the iOS runner gets the updated pubspec ─────────────
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git add pubspec.yaml
+git commit -m "chore: bump version to ${VERSION}+${BUILD}"
+git push -u origin "$BRANCH"
+
+# ── Trigger iOS build via GitHub Actions ─────────────────────────────────────
+
+echo "Triggering iOS build on GitHub Actions..."
+gh workflow run ios-distribute.yml \
+  -f version="${VERSION}+${BUILD}" \
+  -f release_notes="$RELEASE_NOTES" \
+  -f group="$GROUP"
+
+echo "iOS build dispatched. To watch progress run:"
+echo "  gh run watch"
+
+# ── Build & distribute Android locally ───────────────────────────────────────
 
 echo "Building release APK..."
 flutter build apk --release
 
 APP_ID=$(grep "mobilesdk_app_id" android/app/google-services.json | cut -d '"' -f 4)
 
-echo "Uploading to Firebase App Distribution..."
+echo "Uploading Android APK to Firebase App Distribution..."
 firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
   --app "$APP_ID" \
-  --groups "hwb-33" \
+  --groups "$GROUP" \
   --release-notes "$RELEASE_NOTES"
 
-echo "Done — distributed v${VERSION}+${BUILD}"
+# ── Summary ──────────────────────────────────────────────────────────────────
+
+echo ""
+echo "=== Distribution summary ==="
+echo "  Version:  v${VERSION}+${BUILD}"
+echo "  Group:    $GROUP"
+echo "  Android:  uploaded"
+echo "  iOS:      building on GitHub Actions (check 'gh run watch')"
+echo "  Notes:    $RELEASE_NOTES"
