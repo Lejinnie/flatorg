@@ -43,7 +43,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 ## Tech Stack
 
 **Frontend: Flutter**
-- Cross-platform (Android primary; iOS supported but push notifications use in-app panel only — no APNs key)
+- Cross-platform (Android primary; iOS supported with native APNs push notifications via FCM)
 - UI reactivity via `StreamBuilder` + Firestore real-time streams
 - Domain state machines use enums (no state management library needed)
 
@@ -54,7 +54,7 @@ FlatOrg is a Flutter app for scheduling and managing household tasks in a co-liv
 
 **Push Notifications: Firebase Cloud Messaging (FCM)**
 - Android: native push via `firebase_messaging` package
-- iOS: in-app notification panel only for now because we are broke(no APNs key required)
+- iOS: native push via APNs (FCM routes automatically; requires APNs key uploaded to Firebase Console)
 - All notification triggers run as Cloud Functions
 
 **Authentication: Firebase Auth with Email/Password**

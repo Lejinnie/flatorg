@@ -1,12 +1,12 @@
 """Handles all outbound FCM push notifications and Firestore in-app notifications.
 
 Android: native push via FCM.
-iOS: notifications appear only in the in-app panel (no APNs key required).
+iOS: native push via FCM routed through APNs (requires APNs key in Firebase).
 
 Every notification type that targets a specific user also writes a Firestore
 document under flats/{flatId}/members/{uid}/notifications/{notifId} so it
-appears in the iOS in-app panel.  Broadcast notifications (task_completed)
-write a document for every member.
+appears in the in-app notification panel on all platforms.  Broadcast
+notifications (task_completed) write a document for every member.
 
 Reminder and grace_period documents are cleaned up by week_reset_service after
 the week reset runs.
@@ -233,10 +233,11 @@ class NotificationService:
         requester_name: str,
         tokens_remaining: int,
     ) -> None:
-        """Send a swap request FCM push to the target person (Android only).
+        """Send a swap request FCM push to the target person.
 
-        iOS already shows the request via the swapRequests Firestore stream in
-        the notification panel — no separate in-app document is needed.
+        iOS also receives the push via APNs (FCM routes automatically).
+        The request additionally appears via the swapRequests Firestore stream
+        in the in-app notification panel — no separate in-app document is needed.
         """
         token = self._get_fcm_token(flat_id, target_uid)
         if not token:

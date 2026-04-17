@@ -73,12 +73,16 @@ def compute_deadline_actions(
 
         # ── Day-before reminder ───────────────────────────────────────────────
         # Fire once when we enter the 24-hour window before the deadline.
-        if not task.day_before_reminder_sent and now >= due - timedelta(hours=24):
+        # Upper bound (now < due) prevents stale reminders after the deadline
+        # has already passed — the grace-period notification covers that case.
+        if not task.day_before_reminder_sent and due - timedelta(hours=24) <= now < due:
             actions.tasks_needing_day_before_reminder.append(task)
 
         # ── Hours-before reminder ─────────────────────────────────────────────
         # Fire once when we enter the admin-configured reminder window.
-        if not task.hours_before_reminder_sent and now >= due - timedelta(hours=flat.reminder_hours_before_deadline):
+        # Same upper bound: no "X hours left" message after the deadline.
+        hours_window_start = due - timedelta(hours=flat.reminder_hours_before_deadline)
+        if not task.hours_before_reminder_sent and hours_window_start <= now < due:
             actions.tasks_needing_hours_before_reminder.append(task)
 
         # ── Grace period ──────────────────────────────────────────────────────

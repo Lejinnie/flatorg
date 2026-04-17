@@ -255,16 +255,224 @@ class TestWeekReset:
 class TestMultipleActionsPerTick:
     """Situation 19 — multiple actions can fire in the same scheduler tick."""
 
-    def test_reminder_and_grace_period_both_fire_when_past_deadline(self) -> None:
-        """Given a pending task 2 hours past its deadline (reminder unsent),
-        when check runs, all three actions fire simultaneously.
+    def test_only_grace_period_fires_when_past_deadline_with_unsent_reminders(self) -> None:
+        """Given a pending task 2 hours past its deadline (reminders unsent),
+        when check runs, only grace period fires — reminders are suppressed
+        because they are meaningless after the deadline.
         """
         task = _task(due_offset_hours=-2)
         actions = compute_deadline_actions([task], _flat(reminder_hours=1), _NOW)
 
-        # Day-before window entered > 24h ago → reminder due.
-        assert task in actions.tasks_needing_day_before_reminder
-        # Hours-before window entered > 1h ago → reminder due.
-        assert task in actions.tasks_needing_hours_before_reminder
-        # Deadline passed → grace period due.
+        # Reminders must NOT fire after the deadline — they'd show stale content.
+        assert task not in actions.tasks_needing_day_before_reminder
+        assert task not in actions.tasks_needing_hours_before_reminder
+        # Deadline passed → grace period fires.
         assert task in actions.tasks_needing_grace_period
+
+    def test_hours_before_and_day_before_both_fire_inside_window(self) -> None:
+        """Given a pending task 30 minutes before deadline (inside both windows),
+        when check runs, both reminders fire but NOT the grace period.
+        """
+        task = _task(due_offset_hours=0.5)
+        actions = compute_deadline_actions([task], _flat(reminder_hours=1), _NOW)
+
+        assert task in actions.tasks_needing_day_before_reminder
+        assert task in actions.tasks_needing_hours_before_reminder
+        assert task not in actions.tasks_needing_grace_period
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# All tasks share the same due date (real-world scenario)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAllTasksSameDueDate:
+    """Scenarios matching the 9-task flat where every task has the same deadline.
+
+    These tests reproduce the real-world observation where a user received 3
+    notifications for a single hours-before trigger tick.
+    """
+
+    def _nine_tasks_same_deadline(
+        self,
+        due_offset_hours: float,
+        day_before_sent: bool = False,
+        hours_before_sent: bool = False,
+    ) -> list[Task]:
+        return [
+            _task(
+                ring_index=i,
+                due_offset_hours=due_offset_hours,
+                day_before_sent=day_before_sent,
+                hours_before_sent=hours_before_sent,
+            )
+            for i in range(9)
+        ]
+
+    def test_given_all_same_due_date_when_hours_reminder_fires_then_each_task_gets_exactly_one(
+        self,
+    ) -> None:
+        """Given 9 tasks all due in 30 minutes (inside 1h reminder window),
+        when check runs, then exactly 9 tasks appear in hours_before list
+        — one per task, no duplicates.
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=0.5)
+        actions = compute_deadline_actions(tasks, _flat(reminder_hours=1), _NOW)
+
+        assert len(actions.tasks_needing_hours_before_reminder) == 9
+        ids = [t.id for t in actions.tasks_needing_hours_before_reminder]
+        assert len(set(ids)) == 9
+
+    def test_given_all_same_due_date_when_deadline_passes_then_only_grace_period_no_reminders(
+        self,
+    ) -> None:
+        """Given 9 tasks all due 30 minutes ago (deadline passed, reminders unsent),
+        when check runs, then ONLY grace period fires — no stale reminders.
+        This was the root cause of the '3 notifications' bug.
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=-0.5)
+        actions = compute_deadline_actions(tasks, _flat(reminder_hours=1), _NOW)
+
+        assert len(actions.tasks_needing_day_before_reminder) == 0
+        assert len(actions.tasks_needing_hours_before_reminder) == 0
+        assert len(actions.tasks_needing_grace_period) == 9
+
+    def test_given_all_same_due_date_when_flags_already_set_then_no_duplicate_reminders(
+        self,
+    ) -> None:
+        """Given 9 tasks inside the hours-before window but with the sent flag
+        already True, when check runs, then no hours-before reminders fire.
+        """
+        tasks = self._nine_tasks_same_deadline(
+            due_offset_hours=0.5,
+            hours_before_sent=True,
+        )
+        actions = compute_deadline_actions(tasks, _flat(reminder_hours=1), _NOW)
+
+        assert len(actions.tasks_needing_hours_before_reminder) == 0
+
+    def test_given_all_same_due_date_and_grace_period_elapsed_then_week_reset_fires(
+        self,
+    ) -> None:
+        """Given 9 tasks all due 3 hours ago and grace_period=1h,
+        when check runs, then should_run_week_reset is True.
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=-3)
+        actions = compute_deadline_actions(tasks, _flat(grace_hours=1), _NOW)
+
+        assert actions.should_run_week_reset is True
+
+    def test_given_all_same_due_date_and_grace_period_not_elapsed_then_no_week_reset(
+        self,
+    ) -> None:
+        """Given 9 tasks all due 30 minutes ago and grace_period=1h,
+        when check runs, then should_run_week_reset is False (still in grace period).
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=-0.5)
+        actions = compute_deadline_actions(tasks, _flat(grace_hours=1), _NOW)
+
+        assert actions.should_run_week_reset is False
+
+    def test_given_stale_last_reset_blocking_new_cycle_then_week_reset_still_fires(
+        self,
+    ) -> None:
+        """Given last_week_reset_at is from the PREVIOUS cycle (before current
+        due dates), when grace period elapses, then week_reset fires because
+        the guard only blocks within the same cycle.
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=-3)
+        # Last reset was 7 days ago — well before the current due dates.
+        last_reset = _NOW - timedelta(days=7)
+        actions = compute_deadline_actions(tasks, _flat(grace_hours=1, last_reset_at=last_reset), _NOW)
+
+        assert actions.should_run_week_reset is True
+
+    def test_given_last_reset_after_current_due_dates_then_week_reset_blocked(
+        self,
+    ) -> None:
+        """Given last_week_reset_at is AFTER the current task due dates,
+        when check runs, then week_reset is blocked (already ran this cycle).
+
+        This reproduces the scenario where a user sets task deadlines to a
+        date BEFORE the previous week_reset timestamp — the guard incorrectly
+        blocks the reset.
+        """
+        tasks = self._nine_tasks_same_deadline(due_offset_hours=-3)
+        # Deadline was 3h ago (_NOW - 3h), but last_reset was only 1h ago.
+        # last_reset (_NOW - 1h) > latest_due (_NOW - 3h) → guard blocks.
+        last_reset = _NOW - timedelta(hours=1)
+        actions = compute_deadline_actions(tasks, _flat(grace_hours=1, last_reset_at=last_reset), _NOW)
+
+        assert actions.should_run_week_reset is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Scheduler tick sequence — simulate consecutive 5-minute ticks
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestSchedulerTickSequence:
+    """Simulate the real lifecycle of a flat across multiple scheduler ticks
+    to verify that no duplicate notifications occur and week_reset fires
+    at the right time.
+    """
+
+    def test_full_lifecycle_9_tasks_same_deadline(self) -> None:
+        """Given 9 tasks all due at the same time, simulate the scheduler
+        ticking through the full lifecycle:
+          tick 1: 20h before → day-before reminder fires
+          tick 2: 20h before → day-before flag set, no duplicate
+          tick 3: 45min before → hours-before reminder fires
+          tick 4: 45min before → hours-before flag set, no duplicate
+          tick 5: 30min after deadline → grace period fires, NO reminders
+          tick 6: 2h after deadline (grace=1h) → week_reset fires
+        """
+        due = _NOW + timedelta(hours=20)
+
+        def tasks(day_sent: bool = False, hours_sent: bool = False) -> list[Task]:
+            return [
+                replace(
+                    make_task(i, f"p{i}", TaskState.Pending),
+                    due_date_time=due,
+                    day_before_reminder_sent=day_sent,
+                    hours_before_reminder_sent=hours_sent,
+                )
+                for i in range(9)
+            ]
+
+        flat = _flat(reminder_hours=1, grace_hours=1)
+
+        # Tick 1: 20h before deadline → inside 24h window.
+        t1 = due - timedelta(hours=20)
+        a1 = compute_deadline_actions(tasks(), flat, t1)
+        assert len(a1.tasks_needing_day_before_reminder) == 9
+        assert len(a1.tasks_needing_hours_before_reminder) == 0
+        assert len(a1.tasks_needing_grace_period) == 0
+        assert a1.should_run_week_reset is False
+
+        # Tick 2: same time, flags now set → no duplicates.
+        a2 = compute_deadline_actions(tasks(day_sent=True), flat, t1)
+        assert len(a2.tasks_needing_day_before_reminder) == 0
+
+        # Tick 3: 45min before deadline → inside 1h window.
+        t3 = due - timedelta(minutes=45)
+        a3 = compute_deadline_actions(tasks(day_sent=True), flat, t3)
+        assert len(a3.tasks_needing_hours_before_reminder) == 9
+        assert len(a3.tasks_needing_grace_period) == 0
+
+        # Tick 4: same time, hours flag now set → no duplicates.
+        a4 = compute_deadline_actions(tasks(day_sent=True, hours_sent=True), flat, t3)
+        assert len(a4.tasks_needing_hours_before_reminder) == 0
+
+        # Tick 5: 30min after deadline → grace period fires, NO stale reminders.
+        t5 = due + timedelta(minutes=30)
+        a5 = compute_deadline_actions(tasks(day_sent=True, hours_sent=True), flat, t5)
+        assert len(a5.tasks_needing_day_before_reminder) == 0
+        assert len(a5.tasks_needing_hours_before_reminder) == 0
+        assert len(a5.tasks_needing_grace_period) == 9
+        assert a5.should_run_week_reset is False
+
+        # Tick 6: 2h after deadline (grace=1h elapsed) → week_reset fires.
+        t6 = due + timedelta(hours=2)
+        a6 = compute_deadline_actions(tasks(day_sent=True, hours_sent=True), flat, t6)
+        assert a6.should_run_week_reset is True

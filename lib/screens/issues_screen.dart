@@ -108,17 +108,16 @@ class _IssuesBodyState extends State<_IssuesBody> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          // Wider than the default — the description field needs more room.
           insetPadding: const EdgeInsets.symmetric(
-            horizontal: 8,
+            horizontal: AppTheme.spacingMd,
             vertical: AppTheme.spacingMd,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           ),
           title: const Text(buttonAddIssue),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 280),
+          content: SizedBox(
+            width: double.maxFinite,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,9 +274,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
       },
     );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+    await launchUrl(uri);
 
     // Mark each sent issue with last_sent_at.
     final repo = IssueRepository();
