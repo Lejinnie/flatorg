@@ -60,7 +60,8 @@ class TestRunForFlatOrchestration:
     ) -> None:
         """Given 9 pending tasks all due in 30 minutes (inside 1h window),
         when _run_for_flat fires, then send_hours_before_reminder is called
-        exactly 9 times — once per task."""
+        exactly 9 times — once per task.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW + timedelta(minutes=30)
@@ -76,9 +77,7 @@ class TestRunForFlatOrchestration:
         assert svc.send_hours_before_reminder.call_count == 9
         assert svc.send_day_before_reminder.call_count == 9
 
-        notified_uids = {
-            c.args[1] for c in svc.send_hours_before_reminder.call_args_list
-        }
+        notified_uids = {c.args[1] for c in svc.send_hours_before_reminder.call_args_list}
         assert notified_uids == {f"p{i}" for i in range(9)}
 
     def test_given_deadline_passed_then_no_stale_reminders_only_grace_period(
@@ -89,7 +88,8 @@ class TestRunForFlatOrchestration:
         mock_week_reset_cls: MagicMock,
     ) -> None:
         """Given 9 tasks all past deadline (reminders unsent), when _run_for_flat
-        fires, then NO reminder notifications are sent — only grace period."""
+        fires, then NO reminder notifications are sent — only grace period.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW - timedelta(minutes=30)
@@ -114,13 +114,13 @@ class TestRunForFlatOrchestration:
         mock_week_reset_cls: MagicMock,
     ) -> None:
         """Given tasks with hours_before_reminder_sent=True (set by previous tick),
-        when _run_for_flat fires again, then no hours-before reminders are sent."""
+        when _run_for_flat fires again, then no hours-before reminders are sent.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW + timedelta(minutes=30)
         tasks = [
-            replace(t, hours_before_reminder_sent=True, day_before_reminder_sent=True)
-            for t in _pending_tasks(9, due)
+            replace(t, hours_before_reminder_sent=True, day_before_reminder_sent=True) for t in _pending_tasks(9, due)
         ]
         flat = _flat(reminder_hours=1)
 
@@ -141,7 +141,8 @@ class TestRunForFlatOrchestration:
         mock_week_reset_cls: MagicMock,
     ) -> None:
         """Given all 9 tasks past deadline and grace_period=1h elapsed,
-        when _run_for_flat fires, then WeekResetService.week_reset is called."""
+        when _run_for_flat fires, then WeekResetService.week_reset is called.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW - timedelta(hours=3)
@@ -163,7 +164,8 @@ class TestRunForFlatOrchestration:
         mock_week_reset_cls: MagicMock,
     ) -> None:
         """Given all tasks past deadline but only 30 minutes into a 1h grace period,
-        when _run_for_flat fires, then week_reset is NOT called."""
+        when _run_for_flat fires, then week_reset is NOT called.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW - timedelta(minutes=30)
@@ -186,7 +188,8 @@ class TestRunForFlatOrchestration:
     ) -> None:
         """Given 9 tasks needing hours-before reminder, when _run_for_flat fires,
         then update_task is called 9 times to set the hours_before_reminder_sent flag,
-        preventing duplicate notifications on the next tick."""
+        preventing duplicate notifications on the next tick.
+        """
         from triggers.deadline_check_trigger import _run_for_flat
 
         due = _NOW + timedelta(minutes=30)

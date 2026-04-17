@@ -81,7 +81,8 @@ def compute_deadline_actions(
         # ── Hours-before reminder ─────────────────────────────────────────────
         # Fire once when we enter the admin-configured reminder window.
         # Same upper bound: no "X hours left" message after the deadline.
-        if not task.hours_before_reminder_sent and due - timedelta(hours=flat.reminder_hours_before_deadline) <= now < due:
+        hours_window_start = due - timedelta(hours=flat.reminder_hours_before_deadline)
+        if not task.hours_before_reminder_sent and hours_window_start <= now < due:
             actions.tasks_needing_hours_before_reminder.append(task)
 
         # ── Grace period ──────────────────────────────────────────────────────

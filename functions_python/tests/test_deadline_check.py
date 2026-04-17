@@ -344,7 +344,8 @@ class TestAllTasksSameDueDate:
         already True, when check runs, then no hours-before reminders fire.
         """
         tasks = self._nine_tasks_same_deadline(
-            due_offset_hours=0.5, hours_before_sent=True,
+            due_offset_hours=0.5,
+            hours_before_sent=True,
         )
         actions = compute_deadline_actions(tasks, _flat(reminder_hours=1), _NOW)
 

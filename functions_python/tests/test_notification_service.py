@@ -8,9 +8,7 @@ Uses unittest.mock to stub firebase_admin.messaging and Firestore.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from models.person import Person, PersonRole
 from services.notification_service import NotificationService
@@ -118,12 +116,18 @@ class TestWriteInAppNotification:
 
     def test_given_valid_args_when_write_called_then_firestore_doc_is_set(self) -> None:
         """Given valid flat/uid/type, when write_in_app_notification is called,
-        then a Firestore document is created with the correct fields."""
+        then a Firestore document is created with the correct fields.
+        """
         db = MagicMock()
         svc = NotificationService(db)
 
         svc.write_in_app_notification(
-            _FLAT_ID, _ALICE_UID, "reminder", "Title", "Body", "task-0",
+            _FLAT_ID,
+            _ALICE_UID,
+            "reminder",
+            "Title",
+            "Body",
+            "task-0",
         )
 
         # Verify the chain: collection → doc → collection → doc → collection → doc → set
@@ -138,9 +142,11 @@ class TestWriteInAppNotification:
 
     def test_given_firestore_error_when_write_called_then_no_exception_raised(self) -> None:
         """Given Firestore throws, when write_in_app_notification is called,
-        then the error is logged but not re-raised."""
+        then the error is logged but not re-raised.
+        """
         db = MagicMock()
-        db.collection().document().collection().document().collection().document().set.side_effect = Exception("Firestore down")
+        chain = db.collection().document().collection().document().collection().document()
+        chain.set.side_effect = Exception("Firestore down")
         svc = NotificationService(db)
 
         # Should not raise.
@@ -152,14 +158,18 @@ class TestWriteInAppNotificationsToAll:
 
     def test_given_3_members_when_broadcast_called_then_3_docs_written(self) -> None:
         """Given a flat with 3 members, when write_in_app_notifications_to_all is
-        called, then one document is written per member."""
+        called, then one document is written per member.
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(all_members=members)
         svc._person_repo.get_all_members.return_value = members
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
         svc.write_in_app_notifications_to_all(
-            _FLAT_ID, "task_completed", "Done!", "Someone finished.",
+            _FLAT_ID,
+            "task_completed",
+            "Done!",
+            "Someone finished.",
         )
 
         assert svc.write_in_app_notification.call_count == 3
@@ -177,10 +187,12 @@ class TestSendToToken:
 
     @patch("services.notification_service.messaging")
     def test_given_valid_token_when_send_called_then_fcm_message_sent(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given a valid FCM token, when _send_to_token is called,
-        then messaging.send is invoked with correct token and notification args."""
+        then messaging.send is invoked with correct token and notification args.
+        """
         db = MagicMock()
         svc = NotificationService(db)
 
@@ -196,10 +208,12 @@ class TestSendToToken:
 
     @patch("services.notification_service.messaging")
     def test_given_fcm_error_when_send_called_then_no_exception_raised(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given FCM throws, when _send_to_token is called,
-        then the error is logged but not re-raised."""
+        then the error is logged but not re-raised.
+        """
         mock_messaging.send.side_effect = Exception("FCM unavailable")
         db = MagicMock()
         svc = NotificationService(db)
@@ -213,10 +227,12 @@ class TestSendToMultipleTokens:
 
     @patch("services.notification_service.messaging")
     def test_given_3_tokens_when_multicast_called_then_send_each_for_multicast_invoked(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given 3 FCM tokens, when _send_to_multiple_tokens is called,
-        then messaging.send_each_for_multicast is invoked with all tokens."""
+        then messaging.send_each_for_multicast is invoked with all tokens.
+        """
         db = MagicMock()
         svc = NotificationService(db)
         tokens = ["token-a", "token-b", "token-c"]
@@ -231,10 +247,12 @@ class TestSendToMultipleTokens:
 
     @patch("services.notification_service.messaging")
     def test_given_empty_tokens_when_multicast_called_then_nothing_sent(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given an empty token list, when _send_to_multiple_tokens is called,
-        then no FCM call is made."""
+        then no FCM call is made.
+        """
         db = MagicMock()
         svc = NotificationService(db)
 
@@ -253,10 +271,12 @@ class TestSendDayBeforeReminder:
 
     @patch("services.notification_service.messaging")
     def test_given_assignee_has_fcm_token_when_reminder_sent_then_fcm_and_in_app_both_fire(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the assignee has an FCM token, when send_day_before_reminder is called,
-        then both an FCM push and an in-app Firestore doc are created."""
+        then both an FCM push and an in-app Firestore doc are created.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -271,10 +291,12 @@ class TestSendDayBeforeReminder:
 
     @patch("services.notification_service.messaging")
     def test_given_assignee_has_no_fcm_token_when_reminder_sent_then_only_in_app_fires(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the assignee has no FCM token, when send_day_before_reminder is called,
-        then only the in-app notification is written (no FCM push)."""
+        then only the in-app notification is written (no FCM push).
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: ""})
         svc._get_fcm_token.return_value = None  # type: ignore[attr-defined]
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
@@ -295,10 +317,12 @@ class TestSendHoursBeforeReminder:
 
     @patch("services.notification_service.messaging")
     def test_given_token_exists_when_hours_reminder_sent_then_body_contains_hours(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the assignee has an FCM token, when send_hours_before_reminder
-        is called with hours=2, then the notification body mentions '2 hour(s)'."""
+        is called with hours=2, then the notification body mentions '2 hour(s)'.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -320,10 +344,12 @@ class TestSendTaskCompletedNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_3_members_with_tokens_when_task_completed_then_multicast_sent(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given 3 members all with FCM tokens, when send_task_completed_notification
-        is called, then a multicast message is sent to all 3 tokens."""
+        is called, then a multicast message is sent to all 3 tokens.
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(
             tokens={"p0": "t0", "p1": "t1", "p2": "t2"},
@@ -345,10 +371,12 @@ class TestSendTaskCompletedNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_no_members_have_tokens_when_task_completed_then_no_multicast(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given no members have FCM tokens, when send_task_completed_notification
-        is called, then no multicast is attempted."""
+        is called, then no multicast is attempted.
+        """
         svc, _ = _build_svc(tokens={}, all_members=[])
         svc._get_all_fcm_tokens.return_value = []  # type: ignore[attr-defined]
 
@@ -367,10 +395,12 @@ class TestSendGracePeriodNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_token_exists_when_grace_period_sent_then_body_has_hours(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the assignee has an FCM token, when send_grace_period_notification
-        is called, then the body mentions the hours until reset."""
+        is called, then the body mentions the hours until reset.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -384,10 +414,12 @@ class TestSendGracePeriodNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_no_token_when_grace_period_sent_then_only_in_app(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given no FCM token, when send_grace_period_notification is called,
-        then only the in-app notification is written."""
+        then only the in-app notification is written.
+        """
         svc, _ = _build_svc(tokens={})
         svc._get_fcm_token.return_value = None  # type: ignore[attr-defined]
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
@@ -408,10 +440,12 @@ class TestSendSwapRequestNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_target_has_token_when_swap_request_sent_then_fcm_push_fires(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the target person has an FCM token, when send_swap_request_notification
-        is called, then an FCM push is sent with the requester's name and token count."""
+        is called, then an FCM push is sent with the requester's name and token count.
+        """
         svc, _ = _build_svc(tokens={_BOB_UID: _BOB_TOKEN})
 
         svc.send_swap_request_notification(_FLAT_ID, _BOB_UID, "Alice", 2)
@@ -429,10 +463,12 @@ class TestSendSwapRequestNotification:
 
     @patch("services.notification_service.messaging")
     def test_given_target_has_no_token_when_swap_request_sent_then_nothing_sent(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given the target person has no FCM token, when send_swap_request_notification
-        is called, then no FCM call is made (silent no-op)."""
+        is called, then no FCM call is made (silent no-op).
+        """
         svc, _ = _build_svc(tokens={})
         svc._get_fcm_token.return_value = None  # type: ignore[attr-defined]
 
@@ -451,7 +487,8 @@ class TestGetFcmToken:
 
     def test_given_member_has_token_when_get_called_then_token_returned(self) -> None:
         """Given a member document with fcm_token set, when _get_fcm_token is called,
-        then the token string is returned."""
+        then the token string is returned.
+        """
         db = _build_db_mock(
             member_docs={_ALICE_UID: _make_member_doc(_ALICE_UID, _ALICE_TOKEN)},
         )
@@ -463,7 +500,8 @@ class TestGetFcmToken:
 
     def test_given_member_has_no_token_when_get_called_then_none_returned(self) -> None:
         """Given a member document without fcm_token, when _get_fcm_token is called,
-        then None is returned."""
+        then None is returned.
+        """
         db = _build_db_mock(
             member_docs={_ALICE_UID: _make_member_doc(_ALICE_UID, None)},
         )
@@ -475,7 +513,8 @@ class TestGetFcmToken:
 
     def test_given_member_has_empty_token_when_get_called_then_none_returned(self) -> None:
         """Given a member document with fcm_token = '', when _get_fcm_token is called,
-        then None is returned (empty string treated as absent)."""
+        then None is returned (empty string treated as absent).
+        """
         db = _build_db_mock(
             member_docs={_ALICE_UID: _make_member_doc(_ALICE_UID, "")},
         )
@@ -491,7 +530,8 @@ class TestGetAllFcmTokens:
 
     def test_given_3_members_all_with_tokens_when_called_then_3_tokens_returned(self) -> None:
         """Given 3 members all with FCM tokens, when _get_all_fcm_tokens is called,
-        then all 3 tokens are returned."""
+        then all 3 tokens are returned.
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         db = MagicMock()
         svc = NotificationService(db)
@@ -508,7 +548,8 @@ class TestGetAllFcmTokens:
 
     def test_given_some_members_missing_tokens_when_called_then_only_valid_returned(self) -> None:
         """Given 3 members but only 2 have tokens, when _get_all_fcm_tokens is called,
-        then only the 2 valid tokens are returned."""
+        then only the 2 valid tokens are returned.
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         db = MagicMock()
         svc = NotificationService(db)
@@ -531,14 +572,17 @@ class TestGetAllFcmTokens:
 
 class TestNoDuplicateNotifications:
     """Verify that each notification method fires exactly once per call
-    — no accidental double-sends of FCM pushes or in-app documents."""
+    — no accidental double-sends of FCM pushes or in-app documents.
+    """
 
     @patch("services.notification_service.messaging")
     def test_day_before_reminder_sends_exactly_one_fcm_and_one_in_app(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given an assignee with an FCM token, when send_day_before_reminder
-        is called once, then exactly 1 FCM push and 1 in-app doc are written."""
+        is called once, then exactly 1 FCM push and 1 in-app doc are written.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -549,10 +593,12 @@ class TestNoDuplicateNotifications:
 
     @patch("services.notification_service.messaging")
     def test_hours_before_reminder_sends_exactly_one_fcm_and_one_in_app(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given an assignee with an FCM token, when send_hours_before_reminder
-        is called once, then exactly 1 FCM push and 1 in-app doc are written."""
+        is called once, then exactly 1 FCM push and 1 in-app doc are written.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -563,10 +609,12 @@ class TestNoDuplicateNotifications:
 
     @patch("services.notification_service.messaging")
     def test_task_completed_sends_exactly_one_multicast(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given 3 members with tokens, when send_task_completed_notification
-        is called once, then exactly 1 multicast call is made (not 3 individual sends)."""
+        is called once, then exactly 1 multicast call is made (not 3 individual sends).
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(
             tokens={"p0": "t0", "p1": "t1", "p2": "t2"},
@@ -581,10 +629,12 @@ class TestNoDuplicateNotifications:
 
     @patch("services.notification_service.messaging")
     def test_grace_period_sends_exactly_one_fcm_and_one_in_app(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given an assignee with an FCM token, when send_grace_period_notification
-        is called once, then exactly 1 FCM push and 1 in-app doc are written."""
+        is called once, then exactly 1 FCM push and 1 in-app doc are written.
+        """
         svc, _ = _build_svc(tokens={_ALICE_UID: _ALICE_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -595,11 +645,13 @@ class TestNoDuplicateNotifications:
 
     @patch("services.notification_service.messaging")
     def test_swap_request_sends_exactly_one_fcm_and_no_in_app(
-        self, mock_messaging: MagicMock,
+        self,
+        mock_messaging: MagicMock,
     ) -> None:
         """Given a target with an FCM token, when send_swap_request_notification
         is called once, then exactly 1 FCM push is sent and no in-app doc is written
-        (swap requests use the Firestore swapRequests stream, not in-app docs)."""
+        (swap requests use the Firestore swapRequests stream, not in-app docs).
+        """
         svc, _ = _build_svc(tokens={_BOB_UID: _BOB_TOKEN})
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
@@ -610,14 +662,18 @@ class TestNoDuplicateNotifications:
 
     def test_broadcast_in_app_writes_exactly_one_per_member(self) -> None:
         """Given 3 members, when write_in_app_notifications_to_all is called once,
-        then exactly 3 in-app docs are written (one per member, no duplicates)."""
+        then exactly 3 in-app docs are written (one per member, no duplicates).
+        """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(all_members=members)
         svc._person_repo.get_all_members.return_value = members
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
         svc.write_in_app_notifications_to_all(
-            _FLAT_ID, "task_completed", "Done!", "Someone finished.",
+            _FLAT_ID,
+            "task_completed",
+            "Done!",
+            "Someone finished.",
         )
 
         assert svc.write_in_app_notification.call_count == 3

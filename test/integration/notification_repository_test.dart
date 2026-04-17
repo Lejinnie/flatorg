@@ -122,7 +122,7 @@ group('AppNotification.fromFirestore', () {
     'then the type matches the notifTypeReminder constant',
     () async {
       final db = FakeFirebaseFirestore();
-      final notifId = await _seedNotification(db, type: notifTypeReminder);
+      final notifId = await _seedNotification(db);
       final doc = await db
           .collection(collectionFlats)
           .doc(_kFlatId)
@@ -204,7 +204,7 @@ group('NotificationRepository.watchNotificationsForUser', () {
     'then only Alice notifications are returned',
     () async {
       final db = FakeFirebaseFirestore();
-      await _seedNotification(db, uid: _kAliceUid, title: 'Alice notif');
+      await _seedNotification(db, title: 'Alice notif');
       await _seedNotification(db, uid: _kBobUid, title: 'Bob notif');
       final repo = NotificationRepository(db: db);
 

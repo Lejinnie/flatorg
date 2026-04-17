@@ -16,7 +16,9 @@ original unwrapped function via ``fn.__wrapped__.__wrapped__``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -25,10 +27,12 @@ from models.person import Person, PersonRole
 from models.task import Task, TaskState
 
 
-def _unwrap_callable(fn):  # type: ignore[no-untyped-def]
+def _unwrap_callable(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Bypass @https_fn.on_call() + @cross_origin decorators to get the
-    original function that accepts a CallableRequest-like object."""
-    return fn.__wrapped__.__wrapped__
+    original function that accepts a CallableRequest-like object.
+    """
+    return fn.__wrapped__.__wrapped__  # type: ignore[attr-defined]
+
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -94,7 +98,8 @@ class TestDayBeforeReminderDispatch:
         mock_notif_svc_cls: MagicMock,
     ) -> None:
         """Given a task with a valid assignee, when _dispatch_day_before_reminder
-        is called, then send_day_before_reminder is invoked with the correct args."""
+        is called, then send_day_before_reminder is invoked with the correct args.
+        """
         from triggers.reminder_trigger import _dispatch_day_before_reminder
 
         task = _make_task()
@@ -103,7 +108,9 @@ class TestDayBeforeReminderDispatch:
         _dispatch_day_before_reminder(_FLAT_ID, _TASK_ID)
 
         mock_notif_svc_cls.return_value.send_day_before_reminder.assert_called_once_with(
-            _FLAT_ID, _ALICE_UID, "Toilet",
+            _FLAT_ID,
+            _ALICE_UID,
+            "Toilet",
         )
 
     @patch("triggers.reminder_trigger.NotificationService")
@@ -116,7 +123,8 @@ class TestDayBeforeReminderDispatch:
         mock_notif_svc_cls: MagicMock,
     ) -> None:
         """Given a vacant task (no assignee), when _dispatch_day_before_reminder
-        is called, then no notification is sent."""
+        is called, then no notification is sent.
+        """
         from triggers.reminder_trigger import _dispatch_day_before_reminder
 
         task = _make_task(assigned_to="")
@@ -137,7 +145,8 @@ class TestDayBeforeReminderDispatch:
     ) -> None:
         """Given a task with original_assigned_to set (swap active), when
         _dispatch_day_before_reminder is called, then the original assignee
-        is notified (effective_assigned_to resolves to original)."""
+        is notified (effective_assigned_to resolves to original).
+        """
         from triggers.reminder_trigger import _dispatch_day_before_reminder
 
         task = _make_task(assigned_to=_BOB_UID, original_assigned_to=_ALICE_UID)
@@ -146,7 +155,9 @@ class TestDayBeforeReminderDispatch:
         _dispatch_day_before_reminder(_FLAT_ID, _TASK_ID)
 
         mock_notif_svc_cls.return_value.send_day_before_reminder.assert_called_once_with(
-            _FLAT_ID, _ALICE_UID, "Toilet",
+            _FLAT_ID,
+            _ALICE_UID,
+            "Toilet",
         )
 
 
@@ -171,7 +182,8 @@ class TestHoursBeforeReminderDispatch:
     ) -> None:
         """Given the flat's reminder_hours_before_deadline is 2, when
         _dispatch_hours_before_reminder is called, then the notification
-        includes hours_remaining=2."""
+        includes hours_remaining=2.
+        """
         from triggers.reminder_trigger import _dispatch_hours_before_reminder
 
         task = _make_task()
@@ -181,7 +193,10 @@ class TestHoursBeforeReminderDispatch:
         _dispatch_hours_before_reminder(_FLAT_ID, _TASK_ID)
 
         mock_notif_svc_cls.return_value.send_hours_before_reminder.assert_called_once_with(
-            _FLAT_ID, _ALICE_UID, "Toilet", 2,
+            _FLAT_ID,
+            _ALICE_UID,
+            "Toilet",
+            2,
         )
 
     @patch("triggers.reminder_trigger.NotificationService")
@@ -196,7 +211,8 @@ class TestHoursBeforeReminderDispatch:
         mock_notif_svc_cls: MagicMock,
     ) -> None:
         """Given a vacant task, when _dispatch_hours_before_reminder is called,
-        then no notification is sent."""
+        then no notification is sent.
+        """
         from triggers.reminder_trigger import _dispatch_hours_before_reminder
 
         task = _make_task(assigned_to="")
@@ -229,7 +245,8 @@ class TestNotifyTaskCompletedCallable:
     ) -> None:
         """Given a valid flatId/taskId/completedByUid, when the callable fires,
         then both send_task_completed_notification (FCM) and
-        write_in_app_notifications_to_all (Firestore) are called."""
+        write_in_app_notifications_to_all (Firestore) are called.
+        """
         from triggers.notify_task_completed_trigger import notify_task_completed_callable
 
         task = _make_task(name="Toilet")
@@ -245,16 +262,19 @@ class TestNotifyTaskCompletedCallable:
         assert result == {"success": True}
         svc = mock_notif_svc_cls.return_value
         svc.send_task_completed_notification.assert_called_once_with(
-            _FLAT_ID, "Alice", "Toilet",
+            _FLAT_ID,
+            "Alice",
+            "Toilet",
         )
         svc.write_in_app_notifications_to_all.assert_called_once()
         call_args = svc.write_in_app_notifications_to_all.call_args
         assert call_args.args[0] == _FLAT_ID
         assert call_args.args[1] == "task_completed"
 
-    def test_given_missing_flatId_when_called_then_raises_invalid_argument(self) -> None:
+    def test_given_missing_flat_id_when_called_then_raises_invalid_argument(self) -> None:
         """Given payload is missing flatId, when the callable fires,
-        then an HttpsError with INVALID_ARGUMENT is raised."""
+        then an HttpsError with INVALID_ARGUMENT is raised.
+        """
         from firebase_functions import https_fn
 
         from triggers.notify_task_completed_trigger import notify_task_completed_callable
@@ -265,9 +285,10 @@ class TestNotifyTaskCompletedCallable:
         with pytest.raises(https_fn.HttpsError):
             _unwrap_callable(notify_task_completed_callable)(req)
 
-    def test_given_missing_completedByUid_when_called_then_raises_invalid_argument(self) -> None:
+    def test_given_missing_completed_by_uid_when_called_then_raises_invalid_argument(self) -> None:
         """Given payload is missing completedByUid, when the callable fires,
-        then an HttpsError with INVALID_ARGUMENT is raised."""
+        then an HttpsError with INVALID_ARGUMENT is raised.
+        """
         from firebase_functions import https_fn
 
         from triggers.notify_task_completed_trigger import notify_task_completed_callable
@@ -299,7 +320,8 @@ class TestNotifySwapRequestCallable:
         mock_notif_svc_cls: MagicMock,
     ) -> None:
         """Given a valid swap request with requester and target, when the callable
-        fires, then send_swap_request_notification is called for the target."""
+        fires, then send_swap_request_notification is called for the target.
+        """
         from triggers.notify_swap_request_trigger import notify_swap_request_callable
 
         # Mock the swap request document.
@@ -309,7 +331,8 @@ class TestNotifySwapRequestCallable:
             "requester_uid": _ALICE_UID,
             "target_task_id": "task-1",
         }
-        mock_firestore.Client.return_value.collection.return_value.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
+        db_chain = mock_firestore.Client.return_value.collection.return_value
+        db_chain.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
 
         target_task = _make_task(task_id="task-1", assigned_to=_BOB_UID)
         mock_task_repo_cls.return_value.get_task.return_value = target_task
@@ -324,7 +347,10 @@ class TestNotifySwapRequestCallable:
 
         assert result == {"success": True}
         mock_notif_svc_cls.return_value.send_swap_request_notification.assert_called_once_with(
-            _FLAT_ID, _BOB_UID, "Alice", 2,
+            _FLAT_ID,
+            _BOB_UID,
+            "Alice",
+            2,
         )
 
     @patch("triggers.notify_swap_request_trigger.firestore")
@@ -333,12 +359,14 @@ class TestNotifySwapRequestCallable:
         mock_firestore: MagicMock,
     ) -> None:
         """Given the swap request document does not exist (auto-accepted), when
-        the callable fires, then it returns success with skipped reason."""
+        the callable fires, then it returns success with skipped reason.
+        """
         from triggers.notify_swap_request_trigger import notify_swap_request_callable
 
         swap_doc = MagicMock()
         swap_doc.exists = False
-        mock_firestore.Client.return_value.collection.return_value.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
+        db_chain = mock_firestore.Client.return_value.collection.return_value
+        db_chain.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
 
         req = MagicMock()
         req.data = {"flatId": _FLAT_ID, "swapRequestId": _SWAP_REQUEST_ID}
@@ -360,7 +388,8 @@ class TestNotifySwapRequestCallable:
         mock_notif_svc_cls: MagicMock,
     ) -> None:
         """Given the target task has no assignee (vacant), when the callable fires,
-        then no notification is sent and the result indicates skipped."""
+        then no notification is sent and the result indicates skipped.
+        """
         from triggers.notify_swap_request_trigger import notify_swap_request_callable
 
         swap_doc = MagicMock()
@@ -369,7 +398,8 @@ class TestNotifySwapRequestCallable:
             "requester_uid": _ALICE_UID,
             "target_task_id": "task-1",
         }
-        mock_firestore.Client.return_value.collection.return_value.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
+        db_chain = mock_firestore.Client.return_value.collection.return_value
+        db_chain.document.return_value.collection.return_value.document.return_value.get.return_value = swap_doc
 
         vacant_task = _make_task(task_id="task-1", assigned_to="")
         mock_task_repo_cls.return_value.get_task.return_value = vacant_task
@@ -383,9 +413,10 @@ class TestNotifySwapRequestCallable:
         assert "skipped" in result
         mock_notif_svc_cls.return_value.send_swap_request_notification.assert_not_called()
 
-    def test_given_missing_flatId_when_called_then_raises_invalid_argument(self) -> None:
+    def test_given_missing_flat_id_when_called_then_raises_invalid_argument(self) -> None:
         """Given payload is missing flatId, when the callable fires,
-        then an HttpsError with INVALID_ARGUMENT is raised."""
+        then an HttpsError with INVALID_ARGUMENT is raised.
+        """
         from firebase_functions import https_fn
 
         from triggers.notify_swap_request_trigger import notify_swap_request_callable
@@ -396,9 +427,10 @@ class TestNotifySwapRequestCallable:
         with pytest.raises(https_fn.HttpsError):
             _unwrap_callable(notify_swap_request_callable)(req)
 
-    def test_given_missing_swapRequestId_when_called_then_raises_invalid_argument(self) -> None:
+    def test_given_missing_swap_request_id_when_called_then_raises_invalid_argument(self) -> None:
         """Given payload is missing swapRequestId, when the callable fires,
-        then an HttpsError with INVALID_ARGUMENT is raised."""
+        then an HttpsError with INVALID_ARGUMENT is raised.
+        """
         from firebase_functions import https_fn
 
         from triggers.notify_swap_request_trigger import notify_swap_request_callable
