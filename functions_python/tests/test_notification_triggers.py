@@ -31,7 +31,7 @@ def _unwrap_callable(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Bypass @https_fn.on_call() + @cross_origin decorators to get the
     original function that accepts a CallableRequest-like object.
     """
-    return fn.__wrapped__.__wrapped__  # type: ignore[attr-defined]
+    return fn.__wrapped__.__wrapped__  # type: ignore[attr-defined, no-any-return]
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
