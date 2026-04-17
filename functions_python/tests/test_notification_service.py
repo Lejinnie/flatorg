@@ -27,7 +27,7 @@ _CARLA_TOKEN = "fcm-token-carla"
 def _make_member_doc(uid: str, token: str | None = None) -> MagicMock:
     """Build a mock Firestore member document with an optional FCM token."""
     doc = MagicMock()
-    data: dict = {"name": uid, "email": f"{uid}@test.com"}
+    data: dict[str, str] = {"name": uid, "email": f"{uid}@test.com"}
     if token:
         data["fcm_token"] = token
     doc.to_dict.return_value = data
@@ -162,7 +162,7 @@ class TestWriteInAppNotificationsToAll:
         """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(all_members=members)
-        svc._person_repo.get_all_members.return_value = members
+        svc._person_repo.get_all_members.return_value = members  # type: ignore[attr-defined]
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
         svc.write_in_app_notifications_to_all(
@@ -282,7 +282,7 @@ class TestSendDayBeforeReminder:
 
         svc.send_day_before_reminder(_FLAT_ID, _ALICE_UID, "Toilet", "task-0")
 
-        svc._get_fcm_token.assert_called_once_with(_FLAT_ID, _ALICE_UID)
+        svc._get_fcm_token.assert_called_once_with(_FLAT_ID, _ALICE_UID)  # type: ignore[attr-defined]
         mock_messaging.send.assert_called_once()
         svc.write_in_app_notification.assert_called_once()
         written_args = svc.write_in_app_notification.call_args
@@ -666,7 +666,7 @@ class TestNoDuplicateNotifications:
         """
         members = [_make_person("p0"), _make_person("p1"), _make_person("p2")]
         svc, _ = _build_svc(all_members=members)
-        svc._person_repo.get_all_members.return_value = members
+        svc._person_repo.get_all_members.return_value = members  # type: ignore[attr-defined]
         svc.write_in_app_notification = MagicMock()  # type: ignore[method-assign]
 
         svc.write_in_app_notifications_to_all(
