@@ -71,6 +71,7 @@ const fieldNotifCreatedAt = 'created_at';
 const notifTypeReminder = 'reminder';
 const notifTypeGracePeriod = 'grace_period';
 const notifTypeTaskCompleted = 'task_completed';
+const notifTypeWeekReset = 'week_reset';
 
 /// Cloud Function callable names.
 const callableNotifyTaskCompleted = 'notify_task_completed_callable';

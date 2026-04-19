@@ -85,11 +85,10 @@ git push -u origin "$BRANCH"
 
 # ── Trigger iOS build via GitHub Actions ─────────────────────────────────────
 
-echo "Triggering iOS build on GitHub Actions..."
+echo "Triggering iOS build (TestFlight) on GitHub Actions..."
 gh workflow run ios-distribute.yml \
   -f version="${VERSION}+${BUILD}" \
-  -f release_notes="$RELEASE_NOTES" \
-  -f group="$GROUP"
+  -f release_notes="$RELEASE_NOTES"
 
 echo "iOS build dispatched. To watch progress run:"
 echo "  gh run watch"
@@ -114,5 +113,5 @@ echo "=== Distribution summary ==="
 echo "  Version:  v${VERSION}+${BUILD}"
 echo "  Group:    $GROUP"
 echo "  Android:  uploaded"
-echo "  iOS:      building on GitHub Actions (check 'gh run watch')"
+echo "  iOS:      uploading to TestFlight via GitHub Actions (check 'gh run watch')"
 echo "  Notes:    $RELEASE_NOTES"

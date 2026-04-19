@@ -22,6 +22,7 @@ FIELD_NOTIF_CREATED_AT = "created_at"
 NOTIF_TYPE_REMINDER = "reminder"
 NOTIF_TYPE_GRACE_PERIOD = "grace_period"
 NOTIF_TYPE_TASK_COMPLETED = "task_completed"
+NOTIF_TYPE_WEEK_RESET = "week_reset"
 
 # ── Firestore field names ─────────────────────────────────────────────────────
 
@@ -118,6 +119,8 @@ NOTIFICATION_BODY_GRACE_PERIOD = (
 )
 NOTIFICATION_TITLE_SWAP_REQUEST = "Task Swap Request"
 NOTIFICATION_BODY_SWAP_REQUEST = "{requester_name} wants to swap tasks with you. You have {tokens}/3 tokens remaining."
+NOTIFICATION_TITLE_WEEK_RESET = "New Task Assigned"
+NOTIFICATION_BODY_WEEK_RESET = 'Your task for this week is "{task_name}".'
 
 # ── Log messages ──────────────────────────────────────────────────────────────
 

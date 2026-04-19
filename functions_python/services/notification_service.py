@@ -31,15 +31,18 @@ from constants.strings import (
     FIELD_PERSON_FCM_TOKEN,
     NOTIF_TYPE_GRACE_PERIOD,
     NOTIF_TYPE_REMINDER,
+    NOTIF_TYPE_WEEK_RESET,
     NOTIFICATION_BODY_GRACE_PERIOD,
     NOTIFICATION_BODY_REMINDER_DAY_BEFORE,
     NOTIFICATION_BODY_REMINDER_HOURS_BEFORE,
     NOTIFICATION_BODY_SWAP_REQUEST,
     NOTIFICATION_BODY_TASK_COMPLETED,
+    NOTIFICATION_BODY_WEEK_RESET,
     NOTIFICATION_TITLE_GRACE_PERIOD,
     NOTIFICATION_TITLE_REMINDER,
     NOTIFICATION_TITLE_SWAP_REQUEST,
     NOTIFICATION_TITLE_TASK_COMPLETED,
+    NOTIFICATION_TITLE_WEEK_RESET,
 )
 from repository.person_repository import PersonRepository
 
@@ -224,6 +227,27 @@ class NotificationService:
             assignee_uid,
             task_name,
             hours_until_reset,
+        )
+
+    def send_week_reset_notification(self, flat_id: str, assignee_uid: str, task_name: str, task_id: str = "") -> None:
+        """Send FCM push + in-app notification informing a person of their new weekly task."""
+        body = NOTIFICATION_BODY_WEEK_RESET.format(task_name=task_name)
+        token = self._get_fcm_token(flat_id, assignee_uid)
+        if token:
+            self._send_to_token(token, NOTIFICATION_TITLE_WEEK_RESET, body)
+        self.write_in_app_notification(
+            flat_id,
+            assignee_uid,
+            NOTIF_TYPE_WEEK_RESET,
+            NOTIFICATION_TITLE_WEEK_RESET,
+            body,
+            task_id,
+        )
+        logger.info(
+            "send_week_reset_notification sent flat=%s uid=%s task=%s",
+            flat_id,
+            assignee_uid,
+            task_name,
         )
 
     def send_swap_request_notification(
