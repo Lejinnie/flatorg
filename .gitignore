@@ -19,6 +19,7 @@ build/
 *.g.dart
 *.freezed.dart
 *.mocks.dart
+.stuffs
 
 # Firebase
 google-services.json
