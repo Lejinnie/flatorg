@@ -32,7 +32,6 @@ from models.task import Task, TaskState, effective_assigned_to
 from repository.flat_repository import FlatRepository
 from repository.person_repository import PersonRepository
 from repository.task_repository import TaskRepository
-from services.notification_service import NotificationService
 from services.assignment_strategy import (
     AssignmentStrategy,
     BlueLongVacationStrategy,
@@ -46,6 +45,7 @@ from services.assignment_strategy import (
     WeekResetContext,
     build_week_reset_context,
 )
+from services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
