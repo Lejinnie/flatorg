@@ -77,7 +77,10 @@ def check_deadlines_http(req: Any) -> Any:
 
 def _run_for_all_flats(now: datetime, db: Any) -> None:
     for flat_doc in db.collection(COLLECTION_FLATS).stream():
-        _run_for_flat(flat_doc.id, now, db)
+        try:
+            _run_for_flat(flat_doc.id, now, db)
+        except Exception:
+            logger.exception("deadline check failed for flat=%s", flat_doc.id)
 
 
 def _run_for_flat(flat_id: str, now: datetime, db: Any) -> None:

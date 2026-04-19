@@ -476,3 +476,86 @@ class TestSchedulerTickSequence:
         t6 = due + timedelta(hours=2)
         a6 = compute_deadline_actions(tasks(day_sent=True, hours_sent=True), flat, t6)
         assert a6.should_run_week_reset is True
+
+    def test_new_flat_1h2m_deadline_post_reset_immediate_grace_period(self) -> None:
+        """Reproduce the real-world scenario: new flat, deadline set to 1h2m,
+        nobody completes.
+
+        Timeline:
+          T+0:    Admin creates flat, deadline = now + 1h2m.
+          T+62m:  Deadline passes → grace period fires.
+          T+62m:  Week reset NOT yet due (grace_period_hours not elapsed).
+          T+122m: Week reset fires (deadline + 1h grace).
+          T+127m: After reset, tasks are Pending but due dates are OLD
+                  → scheduler immediately transitions them back to NotDone.
+                  User sees "same state, same assignments" — looks like no reset.
+        """
+        creation_time = _NOW
+        due = creation_time + timedelta(hours=1, minutes=2)
+
+        def tasks(
+            state: TaskState = TaskState.Pending,
+            day_sent: bool = False,
+            hours_sent: bool = False,
+        ) -> list[Task]:
+            return [
+                replace(
+                    make_task(i, f"p{i}", state),
+                    due_date_time=due,
+                    day_before_reminder_sent=day_sent,
+                    hours_before_reminder_sent=hours_sent,
+                )
+                for i in range(9)
+            ]
+
+        flat = _flat(reminder_hours=1, grace_hours=1)
+
+        # ── T+62m: deadline just passed ──────────────────────────────────────
+        t_deadline = due + timedelta(minutes=1)
+        a1 = compute_deadline_actions(tasks(), flat, t_deadline)
+        assert len(a1.tasks_needing_grace_period) == 9
+        assert a1.should_run_week_reset is False  # grace period not elapsed yet
+
+        # ── T+90m: mid-grace period ──────────────────────────────────────────
+        t_mid_grace = due + timedelta(minutes=30)
+        a2 = compute_deadline_actions(
+            tasks(state=TaskState.NotDone, day_sent=True, hours_sent=True),
+            flat,
+            t_mid_grace,
+        )
+        # Tasks are NotDone → no grace period actions (already transitioned).
+        assert len(a2.tasks_needing_grace_period) == 0
+        assert a2.should_run_week_reset is False  # still within grace period
+
+        # ── T+122m: grace period elapsed → week reset fires ──────────────────
+        t_reset = due + timedelta(hours=1, minutes=1)
+        a3 = compute_deadline_actions(
+            tasks(state=TaskState.NotDone, day_sent=True, hours_sent=True),
+            flat,
+            t_reset,
+        )
+        assert a3.should_run_week_reset is True
+
+        # ── T+127m: AFTER reset — tasks are Pending again with old due dates ─
+        # Simulates what happens after week_reset writes state=Pending and
+        # sets last_week_reset_at = now.
+        flat_after_reset = _flat(
+            reminder_hours=1,
+            grace_hours=1,
+            last_reset_at=t_reset,
+        )
+        post_reset_tasks = tasks(
+            state=TaskState.Pending,
+            day_sent=False,
+            hours_sent=False,
+        )
+        t_post_reset = t_reset + timedelta(minutes=5)
+        a4 = compute_deadline_actions(post_reset_tasks, flat_after_reset, t_post_reset)
+
+        # Old due dates are in the past → immediate grace period re-entry.
+        assert len(a4.tasks_needing_grace_period) == 9
+        # But week reset guard prevents double-reset (last_reset_at >= latest_due).
+        assert a4.should_run_week_reset is False
+        # Stale reminders are suppressed (now >= due, not now < due).
+        assert len(a4.tasks_needing_day_before_reminder) == 0
+        assert len(a4.tasks_needing_hours_before_reminder) == 0
