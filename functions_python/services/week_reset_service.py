@@ -32,6 +32,7 @@ from models.task import Task, TaskState, effective_assigned_to
 from repository.flat_repository import FlatRepository
 from repository.person_repository import PersonRepository
 from repository.task_repository import TaskRepository
+from services.notification_service import NotificationService
 from services.assignment_strategy import (
     AssignmentStrategy,
     BlueLongVacationStrategy,
@@ -80,6 +81,7 @@ class WeekResetService:
         self._task_repo = TaskRepository(db)
         self._person_repo = PersonRepository(db)
         self._flat_repo = FlatRepository(db)
+        self._notification_service = NotificationService(db)
 
     def week_reset(self, flat_id: str) -> None:
         """Run the full weekly reset for a flat inside a single Firestore transaction."""
@@ -115,6 +117,14 @@ class WeekResetService:
         # are not supported inside a read-write transaction.
         persons = self._person_repo.get_all_members(flat_id)
         self._clear_reminder_notifications(flat_id, persons)
+
+        # Notify each assignee of their new task for the week.
+        tasks = self._task_repo.get_all_tasks(flat_id)
+        for task in tasks:
+            if task.assigned_to:
+                self._notification_service.send_week_reset_notification(
+                    flat_id, task.assigned_to, task.name, task.id
+                )
 
         logger.info("%s %s", LOG_WEEK_RESET_COMPLETE, flat_id)
 
