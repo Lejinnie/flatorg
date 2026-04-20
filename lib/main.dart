@@ -25,9 +25,6 @@ Future<void> main() async {
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Request notification permission (Android 13+, iOS).
-  await FirebaseMessaging.instance.requestPermission();
-
   runApp(const FlatOrgApp());
 }
 
@@ -75,6 +72,11 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
       flatProvider.init(authProvider.currentUser?.uid),
       themeModeProvider.init(),
     ]);
+
+    // Request notification permission after the UI is visible so the system
+    // dialog appears over the app rather than over the native launch screen.
+    // Fire-and-forget — a denial must never block the app from launching.
+    unawaited(FirebaseMessaging.instance.requestPermission());
 
     // Register this device's FCM token so Cloud Functions can send push
     // notifications to it. Fire-and-forget — a registration failure must
