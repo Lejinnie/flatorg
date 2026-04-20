@@ -79,8 +79,7 @@ jobs:
           sed -i '' 's/"iPhone Developer"/"iPhone Distribution"/g' "$PBXPROJ"
 
           # Inject PROVISIONING_PROFILE_SPECIFIER so Xcode knows which profile to use
-          sed -i '' "s/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\\
-				PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" "$PBXPROJ"
+          sed -i '' "s/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" "$PBXPROJ"
 
       - name: Install GoogleService-Info.plist
         env:
