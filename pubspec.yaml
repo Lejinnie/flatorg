@@ -1,7 +1,7 @@
 name: flatorg
 description: A Flutter app for scheduling and managing household tasks in a co-living area.
 publish_to: 'none'
-version: 1.0.15+16
+version: 1.0.16+17
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
