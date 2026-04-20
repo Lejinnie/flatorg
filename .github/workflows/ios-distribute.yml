@@ -55,9 +55,13 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
 
-          # Install provisioning profile with its UUID as filename.
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< \
-            "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
+          # Extract profile UUID and name, then install with UUID filename.
+          PROFILE_PLIST=$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /dev/stdin <<< "$PROFILE_PLIST")
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+          echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $RUNNER_TEMP/profile.mobileprovision \
             ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
@@ -68,11 +72,15 @@ jobs:
         run: |
           sed -i '' "s/__TEAM_ID__/$APPLE_TEAM_ID/" ios/ExportOptions.plist
 
-          # Set DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY in project.pbxproj
-          sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_TEAM_ID\"/g" \
-            ios/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's/"iPhone Developer"/"iPhone Distribution"/g' \
-            ios/Runner.xcodeproj/project.pbxproj
+          PBXPROJ=ios/Runner.xcodeproj/project.pbxproj
+
+          # Set DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_TEAM_ID\"/g" "$PBXPROJ"
+          sed -i '' 's/"iPhone Developer"/"iPhone Distribution"/g' "$PBXPROJ"
+
+          # Inject PROVISIONING_PROFILE_SPECIFIER so Xcode knows which profile to use
+          sed -i '' "s/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\\
+				PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" "$PBXPROJ"
 
       - name: Install GoogleService-Info.plist
         env:
