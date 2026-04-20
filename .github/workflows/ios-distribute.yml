@@ -55,15 +55,24 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
 
-          # Install provisioning profile.
+          # Install provisioning profile with its UUID as filename.
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< \
+            "$(security cms -D -i $RUNNER_TEMP/profile.mobileprovision)")
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $RUNNER_TEMP/profile.mobileprovision \
-            ~/Library/MobileDevice/Provisioning\ Profiles/
+            ~/Library/MobileDevice/Provisioning\ Profiles/${PROFILE_UUID}.mobileprovision
 
-      - name: Inject Apple Team ID into ExportOptions
+      - name: Configure Xcode project for distribution signing
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: sed -i '' "s/__TEAM_ID__/$APPLE_TEAM_ID/" ios/ExportOptions.plist
+        run: |
+          sed -i '' "s/__TEAM_ID__/$APPLE_TEAM_ID/" ios/ExportOptions.plist
+
+          # Set DEVELOPMENT_TEAM and CODE_SIGN_IDENTITY in project.pbxproj
+          sed -i '' "s/DEVELOPMENT_TEAM = \"\"/DEVELOPMENT_TEAM = \"$APPLE_TEAM_ID\"/g" \
+            ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/"iPhone Developer"/"iPhone Distribution"/g' \
+            ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install GoogleService-Info.plist
         env:
