@@ -71,6 +71,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           sed -i '' "s/__TEAM_ID__/$APPLE_TEAM_ID/" ios/ExportOptions.plist
+          sed -i '' "s/__PROFILE_NAME__/$PROFILE_NAME/" ios/ExportOptions.plist
 
           PBXPROJ=ios/Runner.xcodeproj/project.pbxproj
 
