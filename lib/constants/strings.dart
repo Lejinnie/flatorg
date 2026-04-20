@@ -125,6 +125,8 @@ const errorInsufficientSwapTokens =
     'You have no swap tokens remaining this semester';
 const errorIssueCooldown =
     'This issue was sent recently. Please wait before sending again';
+const errorNoEmailClient =
+    'No email app found. Please install a mail client and try again';
 
 const hintEnterInviteCode = 'Enter invite code';
 const hintEnterEmail = 'Email';

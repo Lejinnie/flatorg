@@ -274,7 +274,26 @@ class _IssuesBodyState extends State<_IssuesBody> {
       },
     );
 
-    await launchUrl(uri);
+    // On iOS, canLaunchUrl requires LSApplicationQueriesSchemes in Info.plist.
+    // If no mail client is available, show an error instead of crashing.
+    var launched = false;
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+        launched = true;
+      }
+    } on Exception catch (e) {
+      debugPrint('[IssuesScreen] launchUrl failed: $e');
+    }
+
+    if (!launched) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(errorNoEmailClient)),
+        );
+      }
+      return;
+    }
 
     // Mark each sent issue with last_sent_at.
     final repo = IssueRepository();

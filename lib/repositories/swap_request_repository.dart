@@ -41,14 +41,18 @@ class SwapRequestRepository {
                 .map(SwapRequest.fromFirestore)
                 .toList();
 
-            // Filter to only requests targeting a task currently assigned to uid.
+            // Fetch all target task docs in parallel instead of sequentially.
+            final taskDocs = await Future.wait(
+              requests.map((req) => _tasksCollection(flatId).doc(req.targetTaskId).get()),
+            );
+
             final filtered = <SwapRequest>[];
-            for (final req in requests) {
-              final taskDoc = await _tasksCollection(flatId).doc(req.targetTaskId).get();
-              if (taskDoc.exists) {
-                final assignedTo = taskDoc.data()?[fieldTaskAssignedTo] as String? ?? '';
+            for (var i = 0; i < requests.length; i++) {
+              final doc = taskDocs[i];
+              if (doc.exists) {
+                final assignedTo = doc.data()?[fieldTaskAssignedTo] as String? ?? '';
                 if (assignedTo == uid) {
-                  filtered.add(req);
+                  filtered.add(requests[i]);
                 }
               }
             }
