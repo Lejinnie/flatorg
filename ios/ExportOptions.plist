@@ -12,5 +12,10 @@
 	<true/>
 	<key>compileBitcode</key>
 	<false/>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.flatorg.flatorg</key>
+		<string>__PROFILE_NAME__</string>
+	</dict>
 </dict>
 </plist>
