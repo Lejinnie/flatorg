@@ -21,7 +21,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await Firebase.initializeApp();
+  } on Exception catch (e) {
+    // Surface Firebase config errors (e.g. missing/wrong GoogleService-Info.plist)
+    // as a visible screen instead of a silent blank launch.
+    debugPrint('Firebase.initializeApp() failed: $e');
+    runApp(_FirebaseErrorApp(error: e.toString()));
+    return;
+  }
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -149,4 +158,35 @@ class GoRouterWrapper {
   GoRouterWrapper(this._context);
   late final GoRouter router = buildAppRouter(_context);
   final BuildContext _context;
+}
+
+/// Shown when Firebase fails to initialise so the error is visible on device
+/// rather than appearing as a blank/frozen screen.
+class _FirebaseErrorApp extends StatelessWidget {
+  const _FirebaseErrorApp({required this.error});
+  final String error;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    home: Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Firebase failed to initialise',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Text(error, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
