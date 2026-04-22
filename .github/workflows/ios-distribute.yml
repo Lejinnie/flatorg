@@ -18,8 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode 26
-        run: sudo xcode-select -s /Applications/Xcode_26.app/Contents/Developer
+      - name: Select latest Xcode
+        run: |
+          XCODE=$(ls /Applications/ | grep '^Xcode_' | sort -V | tail -1)
+          if [ -n "$XCODE" ]; then
+            sudo xcode-select -s "/Applications/${XCODE}/Contents/Developer"
+          fi
+          xcodebuild -version
 
       - name: Set up Flutter (stable)
         uses: subosito/flutter-action@v2
@@ -121,4 +126,4 @@ jobs:
 
       - name: Clean up keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
