@@ -91,7 +91,7 @@
 					<!-- Replace with REVERSED_CLIENT_ID from GoogleService-Info.plist
 					     (e.g. com.googleusercontent.apps.854474953690-xxxx).
 					     Download the updated file from Firebase Console after enabling Google Sign-In. -->
-					<string>REVERSED_CLIENT_ID_PLACEHOLDER</string>
+					<string>com.googleusercontent.apps.854474953690-59k6mckqjmcp1u39n81vhvb2b7101u1f</string>
 				</array>
 			</dict>
 		</array>
