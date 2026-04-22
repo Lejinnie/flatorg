@@ -155,7 +155,9 @@ class AuthProvider extends ChangeNotifier {
       case 'network-request-failed':
         return 'No network connection. Please check your internet.';
       default:
-        return e.message ?? 'Something went wrong. Please try again.';
+        // Include the error code so unexpected errors can be diagnosed.
+        debugPrint('[AuthProvider] unhandled FirebaseAuthException: code=${e.code} message=${e.message}');
+        return '[${e.code}] ${e.message ?? 'Something went wrong. Please try again.'}';
     }
   }
 }
