@@ -81,5 +81,19 @@
 		<array>
 			<string>mailto</string>
 		</array>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<!-- Replace with REVERSED_CLIENT_ID from GoogleService-Info.plist
+					     (e.g. com.googleusercontent.apps.854474953690-xxxx).
+					     Download the updated file from Firebase Console after enabling Google Sign-In. -->
+					<string>REVERSED_CLIENT_ID_PLACEHOLDER</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

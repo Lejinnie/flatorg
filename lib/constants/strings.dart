@@ -169,6 +169,13 @@ const verifyEmailBody =
     'A verification link was sent to your email address. Please check your inbox and tap the link, then come back here.';
 const resetLinkSent = 'Password reset link sent — check your inbox.';
 const buttonSignOut = 'Sign out';
+const buttonSignInWithGoogle = 'Continue with Google';
+const buttonSignInWithApple = 'Continue with Apple';
+const labelOrContinueWith = 'Or continue with';
+const errorGoogleSignIn = 'Google sign-in failed. Please try again.';
+const errorAppleSignIn = 'Apple sign-in failed. Please try again.';
+const errorAccountExistsWithDifferentCredential =
+    'An account with this email already exists using a different sign-in method.';
 
 // ── Entry screen ──────────────────────────────────────────────────────────────
 

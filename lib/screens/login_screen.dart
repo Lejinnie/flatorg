@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,7 +9,8 @@ import '../providers/auth_provider.dart';
 /// Login / Register screen.
 ///
 /// Both sections live on one scrollable page — the user can log in or create
-/// a new account without switching tabs.
+/// a new account without switching tabs. Social sign-in buttons (Google, and
+/// Apple on iOS) sit between the Login form and the email-based Register form.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -129,6 +131,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    final auth = context.read<AuthProvider>();
+    final user = await auth.signInWithGoogle();
+    if (user == null && auth.errorMessage.isNotEmpty && mounted) {
+      _showError(auth.errorMessage);
+    }
+    // On success the router redirect handles navigation automatically.
+  }
+
+  Future<void> _signInWithApple() async {
+    final auth = context.read<AuthProvider>();
+    final user = await auth.signInWithApple();
+    if (user == null && auth.errorMessage.isNotEmpty && mounted) {
+      _showError(auth.errorMessage);
+    }
+    // On success the router redirect handles navigation automatically.
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -226,6 +246,49 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: AppTheme.spacingLg),
+
+              // ── Social sign-in ────────────────────────────────────────
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingSm),
+                    child: Text(
+                      labelOrContinueWith,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: AppTheme.grayMid),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: isLoading ? null : _signInWithGoogle,
+                  icon: Image.asset(
+                    'assets/images/google_logo.png',
+                    height: 20,
+                    width: 20,
+                  ),
+                  label: const Text(buttonSignInWithGoogle),
+                ),
+              ),
+              if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                const SizedBox(height: AppTheme.spacingSm),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: isLoading ? null : _signInWithApple,
+                    icon: const Icon(Icons.apple, size: 22),
+                    label: const Text(buttonSignInWithApple),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: AppTheme.spacingXl),
               const Divider(),

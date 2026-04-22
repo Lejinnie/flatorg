@@ -1,5 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../constants/strings.dart';
 
 /// Wraps Firebase Auth and exposes auth state to the widget tree.
 ///
@@ -63,6 +67,86 @@ class AuthProvider extends ChangeNotifier {
       return credential.user;
     } on FirebaseAuthException catch (e) {
       _errorMessage = _humaniseAuthError(e);
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Signs in with a Google account via the platform's native Google Sign-In
+  /// flow. Returns the signed-in [User] on success, null if the user cancelled
+  /// or an error occurred (error stored in [errorMessage]).
+  Future<User?> signInWithGoogle() async {
+    _setLoading(true);
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        // User dismissed the picker without selecting an account.
+        return null;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final result = await _auth.signInWithCredential(credential);
+      _errorMessage = '';
+      return result.user;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _humaniseAuthError(e);
+      return null;
+    } on Object catch (e) {
+      debugPrint('[AuthProvider] Google sign-in error: $e');
+      _errorMessage = errorGoogleSignIn;
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Signs in with Apple ID via the platform's native Sign in with Apple sheet.
+  /// Only shown on iOS — Apple only provides name/email on the very first
+  /// sign-in; subsequent sign-ins receive empty strings for those fields.
+  /// Returns the signed-in [User] on success, null if cancelled or on error.
+  Future<User?> signInWithApple() async {
+    _setLoading(true);
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+      final result = await _auth.signInWithCredential(oauthCredential);
+
+      // Apple only provides name on the first sign-in; persist it if present.
+      final name = [appleCredential.givenName, appleCredential.familyName]
+          .where((n) => n != null && n.isNotEmpty)
+          .join(' ');
+      if (name.isNotEmpty && (result.user?.displayName?.isEmpty ?? true)) {
+        await result.user?.updateDisplayName(name);
+      }
+
+      _errorMessage = '';
+      return result.user;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _humaniseAuthError(e);
+      return null;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        // User dismissed the Apple sign-in sheet — not an error.
+        return null;
+      }
+      debugPrint('[AuthProvider] Apple sign-in error: ${e.code} — ${e.message}');
+      _errorMessage = errorAppleSignIn;
+      return null;
+    } on Object catch (e) {
+      debugPrint('[AuthProvider] Apple sign-in error: $e');
+      _errorMessage = errorAppleSignIn;
       return null;
     } finally {
       _setLoading(false);
@@ -150,6 +234,8 @@ class AuthProvider extends ChangeNotifier {
         return 'Incorrect email or password.';
       case 'email-already-in-use':
         return 'An account with this email already exists.';
+      case 'account-exists-with-different-credential':
+        return errorAccountExistsWithDifferentCredential;
       case 'too-many-requests':
         return 'Too many attempts, try again later.';
       case 'network-request-failed':
