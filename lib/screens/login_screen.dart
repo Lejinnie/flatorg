@@ -136,6 +136,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final user = await auth.signInWithGoogle();
     if (user == null && auth.errorMessage.isNotEmpty && mounted) {
       _showError(auth.errorMessage);
+      return;
+    }
+    if (user != null && mounted) {
+      await _promptForNameIfMissing();
     }
     // On success the router redirect handles navigation automatically.
   }
@@ -145,8 +149,62 @@ class _LoginScreenState extends State<LoginScreen> {
     final user = await auth.signInWithApple();
     if (user == null && auth.errorMessage.isNotEmpty && mounted) {
       _showError(auth.errorMessage);
+      return;
+    }
+    if (user != null && mounted) {
+      await _promptForNameIfMissing();
     }
     // On success the router redirect handles navigation automatically.
+  }
+
+  /// Shows a non-dismissable dialog asking for the user's name when the OAuth
+  /// provider did not supply one (Apple omits it after the first sign-in).
+  Future<void> _promptForNameIfMissing() async {
+    final auth = context.read<AuthProvider>();
+    if ((auth.currentUser?.displayName ?? '').isNotEmpty) {
+      return;
+    }
+
+    final nameCtrl = TextEditingController();
+    final formKey  = GlobalKey<FormState>();
+
+    void submit(BuildContext ctx) {
+      if (formKey.currentState!.validate()) {
+        Navigator.of(ctx).pop();
+      }
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text(headingEnterYourName),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: nameCtrl,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: hintEnterYourName),
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => submit(ctx),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => submit(ctx),
+            child: const Text(buttonContinue),
+          ),
+        ],
+      ),
+    );
+
+    final name = nameCtrl.text.trim();
+    nameCtrl.dispose();
+    if (name.isNotEmpty && mounted) {
+      await context.read<AuthProvider>().saveDisplayName(name);
+    }
   }
 
   void _showError(String message) {
