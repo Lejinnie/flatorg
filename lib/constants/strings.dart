@@ -176,6 +176,8 @@ const errorGoogleSignIn = 'Google sign-in failed. Please try again.';
 const errorAppleSignIn = 'Apple sign-in failed. Please try again.';
 const errorAccountExistsWithDifferentCredential =
     'An account with this email already exists using a different sign-in method.';
+const headingEnterYourName = "What's your name?";
+const hintEnterYourName    = 'Your name';
 
 // ── Entry screen ──────────────────────────────────────────────────────────────
 
