@@ -124,11 +124,15 @@ class AuthProvider extends ChangeNotifier {
       final result = await _auth.signInWithCredential(oauthCredential);
 
       // Apple only provides name on the first sign-in; persist it if present.
+      // Reload after updating so _currentUser immediately reflects the new name
+      // before authStateChanges() fires and the router reads hasDisplayName.
       final name = [appleCredential.givenName, appleCredential.familyName]
           .where((n) => n != null && n.isNotEmpty)
           .join(' ');
       if (name.isNotEmpty && (result.user?.displayName?.isEmpty ?? true)) {
-        await result.user?.updateDisplayName(name);
+        await _auth.currentUser?.updateDisplayName(name);
+        await _auth.currentUser?.reload();
+        _currentUser = _auth.currentUser;
       }
 
       _errorMessage = '';
