@@ -53,7 +53,15 @@ android {
     }
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            val releaseConfig = signingConfigs.getByName("release")
+            // Fall back to debug signing when the keystore file isn't present
+            // (e.g. CI builds that don't inject key.properties).  Distribution
+            // builds must have a real key.properties + JKS to get a signed AAB.
+            signingConfig = if (releaseConfig.storeFile?.exists() == true) {
+                releaseConfig
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
