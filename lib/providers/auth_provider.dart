@@ -97,7 +97,7 @@ class AuthProvider extends ChangeNotifier {
       return null;
     } on Object catch (e) {
       debugPrint('[AuthProvider] Google sign-in error: $e');
-      _errorMessage = errorGoogleSignIn;
+      _errorMessage = 'Google sign-in failed: $e';
       return null;
     } finally {
       _setLoading(false);
