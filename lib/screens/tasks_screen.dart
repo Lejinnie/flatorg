@@ -33,8 +33,32 @@ class TasksScreen extends StatelessWidget {
   );
 }
 
-class _TasksBody extends StatelessWidget {
+class _TasksBody extends StatefulWidget {
   const _TasksBody();
+
+  @override
+  State<_TasksBody> createState() => _TasksBodyState();
+}
+
+class _TasksBodyState extends State<_TasksBody> {
+  var _cachedFlatId = '';
+  Stream<List<Task>>? _tasksStream;
+  Stream<List<Person>>? _membersStream;
+
+  /// Only recreates Firestore streams when the flat ID actually changes.
+  /// Without this, every FlatProvider.notifyListeners() (e.g. when _flat or
+  /// _currentPerson arrives from Firestore) rebuilds this widget and creates
+  /// a new stream object, causing StreamBuilder to reset and briefly flash
+  /// "No tasks yet."
+  void _updateStreamsIfNeeded(String flatId) {
+    if (flatId == _cachedFlatId) {
+      return;
+    }
+    _cachedFlatId = flatId;
+    _tasksStream = flatId.isEmpty ? null : TaskRepository().watchTasks(flatId);
+    _membersStream =
+        flatId.isEmpty ? null : PersonRepository().watchMembers(flatId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +68,8 @@ class _TasksBody extends StatelessWidget {
     final currentPerson = flatProvider.currentPerson;
     final currentUid    = currentPerson?.uid ?? '';
     final theme         = Theme.of(context);
+
+    _updateStreamsIfNeeded(flatId);
 
     return Scaffold(
       appBar: AppBar(
@@ -64,7 +90,7 @@ class _TasksBody extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<Task>>(
-        stream: TaskRepository().watchTasks(flatId),
+        stream: _tasksStream,
         builder: (ctx, taskSnap) {
           if (taskSnap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -91,7 +117,7 @@ class _TasksBody extends StatelessWidget {
 
           // Fetch all members for name + vacation-status resolution.
           return StreamBuilder<List<Person>>(
-            stream: PersonRepository().watchMembers(flatId),
+            stream: _membersStream,
             builder: (ctx, memberSnap) {
               final memberMap = <String, Person>{};
               for (final m in memberSnap.data ?? <Person>[]) {

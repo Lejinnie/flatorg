@@ -63,7 +63,10 @@ class _RouterInitialiser extends StatefulWidget {
 
 class _RouterInitialiserState extends State<_RouterInitialiser> {
   late final GoRouterWrapper _routerWrapper;
+  late final AuthProvider _authProvider;
+  late final FlatProvider _flatProvider;
   var _initialised = false;
+  String? _lastUid;
 
   @override
   void initState() {
@@ -71,16 +74,42 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
     unawaited(_init());
   }
 
+  @override
+  void dispose() {
+    _authProvider.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  /// Re-inits or clears [FlatProvider] whenever the signed-in user changes.
+  ///
+  /// Handles all sign-in/sign-out paths (email, Google, Apple) without
+  /// requiring each screen to call clearFlat() manually.
+  void _onAuthChanged() {
+    final uid = _authProvider.currentUser?.uid;
+    if (uid == _lastUid) {
+      return;
+    }
+    _lastUid = uid;
+    if (uid == null) {
+      unawaited(_flatProvider.clearFlat());
+    } else {
+      unawaited(_flatProvider.init(uid));
+    }
+  }
+
   Future<void> _init() async {
-    final authProvider = context.read<AuthProvider>();
-    final flatProvider = context.read<FlatProvider>();
+    _authProvider = context.read<AuthProvider>();
+    _flatProvider = context.read<FlatProvider>();
     final themeModeProvider = context.read<ThemeModeProvider>();
 
     // Restore persisted settings before the first frame renders.
     await Future.wait([
-      flatProvider.init(authProvider.currentUser?.uid),
+      _flatProvider.init(_authProvider.currentUser?.uid),
       themeModeProvider.init(),
     ]);
+
+    _lastUid = _authProvider.currentUser?.uid;
+    _authProvider.addListener(_onAuthChanged);
 
     // Request notification permission after the UI is visible so the system
     // dialog appears over the app rather than over the native launch screen.
@@ -90,7 +119,7 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
     // Register this device's FCM token so Cloud Functions can send push
     // notifications to it. Fire-and-forget — a registration failure must
     // never block the app from launching.
-    unawaited(_registerFcmToken(authProvider, flatProvider));
+    unawaited(_registerFcmToken(_authProvider, _flatProvider));
 
     if (mounted) {
       setState(() {
