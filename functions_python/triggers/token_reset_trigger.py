@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 from firebase_functions import https_fn, scheduler_fn
 from google.cloud import firestore
@@ -22,7 +23,7 @@ from services.eth_semester_calendar import EthSemesterCalendar
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone="Europe/Zurich")  # type: ignore[untyped-decorator]
+@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone=ZoneInfo("Europe/Zurich"))  # type: ignore[untyped-decorator]
 def token_reset_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     """Reset swap tokens at the start of each ETH semester."""
     now = datetime.now(tz=UTC)

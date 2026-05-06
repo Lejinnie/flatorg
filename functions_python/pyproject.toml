@@ -2,6 +2,11 @@
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+# firebase_admin ships without type stubs; suppress the untyped-import error.
+disable_error_code = ["import-untyped"]
+# Exclude Flutter/Android generated files that mypy finds when run from the
+# workspace root (e.g. via the VS Code mypy extension).
+exclude = ["^ios/", "^android/"]
 # TYPE_CHECKING guards are used to defer Firestore imports to static analysis
 # only; mypy handles this pattern correctly out of the box.
 #
