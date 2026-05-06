@@ -71,7 +71,10 @@ def translate_issues_callable(
 
     try:
         translator = deepl.Translator(api_key)
-        translated = translate_issues(issues, translator)
+        # deepl.Translator.translate_text is typed as returning
+        # TextResult | list[TextResult] (single-string overload), but our
+        # protocol correctly narrows to list[TextResult] for list input.
+        translated = translate_issues(issues, translator)  # type: ignore[arg-type]
     except deepl.DeepLException:
         # Best-effort translation: fall back to originals so the user can
         # still send the email without waiting for a retry.
