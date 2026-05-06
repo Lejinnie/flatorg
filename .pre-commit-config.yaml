@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy type check (functions_python)
-        args: [--config-file=functions_python/pyproject.toml]
+        args: [--config-file=mypy.ini]
         files: ^functions_python/
         # Additional runtime stubs mypy needs for strict mode.
         additional_dependencies:
