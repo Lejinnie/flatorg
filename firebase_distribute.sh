@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-cd /home/lejinnie/Projects/flatorg
+cd "$(dirname "$(realpath "$0")")"
 
 RELEASE_NOTES=""
 NEW_VERSION=""
@@ -80,7 +80,7 @@ fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 git add pubspec.yaml
-git commit --no-verify -m "chore: bump version to ${VERSION}+${BUILD}"
+git commit -m "chore: bump version to ${VERSION}+${BUILD}"
 git push -u origin "$BRANCH"
 
 # ── Trigger iOS build via GitHub Actions ─────────────────────────────────────
