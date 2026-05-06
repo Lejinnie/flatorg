@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.12 \
         python3.12-venv \
         python3.12-dev \
-        python3.12-distutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Make python3.12 the default python3 and bootstrap pip for it.
