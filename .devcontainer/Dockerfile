@@ -38,7 +38,7 @@ RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "
     && "$FLUTTER_HOME/bin/flutter" precache --no-android --no-ios \
     && chown -R vscode:vscode "$FLUTTER_HOME"
 
-ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
+ENV PATH="/usr/local/bin:${FLUTTER_HOME}/bin:${PATH}"
 
 # ── pre-commit ─────────────────────────────────────────────────────────────────
 RUN pip3 install --no-cache-dir pre-commit
