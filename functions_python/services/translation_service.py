@@ -30,6 +30,7 @@ class DeepLTranslatorProtocol(Protocol):
     def translate_text(
         self,
         text: list[str],
+        *,
         target_lang: str,
     ) -> list[TextResult]: ...
 
