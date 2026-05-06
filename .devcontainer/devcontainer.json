@@ -10,7 +10,7 @@
 
   // After the container is created for the first time, install all project
   // dependencies so the dev environment is immediately ready to use.
-  "postCreateCommand": "pip3 install -r functions_python/requirements.txt -r functions_python/requirements-dev.txt && flutter pub get && pre-commit install",
+  "postCreateCommand": "pip3 install -r functions_python/requirements.txt -r functions_python/requirements-dev.txt && flutter pub get && pre-commit install && sudo ln -sf /workspaces/flatorg/firebase_distribute.sh /usr/local/bin/firebase-dist",
 
   // Mount the host's git config so commits inside the container carry the
   // correct author identity.
