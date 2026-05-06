@@ -16,12 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.12 \
         python3.12-venv \
         python3.12-dev \
-        python3-pip \
+        python3.12-distutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Make python3.12 the default python3.
+# Make python3.12 the default python3 and bootstrap pip for it.
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 \
-    && update-alternatives --set python3 /usr/bin/python3.12
+    && update-alternatives --set python3 /usr/bin/python3.12 \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 \
+    && ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip3
 
 # ── Node.js LTS + Firebase CLI ─────────────────────────────────────────────────
 # Node is only needed for the Firebase CLI; it is not used by the Flutter app.
