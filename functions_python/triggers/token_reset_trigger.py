@@ -24,7 +24,7 @@ from services.eth_semester_calendar import EthSemesterCalendar
 logger = logging.getLogger(__name__)
 
 
-@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone=ZoneInfo("Europe/Zurich"))
+@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone=ZoneInfo("Europe/Zurich"))  # type: ignore[untyped-decorator]
 def token_reset_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
     """Reset swap tokens at the start of each ETH semester."""
     now = datetime.now(tz=UTC)
@@ -40,7 +40,7 @@ def token_reset_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
         person_repo.reset_all_swap_tokens(flat_doc.id)
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def token_reset_http(req: Request) -> Response:
     """HTTP trigger for manual testing / admin use.
 
