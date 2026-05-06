@@ -4,6 +4,10 @@
     "dockerfile": "Dockerfile"
   },
 
+  // Ensure ~/.gitconfig exists on the host before Docker tries to bind-mount
+  // it — Docker requires the source path to exist for bind mounts.
+  "initializeCommand": "touch ${localEnv:HOME}/.gitconfig",
+
   // After the container is created for the first time, install all project
   // dependencies so the dev environment is immediately ready to use.
   "postCreateCommand": "pip3 install -r functions_python/requirements.txt -r functions_python/requirements-dev.txt && flutter pub get && pre-commit install",
