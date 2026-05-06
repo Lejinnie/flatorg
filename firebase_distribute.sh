@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-cd /home/lejinnie/Projects/flatorg
+cd "$(dirname "$(realpath "$0")")"
 
 RELEASE_NOTES=""
 NEW_VERSION=""
