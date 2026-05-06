@@ -39,7 +39,13 @@
         "[dart]": {
           "editor.defaultFormatter": "Dart-Code.dart-code"
         },
-        "python.defaultInterpreterPath": "/usr/bin/python3.12"
+        "python.defaultInterpreterPath": "/usr/bin/python3.12",
+        // Point the mypy VS Code extension at functions_python/ so it uses the
+        // right config and never scans ios/ or android/ generated files.
+        "mypy-type-checker.args": [
+          "--config-file=${workspaceFolder}/functions_python/pyproject.toml"
+        ],
+        "mypy-type-checker.reportingScope": "workspace"
       }
     }
   },
