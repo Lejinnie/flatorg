@@ -24,6 +24,16 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
     && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12 \
     && ln -sf /usr/local/bin/pip3.12 /usr/local/bin/pip3
 
+# ── GitHub CLI ────────────────────────────────────────────────────────────────
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Node.js LTS + Firebase CLI ─────────────────────────────────────────────────
 # Node is only needed for the Firebase CLI; it is not used by the Flutter app.
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
