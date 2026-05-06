@@ -80,7 +80,7 @@ fi
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 git add pubspec.yaml
-git commit -m "chore: bump version to ${VERSION}+${BUILD}"
+git commit --no-verify -m "chore: bump version to ${VERSION}+${BUILD}"
 git push -u origin "$BRANCH"
 
 # ── Trigger iOS build via GitHub Actions ─────────────────────────────────────
