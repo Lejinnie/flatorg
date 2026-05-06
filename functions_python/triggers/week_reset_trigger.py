@@ -18,7 +18,7 @@ from services.week_reset_service import WeekResetService
 logger = logging.getLogger(__name__)
 
 
-@https_fn.on_call()
+@https_fn.on_call()  # type: ignore[untyped-decorator]
 def week_reset_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     """HTTP-callable Cloud Function that executes week_reset() for a given flat."""
     flat_id: str = (req.data or {}).get("flatId", "")
@@ -32,7 +32,7 @@ def week_reset_callable(req: https_fn.CallableRequest[Any]) -> dict[str, Any]:
     return {"success": True}
 
 
-@https_fn.on_request()
+@https_fn.on_request()  # type: ignore[untyped-decorator]
 def week_reset_http(req: Request) -> Response:
     """HTTP trigger variant used by Cloud Scheduler.
 
