@@ -16,6 +16,9 @@ class AppTheme {
   /// Page/scaffold background — dark mode. hsl(108, 50%, 10%)
   static const bgDark = Color(0xFF12260D);
 
+  /// Bottom-sheet / floating-surface background — soft mint.
+  static const bgMintSoft = Color(0xFFEDF6E2);
+
   // ── Brand palette ─────────────────────────────────────────────────────────
 
   /// Dark card background in dark mode — slightly lighter than [bgDark].

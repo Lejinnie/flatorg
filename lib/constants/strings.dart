@@ -154,6 +154,14 @@ const navTasks = 'Tasks';
 const navShopping = 'Shopping';
 const navIssues = 'Issues';
 
+// ── Task detail sheet ─────────────────────────────────────────────────────────
+
+const labelCadenceWeekly = 'Weekly';
+const labelStatusPending = 'Pending';
+const labelStatusOverdue = 'Overdue';
+const labelStatusDone = 'Done';
+const labelStatusVacant = 'Vacant';
+
 // ── Login / Auth ──────────────────────────────────────────────────────────────
 
 const headingWelcome = 'Welcome to FlatOrg!';

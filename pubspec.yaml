@@ -29,6 +29,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.png
+    - assets/images/app_icon.png
+    - assets/images/app_icon_foreground.png
     - email_templates/issue_template_1.txt
     - email_templates/issue_template_2.txt
     - email_templates/issue_template_3.txt
@@ -45,10 +47,10 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: 'assets/images/logo.png'
+  image_path: 'assets/images/app_icon.png'
   min_sdk_android: 21
-  adaptive_icon_background: '#FFFFFF'
-  adaptive_icon_foreground: 'assets/images/logo.png'
+  adaptive_icon_background: '#E48E5C'
+  adaptive_icon_foreground: 'assets/images/app_icon_foreground.png'
 
 flutter_native_splash:
   color: '#FFFFFF'
