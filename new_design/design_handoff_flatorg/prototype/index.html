@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Flatorg — task card & app icon redesign</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  html, body {
+    margin: 0; padding: 0; min-height: 100%; background: #EFF5E7;
+    font-family: 'Sora', 'Inter', -apple-system, system-ui, sans-serif;
+    color: #0E2E1E;
+  }
+  * { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="android-frame.jsx"></script>
+<script type="text/babel" src="flatorg-app-screen.jsx"></script>
+<script type="text/babel" src="flatorg-cards.jsx"></script>
+<script type="text/babel" src="flatorg-icons.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+// Wrap a phone with the FO home screen + a popup card overlay
+function PhoneWithCard({ platform, Card, statusColor, statusInk }) {
+  const Device = platform === 'ios' ? IOSDevice : AndroidDevice;
+  return (
+    <Device width={380} height={822}>
+      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <FOHomeScreen platform={platform} dimmed />
+        <Card statusColor={statusColor} statusInk={statusInk} />
+      </div>
+    </Device>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas
+      title="Flatorg — task card & app icon"
+      subtitle="Three card variations + three icon concepts. iOS and Android side by side."
+      defaultZoom={0.9}
+    >
+      {/* ─── SECTION 1 — Task detail card ─── */}
+      <DCSection id="cards" title="Task detail card" subtitle="Three directions, each shown on iOS and Android with the dimmed Tasks screen behind it.">
+
+        <DCArtboard id="v1-ios" label="V1 · Refined modal · iOS" width={420} height={862}>
+          <PhoneWithCard platform="ios" Card={FOCardV1} />
+        </DCArtboard>
+
+        <DCArtboard id="v1-android" label="V1 · Refined modal · Android" width={420} height={862}>
+          <PhoneWithCard platform="android" Card={FOCardV1} />
+        </DCArtboard>
+
+        <DCArtboard id="v2-ios" label="V2 · Status header · iOS" width={420} height={862}>
+          <PhoneWithCard platform="ios" Card={FOCardV2} />
+        </DCArtboard>
+
+        <DCArtboard id="v2-android" label="V2 · Status header · Android" width={420} height={862}>
+          <PhoneWithCard platform="android" Card={FOCardV2} />
+        </DCArtboard>
+
+        <DCArtboard id="v3-ios" label="V3 · Bottom sheet · iOS" width={420} height={862}>
+          <PhoneWithCard platform="ios" Card={FOCardV3} />
+        </DCArtboard>
+
+        <DCArtboard id="v3-android" label="V3 · Bottom sheet · Android" width={420} height={862}>
+          <PhoneWithCard platform="android" Card={FOCardV3} />
+        </DCArtboard>
+
+      </DCSection>
+
+      {/* ─── SECTION 2 — App icon ─── */}
+      <DCSection id="icons" title="App icon" subtitle="Concept 1 keeps the original house+broom DNA. Concepts 2 and 3 explore new directions.">
+
+        <DCArtboard id="icon-1" label="Concept 1 · Refined classic" width={620} height={420}>
+          <div style={{ padding: 32, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOIconTriplet variant={1} />
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="icon-2" label="Concept 2 · Monogram" width={620} height={420}>
+          <div style={{ padding: 32, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOIconTriplet variant={2} />
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="icon-3" label="Concept 3 · Shared flat" width={620} height={420}>
+          <div style={{ padding: 32, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOIconTriplet variant={3} />
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="icon-1-home" label="Concept 1 · in context" width={520} height={200}>
+          <div style={{ padding: 24, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOHomeRowPreview variant={1} />
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="icon-2-home" label="Concept 2 · in context" width={520} height={200}>
+          <div style={{ padding: 24, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOHomeRowPreview variant={2} />
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="icon-3-home" label="Concept 3 · in context" width={520} height={200}>
+          <div style={{ padding: 24, height: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4F8EE' }}>
+            <FOHomeRowPreview variant={3} />
+          </div>
+        </DCArtboard>
+
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@ import '../constants/task_constants.dart';
 import '../models/person.dart';
 import '../models/task.dart';
 import 'confirmation_dialog.dart';
-import 'task_detail_dialog.dart';
+import 'task_detail_sheet.dart';
 
 /// A card displaying one household task.
 ///
@@ -163,7 +163,7 @@ class _TaskCardState extends State<TaskCard> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        onTap: () => TaskDetailDialog.show(
+        onTap: () => TaskDetailSheet.show(
           context,
           task: task,
           assigneeName: widget.assigneeName,
