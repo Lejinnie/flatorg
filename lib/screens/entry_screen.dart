@@ -23,7 +23,7 @@ class EntryScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Image.asset(
-                'assets/images/logo.png',
+                assetAppIcon,
                 height: 100,
                 width: 100,
               ),

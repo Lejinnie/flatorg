@@ -28,7 +28,6 @@ dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/logo.png
     - assets/images/app_icon.png
     - assets/images/app_icon_foreground.png
     - email_templates/issue_template_1.txt
@@ -55,6 +54,6 @@ flutter_launcher_icons:
 flutter_native_splash:
   color: '#FFFFFF'
   color_dark: '#121212'
-  image: 'assets/images/logo.png'
+  image: 'assets/images/app_icon.png'
   android: true
   ios: true
