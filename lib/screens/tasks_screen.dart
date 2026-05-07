@@ -71,6 +71,14 @@ class _TasksBodyState extends State<_TasksBody> {
 
     _updateStreamsIfNeeded(flatId);
 
+    // Flat document hasn't arrived from Firestore yet — show a spinner rather
+    // than an empty AppBar that blends into the background (both share bgLight).
+    if (flatProvider.flat == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('$welcomePrefix$flatName!'),
