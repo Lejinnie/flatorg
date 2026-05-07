@@ -22,10 +22,15 @@ class EntryScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Image.asset(
-                assetAppIcon,
-                height: 100,
-                width: 100,
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+                  child: Image.asset(
+                    assetAppIcon,
+                    height: 100,
+                    width: 100,
+                  ),
+                ),
               ),
               const SizedBox(height: AppTheme.spacingMd),
               Text(

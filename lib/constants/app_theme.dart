@@ -83,6 +83,8 @@ class AppTheme {
   static const radiusSm = 8.0;
   static const radiusMd = 12.0;
   static const radiusLg = 16.0;
+  /// Squircle-style rounding used on the app icon in login/entry screens.
+  static const radiusXl = 24.0;
 
   // ── Task-state colour bar height ──────────────────────────────────────────
 
