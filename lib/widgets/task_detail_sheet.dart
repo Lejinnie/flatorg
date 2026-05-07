@@ -139,11 +139,9 @@ class _SheetContent extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Status chips
+          // Status chip
           Row(
             children: [
-              const _Chip(label: labelCadenceWeekly),
-              const SizedBox(width: 8),
               _StatusChip(state: task.state),
             ],
           ),
@@ -159,11 +157,11 @@ class _SheetContent extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               '${labelSubtasks.toUpperCase()} · ${task.description.length}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
-                color: AppTheme.featureColor,
+                color: inkPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -201,32 +199,6 @@ class _SheetContent extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Cadence chip — neutral teal tone.
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) =>
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0E5648).withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.3,
-            color: AppTheme.featureColor,
-          ),
-        ),
-      );
 }
 
 /// Status chip — background and foreground match the task card's state colour.
