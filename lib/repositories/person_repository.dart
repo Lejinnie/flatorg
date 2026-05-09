@@ -61,6 +61,12 @@ class PersonRepository {
     await updateMember(flatId, uid, {fieldPersonOnVacation: onVacation});
   }
 
+  /// Fetches all members of a flat once.
+  Future<List<Person>> fetchAllMembers(String flatId) async {
+    final snapshot = await _membersCollection(flatId).get();
+    return snapshot.docs.map(Person.fromFirestore).toList();
+  }
+
   /// Removes a member from the flat (admin only).
   /// The Cloud Function also sets the corresponding task to Vacant.
   Future<void> removeMember(String flatId, String uid) async {

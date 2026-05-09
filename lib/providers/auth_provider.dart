@@ -222,6 +222,30 @@ class AuthProvider extends ChangeNotifier {
     await _auth.signOut();
   }
 
+  /// Permanently deletes the current Firebase Auth account.
+  ///
+  /// Returns true on success. On failure, sets [errorMessage] and returns false.
+  /// Firebase may reject the call with code 'requires-recent-login' when the
+  /// session is stale — callers should surface [errorMessage] and ask the user
+  /// to sign out and sign back in before retrying.
+  Future<bool> deleteAccount() async {
+    _setLoading(true);
+    try {
+      await _auth.currentUser?.delete();
+      _errorMessage = '';
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _humaniseAuthError(e);
+      return false;
+    } on Exception catch (e, stack) {
+      debugPrint('[AuthProvider] deleteAccount unexpected error: $e\n$stack');
+      _errorMessage = errorDeleteAccountFailed;
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   void _setLoading(bool value) {
@@ -240,6 +264,8 @@ class AuthProvider extends ChangeNotifier {
         return 'An account with this email already exists.';
       case 'account-exists-with-different-credential':
         return errorAccountExistsWithDifferentCredential;
+      case 'requires-recent-login':
+        return errorDeleteAccountRequiresRelogin;
       case 'too-many-requests':
         return 'Too many attempts, try again later.';
       case 'network-request-failed':

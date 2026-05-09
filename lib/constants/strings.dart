@@ -385,6 +385,22 @@ const confirmLogOutTitle = 'Log out?';
 const confirmLogOutMessage = 'You will be signed out of FlatOrg.';
 const confirmLogOutLabel = 'Log out';
 
+// ── Delete account ────────────────────────────────────────────────────────────
+
+const buttonDeleteAccount = 'Delete Account';
+const confirmDeleteAccountTitle = 'Delete account?';
+const confirmDeleteAccountMessage =
+    'This will permanently remove you from the flat and delete your account. '
+    'This cannot be undone.';
+const confirmDeleteAccountLastMemberMessage =
+    'You are the last member. This will permanently delete the flat and your '
+    'account. This cannot be undone.';
+const confirmDeleteAccountLabel = 'Delete Account';
+const errorDeleteAccountRequiresRelogin =
+    'Please sign out and sign back in before deleting your account.';
+const errorDeleteAccountFailed =
+    'Failed to delete account. Please try again.';
+
 // ── Generic error ─────────────────────────────────────────────────────────────
 
 const errorGeneric = 'Something went wrong. Please try again.';

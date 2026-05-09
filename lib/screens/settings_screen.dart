@@ -280,8 +280,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _AdminSettings(flatId: flatId, flatProvider: flatProvider),
             ],
 
-            // ── Log out (all members) ─────────────────────────────────
+            // ── Delete account + Log out (all members) ───────────────
             const SizedBox(height: AppTheme.spacingLg),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text(buttonDeleteAccount),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.destructiveRed,
+                  side: const BorderSide(color: AppTheme.destructiveRed),
+                ),
+                onPressed: () => _confirmDeleteAccount(context),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingSm),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -298,6 +311,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    // Capture all context-derived objects before the first await.
+    final flatProvider  = context.read<FlatProvider>();
+    final authProvider  = context.read<AuthProvider>();
+    final messenger     = ScaffoldMessenger.of(context);
+    final currentPerson = flatProvider.currentPerson;
+    final flatId        = flatProvider.flatId;
+
+    if (currentPerson == null) {
+      debugPrint('ERROR: _confirmDeleteAccount called with null currentPerson');
+      return;
+    }
+
+    // One-time members fetch to determine admin/last-member scenario and to
+    // avoid a second round-trip inside the admin-transfer branch.
+    List<Person> allMembers;
+    try {
+      allMembers = await PersonRepository().fetchAllMembers(flatId);
+    } on Exception catch (e, stack) {
+      debugPrint('ERROR: _confirmDeleteAccount could not fetch members: $e\n$stack');
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text(errorDeleteAccountFailed)),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final isLastMember = allMembers.length == 1;
+    final confirmed = await showConfirmationDialog(
+      // ignore: use_build_context_synchronously — mounted checked immediately above
+      context,
+      title: confirmDeleteAccountTitle,
+      message: isLastMember
+          ? confirmDeleteAccountLastMemberMessage
+          : confirmDeleteAccountMessage,
+      confirmLabel: confirmDeleteAccountLabel,
+      confirmColor: AppTheme.destructiveRed,
+      confirmTextColor: Colors.white,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+
+    try {
+      // ── Step 1: leave / dismantle the flat ──────────────────────────────
+      if (flatId.isNotEmpty) {
+        if (currentPerson.isAdmin && isLastMember) {
+          await FlatRepository().deleteFlat(flatId);
+        } else if (currentPerson.isAdmin) {
+          final others =
+              allMembers.where((m) => m.uid != currentPerson.uid).toList();
+          if (!mounted) {
+            return;
+          }
+          // ignore: use_build_context_synchronously — mounted checked immediately above
+          final newAdminUid = await _showLeaveAsAdminDialog(context, others);
+          if (newAdminUid == null || !mounted) {
+            return;
+          }
+          await PersonRepository()
+              .transferAdmin(flatId, currentPerson.uid, newAdminUid);
+          if (!mounted) {
+            return;
+          }
+          await PersonRepository().removeMember(flatId, currentPerson.uid);
+        } else {
+          await PersonRepository().removeMember(flatId, currentPerson.uid);
+        }
+        if (!mounted) {
+          return;
+        }
+        await flatProvider.clearFlat();
+      }
+
+      // ── Step 2: delete Firebase Auth account ────────────────────────────
+      if (!mounted) {
+        return;
+      }
+      final deleted = await authProvider.deleteAccount();
+      if (!deleted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(authProvider.errorMessage)),
+        );
+      }
+      // Router detects isSignedIn == false and redirects to /login.
+    } on Exception catch (e, stack) {
+      debugPrint('ERROR: _confirmDeleteAccount failed: $e\n$stack');
+      messenger.showSnackBar(
+        SnackBar(content: Text('$errorDeleteAccountFailed: $e')),
+      );
+    }
   }
 
   Future<void> _confirmLogOut(BuildContext context) async {
