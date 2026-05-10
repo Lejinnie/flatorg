@@ -283,7 +283,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // ── Manage Account (collapsible) ──────────────────────────
             const SizedBox(height: AppTheme.spacingLg),
-            ExpansionTile(
+            Container(
+              margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppTheme.grayLight),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: ExpansionTile(
               title: Text(
                 labelManageAccount,
                 textAlign: TextAlign.center,
@@ -337,6 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
               ],
+              ),
             ),
             const SizedBox(height: AppTheme.spacingXl),
           ],

@@ -464,14 +464,31 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
       );
 
   void _openPanel(BuildContext context) {
+    // Fresh Firestore streams just for this panel session.  Reusing the
+    // badge's streams would leave the panel's StreamBuilders stuck in the
+    // waiting state — broadcast streams don't replay past emissions to new
+    // subscribers, so the spinner would never clear until the next
+    // Firestore change.  These per-panel streams are auto-disposed when the
+    // bottom sheet closes.
+    final swapRepo  = SwapRequestRepository();
+    final notifRepo = NotificationRepository();
     NotificationPanel.show(
       context,
-      requestStream:         _swapStream,
-      outgoingRequestStream: _outgoingSwapStream,
-      notifStream:           _notifStream,
-      getRequesterName:      (uid)    => _memberNameMap[uid]    ?? uid,
-      getRequesterTaskName:  (taskId) => _taskNameMap[taskId]   ?? taskId,
-      getTargetPersonName:   (taskId) {
+      requestStream: swapRepo.watchPendingRequestsForUser(
+        widget.flatId,
+        widget.currentUid,
+      ),
+      outgoingRequestStream: swapRepo.watchOutgoingPendingRequests(
+        widget.flatId,
+        widget.currentUid,
+      ),
+      notifStream: notifRepo.watchNotificationsForUser(
+        widget.flatId,
+        widget.currentUid,
+      ),
+      getRequesterName:     (uid)    => _memberNameMap[uid]  ?? uid,
+      getRequesterTaskName: (taskId) => _taskNameMap[taskId] ?? taskId,
+      getTargetPersonName:  (taskId) {
         final assigneeUid = _taskAssigneeUidMap[taskId] ?? '';
         return _memberNameMap[assigneeUid] ?? assigneeUid;
       },
