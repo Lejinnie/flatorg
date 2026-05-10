@@ -160,10 +160,6 @@ const navIssues = 'Issues';
 
 // ── Task detail sheet ─────────────────────────────────────────────────────────
 
-const labelStatusPending = 'Pending';
-const labelStatusOverdue = 'Overdue';
-const labelStatusDone = 'Done';
-const labelStatusVacant = 'Vacant';
 
 // ── Login / Auth ──────────────────────────────────────────────────────────────
 
@@ -384,6 +380,12 @@ const buttonLogOut = 'Log out';
 const confirmLogOutTitle = 'Log out?';
 const confirmLogOutMessage = 'You will be signed out of FlatOrg.';
 const confirmLogOutLabel = 'Log out';
+
+// ── Leave flat / Manage Account ───────────────────────────────────────────────
+
+const buttonLeaveFlat    = 'Leave Flat';
+const labelManageAccount = 'Manage Account';
+const headingAccount     = 'Account';
 
 // ── Delete account ────────────────────────────────────────────────────────────
 

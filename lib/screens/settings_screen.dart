@@ -215,10 +215,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final flatProvider  = context.watch<FlatProvider>();
-    final currentPerson = flatProvider.currentPerson;
-    final isAdmin       = currentPerson?.isAdmin ?? false;
-    final flatId        = flatProvider.flatId;
+    final theme          = Theme.of(context);
+    final flatProvider   = context.watch<FlatProvider>();
+    final currentPerson  = flatProvider.currentPerson;
+    final isAdmin        = currentPerson?.isAdmin ?? false;
+    final flatId         = flatProvider.flatId;
 
     return Scaffold(
         appBar: AppBar(
@@ -280,36 +281,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _AdminSettings(flatId: flatId, flatProvider: flatProvider),
             ],
 
-            // ── Delete account + Log out (all members) ───────────────
+            // ── Manage Account (collapsible) ──────────────────────────
             const SizedBox(height: AppTheme.spacingLg),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.delete_forever_outlined),
-                label: const Text(buttonDeleteAccount),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.destructiveRed,
-                  side: const BorderSide(color: AppTheme.destructiveRed),
+            ExpansionTile(
+              title: Text(
+                labelManageAccount,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: AppTheme.destructiveRed,
                 ),
-                onPressed: () => _confirmDeleteAccount(context),
               ),
-            ),
-            const SizedBox(height: AppTheme.spacingSm),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text(buttonLogOut),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.destructiveRed,
-                  side: const BorderSide(color: AppTheme.destructiveRed),
+              iconColor: AppTheme.destructiveRed,
+              collapsedIconColor: AppTheme.destructiveRed,
+              children: [
+                const SizedBox(height: AppTheme.spacingXs),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.exit_to_app_outlined),
+                    label: const Text(buttonLeaveFlat),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.destructiveRed,
+                      side: const BorderSide(color: AppTheme.destructiveRed),
+                    ),
+                    onPressed: () => _confirmLeaveFlat(context),
+                  ),
                 ),
-                onPressed: () => _confirmLogOut(context),
-              ),
+                const SizedBox(height: AppTheme.spacingSm),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.logout),
+                    label: const Text(buttonLogOut),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.destructiveRed,
+                      side: const BorderSide(color: AppTheme.destructiveRed),
+                    ),
+                    onPressed: () => _confirmLogOut(context),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    label: const Text(buttonDeleteAccount),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.destructiveRed,
+                      side: const BorderSide(color: AppTheme.destructiveRed),
+                    ),
+                    onPressed: () => _confirmDeleteAccount(context),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+              ],
             ),
             const SizedBox(height: AppTheme.spacingXl),
           ],
         ),
+    );
+  }
+
+  Future<void> _confirmLeaveFlat(BuildContext context) async {
+    final flatProvider  = context.read<FlatProvider>();
+    final messenger     = ScaffoldMessenger.of(context);
+    final currentPerson = flatProvider.currentPerson;
+    final flatId        = flatProvider.flatId;
+
+    if (currentPerson == null) {
+      debugPrint('ERROR: _confirmLeaveFlat called with null currentPerson');
+      return;
+    }
+
+    List<Person> allMembers;
+    try {
+      allMembers = await PersonRepository().fetchAllMembers(flatId);
+    } on Exception catch (e, stack) {
+      debugPrint('ERROR: _confirmLeaveFlat could not fetch members: $e\n$stack');
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text(errorDeleteAccountFailed)),
+      );
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    // Delegates to the existing handler which covers all four cases:
+    // admin-last-member, admin-with-others, regular self-removal.
+    // Auth account is NOT deleted — user keeps their login credentials.
+    await _handleRemoveMember(
+      context: context, // ignore: use_build_context_synchronously -- mounted is checked immediately above
+      flatId: flatId,
+      member: currentPerson,
+      currentPerson: currentPerson,
+      allMembers: allMembers,
+      onExitRemoveMode: () {},
     );
   }
 

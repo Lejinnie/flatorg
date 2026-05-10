@@ -139,14 +139,6 @@ class _SheetContent extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Status chip
-          Row(
-            children: [
-              _StatusChip(state: task.state),
-            ],
-          ),
-          const SizedBox(height: 14),
-
           // Hairline divider
           Container(
             height: 1,
@@ -196,56 +188,6 @@ class _SheetContent extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// Status chip — background and foreground match the task card's state colour.
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.state});
-
-  final TaskState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final (Color bg, Color fg, String label) = switch (state) {
-      TaskState.completed => (
-        AppTheme.stateCompleted.withValues(alpha: 0.14),
-        const Color(0xFF047857),
-        labelStatusDone,
-      ),
-      TaskState.notDone => (
-        AppTheme.stateNotDone.withValues(alpha: 0.12),
-        const Color(0xFFB91C1C),
-        labelStatusOverdue,
-      ),
-      TaskState.vacant => (
-        AppTheme.stateVacant.withValues(alpha: 0.12),
-        const Color(0xFF1D4ED8),
-        labelStatusVacant,
-      ),
-      TaskState.pending => (
-        AppTheme.statePending.withValues(alpha: 0.14),
-        const Color(0xFFB45309),
-        labelStatusPending,
-      ),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.3,
-          color: fg,
-        ),
       ),
     );
   }

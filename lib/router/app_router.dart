@@ -71,7 +71,9 @@ GoRouter buildAppRouter(BuildContext context) {
       }
 
       // Fully authenticated — redirect away from auth-only screens.
-      if (path == routeLogin || path == routeVerifyEmail || path == routeEntry) {
+      // Also blocks /create-flat and /join-flat so a user can only ever be in one flat.
+      if (path == routeLogin || path == routeVerifyEmail || path == routeEntry ||
+          path == routeCreateFlat || path == routeJoinFlat) {
         return routeTasks;
       }
 
