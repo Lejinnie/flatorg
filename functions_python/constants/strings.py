@@ -71,7 +71,6 @@ FIELD_ISSUE_TITLE = "title"
 FIELD_ISSUE_DESCRIPTION = "description"
 FIELD_ISSUE_CREATED_BY = "created_by"
 FIELD_ISSUE_CREATED_AT = "created_at"
-FIELD_ISSUE_LAST_SENT_AT = "last_sent_at"
 
 # Shopping item fields
 FIELD_SHOPPING_TEXT = "text"

@@ -1,4 +1,4 @@
-// BDD integration tests for IssueRepository and the Issue.isOnCooldown model.
+// BDD integration tests for IssueRepository.
 //
 // Uses FakeFirebaseFirestore — no real network calls.
 //
@@ -25,75 +25,15 @@ Issue _makeIssue({
   String description = 'The heater in the bathroom does not work.',
   String createdBy = _kAliceUid,
   Timestamp? createdAt,
-  Timestamp? lastSentAt,
 }) => Issue(
   id: id,
   title: title,
   description: description,
   createdBy: createdBy,
   createdAt: createdAt ?? Timestamp.fromDate(DateTime(2026)),
-  lastSentAt: lastSentAt,
 );
 
 void main() {
-
-// ── Issue.isOnCooldown (pure model, no Firebase) ──────────────────────────────
-
-group('Issue.isOnCooldown', () {
-  test(
-    'Given an issue that has never been sent, '
-    'when isOnCooldown is read, '
-    'then it is false',
-    () {
-      final issue = _makeIssue();
-      expect(issue.isOnCooldown, isFalse);
-    },
-  );
-
-  test(
-    'Given an issue last sent more than 5 days ago, '
-    'when isOnCooldown is read, '
-    'then it is false',
-    () {
-      final sentAt = DateTime.now().subtract(const Duration(days: 6));
-      final issue = _makeIssue(lastSentAt: Timestamp.fromDate(sentAt));
-      expect(issue.isOnCooldown, isFalse);
-    },
-  );
-
-  test(
-    'Given an issue last sent exactly 5 days ago, '
-    'when isOnCooldown is read, '
-    'then it is false (cooldown has just expired)',
-    () {
-      // Subtract slightly more than 5 days so the cooldown end is in the past.
-      final sentAt = DateTime.now().subtract(const Duration(days: 5, seconds: 1));
-      final issue = _makeIssue(lastSentAt: Timestamp.fromDate(sentAt));
-      expect(issue.isOnCooldown, isFalse);
-    },
-  );
-
-  test(
-    'Given an issue last sent less than 5 days ago, '
-    'when isOnCooldown is read, '
-    'then it is true',
-    () {
-      final sentAt = DateTime.now().subtract(const Duration(days: 3));
-      final issue = _makeIssue(lastSentAt: Timestamp.fromDate(sentAt));
-      expect(issue.isOnCooldown, isTrue);
-    },
-  );
-
-  test(
-    'Given an issue sent just now, '
-    'when isOnCooldown is read, '
-    'then it is true',
-    () {
-      final issue = _makeIssue(lastSentAt: Timestamp.now());
-      expect(issue.isOnCooldown, isTrue);
-    },
-  );
-});
 
 // ── IssueRepository.watchIssues ──────────────────────────────────────────────
 
@@ -193,28 +133,6 @@ group('IssueRepository.createIssue', () {
   );
 
   test(
-    'Given a new issue, '
-    'when createIssue is called, '
-    'then lastSentAt is null (issue has never been sent)',
-    () async {
-      final db   = FakeFirebaseFirestore();
-      final repo = IssueRepository(db: db);
-      final issue = _makeIssue();
-
-      await repo.createIssue(_kFlatId, issue);
-
-      final doc = await db
-          .collection(collectionFlats)
-          .doc(_kFlatId)
-          .collection(collectionIssues)
-          .doc(issue.id)
-          .get();
-
-      expect(doc.data()![fieldIssueLastSentAt], isNull);
-    },
-  );
-
-  test(
     'Given two issues with different IDs, '
     'when both are created, '
     'then both exist independently in Firestore',
@@ -272,94 +190,6 @@ group('IssueRepository.deleteIssue', () {
       final issues = await repo.watchIssues(_kFlatId).first;
       expect(issues, hasLength(1));
       expect(issues.first.id, 'issue-b');
-    },
-  );
-});
-
-// ── IssueRepository.markIssueAsSent ──────────────────────────────────────────
-
-group('IssueRepository.markIssueAsSent', () {
-  test(
-    'Given an issue that has never been sent, '
-    'when markIssueAsSent is called, '
-    'then lastSentAt is set to a recent timestamp',
-    () async {
-      final db   = FakeFirebaseFirestore();
-      final repo = IssueRepository(db: db);
-      final issue = _makeIssue();
-
-      await repo.createIssue(_kFlatId, issue);
-
-      final before = DateTime.now().subtract(const Duration(seconds: 1));
-      await repo.markIssueAsSent(_kFlatId, 'issue-1');
-      final after  = DateTime.now().add(const Duration(seconds: 1));
-
-      final doc = await db
-          .collection(collectionFlats)
-          .doc(_kFlatId)
-          .collection(collectionIssues)
-          .doc('issue-1')
-          .get();
-
-      final sentAt = (doc.data()![fieldIssueLastSentAt] as Timestamp).toDate();
-      expect(sentAt.isAfter(before), isTrue);
-      expect(sentAt.isBefore(after), isTrue);
-    },
-  );
-
-  test(
-    'Given an issue already sent 10 days ago, '
-    'when markIssueAsSent is called again, '
-    'then lastSentAt is updated to now and isOnCooldown becomes true',
-    () async {
-      final db   = FakeFirebaseFirestore();
-      final repo = IssueRepository(db: db);
-      final oldSentAt = Timestamp.fromDate(
-        DateTime.now().subtract(const Duration(days: 10)),
-      );
-      final issue = _makeIssue(lastSentAt: oldSentAt);
-
-      await repo.createIssue(_kFlatId, issue);
-      await repo.markIssueAsSent(_kFlatId, 'issue-1');
-
-      final issues = await repo.watchIssues(_kFlatId).first;
-      expect(issues.first.isOnCooldown, isTrue);
-    },
-  );
-
-  test(
-    'Given two issues, '
-    'when only one is marked as sent, '
-    'then only that issue is on cooldown',
-    () async {
-      final db   = FakeFirebaseFirestore();
-      final repo = IssueRepository(db: db);
-
-      await repo.createIssue(
-        _kFlatId,
-        _makeIssue(
-          id: 'issue-a',
-          title: 'Issue A',
-          createdAt: Timestamp.fromDate(DateTime(2026, 1, 2)),
-        ),
-      );
-      await repo.createIssue(
-        _kFlatId,
-        _makeIssue(
-          id: 'issue-b',
-          title: 'Issue B',
-          createdAt: Timestamp.fromDate(DateTime(2026)),
-        ),
-      );
-
-      await repo.markIssueAsSent(_kFlatId, 'issue-a');
-
-      final issues = await repo.watchIssues(_kFlatId).first;
-      final issueA = issues.firstWhere((i) => i.id == 'issue-a');
-      final issueB = issues.firstWhere((i) => i.id == 'issue-b');
-
-      expect(issueA.isOnCooldown, isTrue);
-      expect(issueB.isOnCooldown, isFalse);
     },
   );
 });

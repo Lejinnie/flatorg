@@ -31,11 +31,4 @@ class IssueRepository {
   Future<void> deleteIssue(String flatId, String issueId) async {
     await _issuesCollection(flatId).doc(issueId).delete();
   }
-
-  /// Sets last_sent_at to now, enforcing the 5-day send cooldown.
-  Future<void> markIssueAsSent(String flatId, String issueId) async {
-    await _issuesCollection(flatId).doc(issueId).update({
-      fieldIssueLastSentAt: Timestamp.now(),
-    });
-  }
 }
