@@ -160,10 +160,6 @@ const navIssues = 'Issues';
 
 // ── Task detail sheet ─────────────────────────────────────────────────────────
 
-const labelStatusPending = 'Pending';
-const labelStatusOverdue = 'Overdue';
-const labelStatusDone = 'Done';
-const labelStatusVacant = 'Vacant';
 
 // ── Login / Auth ──────────────────────────────────────────────────────────────
 
