@@ -32,6 +32,7 @@ class TaskCard extends StatefulWidget {
     required this.onRequestSwap,
     this.assigneePerson,
     this.currentUserTaskDone = false,
+    this.hasOutgoingSwapRequest = false,
     super.key,
   });
 
@@ -53,6 +54,11 @@ class TaskCard extends StatefulWidget {
   /// True when the current user has already completed their own task this week.
   /// Hides the swap button on every other card when true.
   final bool currentUserTaskDone;
+
+  /// True when the current user already has a pending outgoing swap request
+  /// somewhere in this flat — disables every swap button on every other card
+  /// to prevent the user from opening a second concurrent request.
+  final bool hasOutgoingSwapRequest;
 
   /// Called when the assignee confirms task completion.
   /// Must return a [Future] so the card can await it and roll back on failure.
@@ -286,15 +292,18 @@ class _TaskCardState extends State<TaskCard> {
     final isVacant = widget.task.assignedTo.isEmpty ||
         widget.task.state == TaskState.vacant;
     final label = isVacant ? buttonSwap : buttonRequestSwap;
+    // Disable when: no tokens, an action is already in flight, or the user
+    // already has a pending outgoing request elsewhere (only one at a time).
+    final enabled = canSwap
+        && !_actionInFlight
+        && !widget.hasOutgoingSwapRequest;
 
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
         icon: const Icon(Icons.swap_horiz, size: 18),
         label: Text(canSwap ? label : '$label (0/$swapTokensPerSemester)'),
-        onPressed: (canSwap && !_actionInFlight)
-            ? () => _confirmSwap(context, tokens)
-            : null,
+        onPressed: enabled ? () => _confirmSwap(context, tokens) : null,
       ),
     );
   }

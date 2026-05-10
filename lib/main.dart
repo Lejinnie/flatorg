@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'constants/app_theme.dart';
+import 'constants/strings.dart';
 import 'providers/auth_provider.dart';
 import 'providers/flat_provider.dart';
 import 'providers/theme_mode_provider.dart';
@@ -121,11 +122,44 @@ class _RouterInitialiserState extends State<_RouterInitialiser> {
     // never block the app from launching.
     unawaited(_registerFcmToken(_authProvider, _flatProvider));
 
+    // Wire the FCM tap handlers — they may set FlatProvider's open-panel flag
+    // which the tasks screen reads on next build.
+    _setupFcmTapHandlers();
+
     if (mounted) {
       setState(() {
         _routerWrapper = GoRouterWrapper(context);
         _initialised = true;
       });
+    }
+  }
+
+  /// Hooks up FCM message-tap handlers so a tap on a swap-request system
+  /// notification routes the user to the tasks screen with the in-app
+  /// notification panel open.
+  ///
+  /// Two handlers cover the relevant lifecycle states:
+  ///   * `getInitialMessage` — fires once if the app was launched
+  ///     (terminated → foreground) by tapping a push.
+  ///   * `onMessageOpenedApp` — fires whenever the user taps a push that
+  ///     brings the app from background to foreground.
+  ///
+  /// Notifications received while the app is already in the foreground are
+  /// surfaced via the in-app panel (Firestore stream) and do not trigger
+  /// this routing.
+  void _setupFcmTapHandlers() {
+    unawaited(FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        _routeFromFcmMessage(message);
+      }
+    }));
+    FirebaseMessaging.onMessageOpenedApp.listen(_routeFromFcmMessage);
+  }
+
+  void _routeFromFcmMessage(RemoteMessage message) {
+    final type = message.data[fcmDataKeyType];
+    if (type == fcmDataValueSwapRequest) {
+      _flatProvider.requestOpenNotificationPanel();
     }
   }
 

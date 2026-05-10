@@ -15,6 +15,7 @@ from google.cloud import firestore
 
 from models.task import effective_assigned_to
 from repository.flat_repository import FlatRepository
+from repository.person_repository import PersonRepository
 from repository.task_repository import TaskRepository
 from services.notification_service import NotificationService
 
@@ -107,6 +108,9 @@ def _dispatch_hours_before_reminder(flat_id: str, task_id: str) -> None:
     flat = FlatRepository(db).get_flat(flat_id)
     assignee_uid = effective_assigned_to(task)
     if not assignee_uid:
+        return
+    person = PersonRepository(db).get_member(flat_id, assignee_uid)
+    if person.on_vacation:
         return
     NotificationService(db).send_hours_before_reminder(
         flat_id, assignee_uid, task.name, flat.reminder_hours_before_deadline

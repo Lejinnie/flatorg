@@ -286,12 +286,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ExpansionTile(
               title: Text(
                 labelManageAccount,
+                textAlign: TextAlign.center,
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: AppTheme.destructiveRed,
                 ),
               ),
               iconColor: AppTheme.destructiveRed,
               collapsedIconColor: AppTheme.destructiveRed,
+              shape: const Border(),
+              collapsedShape: const Border(),
               children: [
                 const SizedBox(height: AppTheme.spacingXs),
                 SizedBox(

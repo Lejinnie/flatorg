@@ -25,6 +25,11 @@ class FlatProvider extends ChangeNotifier {
   Flat? _flat;
   Person? _currentPerson;
 
+  /// Set by the FCM tap handler in main.dart when the user opens the app from
+  /// a swap-request push notification. The tasks screen reads it on first
+  /// build and opens the notification panel, then clears the flag.
+  var _shouldOpenNotificationPanel = false;
+
   StreamSubscription<Flat?>? _flatSub;
   StreamSubscription<Person?>? _personSub;
 
@@ -38,6 +43,7 @@ class FlatProvider extends ChangeNotifier {
   Flat?   get flat   => _flat;
   Person? get currentPerson => _currentPerson;
   bool    get hasFlat => _flatId.isNotEmpty;
+  bool    get shouldOpenNotificationPanel => _shouldOpenNotificationPanel;
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -58,6 +64,24 @@ class FlatProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKeyFlatId, flatId);
     await _startStreams(flatId, uid);
+  }
+
+  /// Signals that the next task-screen build should open the notification
+  /// panel.  Called from the FCM tap handler.
+  void requestOpenNotificationPanel() {
+    _shouldOpenNotificationPanel = true;
+    notifyListeners();
+  }
+
+  /// Clears the panel-open flag.  Called by the tasks screen after it has
+  /// opened the panel so subsequent rebuilds don't re-open it.
+  void clearNotificationPanelRequest() {
+    if (!_shouldOpenNotificationPanel) {
+      return;
+    }
+    _shouldOpenNotificationPanel = false;
+    // No notifyListeners — only the caller (tasks screen) reads this flag,
+    // and it has already decided to open the panel before clearing.
   }
 
   /// Clears the persisted flat ID and disposes streams (called on sign-out).

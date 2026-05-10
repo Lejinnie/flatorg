@@ -35,6 +35,7 @@ from constants.strings import (
 )
 from models.task import effective_assigned_to
 from repository.flat_repository import FlatRepository
+from repository.person_repository import PersonRepository
 from repository.task_repository import TaskRepository
 from services.deadline_check_service import compute_deadline_actions
 from services.notification_service import NotificationService
@@ -95,19 +96,21 @@ def _run_for_flat(flat_id: str, now: datetime, db: Any) -> None:
     actions = compute_deadline_actions(tasks, flat, now)
 
     notification_svc = NotificationService(db)
+    # Fetch once — used to suppress notifications for vacation members.
+    vacation_uids = {p.uid for p in PersonRepository(db).get_all_members(flat_id) if p.on_vacation}
 
     for task in actions.tasks_needing_day_before_reminder:
         assignee_uid = effective_assigned_to(task)
         if assignee_uid:
-            # send_day_before_reminder writes both FCM (Android) and in-app doc (iOS).
+            # Day-before reminder is always sent — even to vacation members,
+            # so they have a chance to mark themselves on vacation if not done yet.
             notification_svc.send_day_before_reminder(flat_id, assignee_uid, task.name, task_id=task.id)
         task_repo.update_task(flat_id, task.id, {FIELD_TASK_DAY_BEFORE_REMINDER_SENT: True})
         logger.info("%s flat=%s task=%s", LOG_REMINDER_DAY_BEFORE_SENT, flat_id, task.id)
 
     for task in actions.tasks_needing_hours_before_reminder:
         assignee_uid = effective_assigned_to(task)
-        if assignee_uid:
-            # send_hours_before_reminder writes both FCM (Android) and in-app doc (iOS).
+        if assignee_uid and assignee_uid not in vacation_uids:
             notification_svc.send_hours_before_reminder(
                 flat_id,
                 assignee_uid,
@@ -120,9 +123,8 @@ def _run_for_flat(flat_id: str, now: datetime, db: Any) -> None:
 
     for task in actions.tasks_needing_grace_period:
         task_repo.enter_grace_period(flat_id, task.id)
-        # Notify the assignee that their deadline passed and how long until reset.
         assignee_uid = effective_assigned_to(task)
-        if assignee_uid:
+        if assignee_uid and assignee_uid not in vacation_uids:
             notification_svc.send_grace_period_notification(
                 flat_id,
                 assignee_uid,
