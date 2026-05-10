@@ -59,9 +59,59 @@ class SwapRequestRepository {
             return filtered;
           });
 
+  /// Returns pending swap requests created BY [requesterUid]. Drives the
+  /// outgoing-request tile and the "disable swap buttons while pending" UI.
+  Stream<List<SwapRequest>> watchOutgoingPendingRequests(
+    String flatId,
+    String requesterUid,
+  ) =>
+      _swapCollection(flatId)
+          .where(fieldSwapRequesterUid, isEqualTo: requesterUid)
+          .where(fieldSwapStatus, isEqualTo: 'pending')
+          .snapshots()
+          .map((snap) => snap.docs.map(SwapRequest.fromFirestore).toList());
+
   /// Creates a new swap request document.
   Future<void> createSwapRequest(String flatId, SwapRequest request) async {
     await _swapCollection(flatId).doc(request.id).set(request.toFirestore());
+  }
+
+  /// Deletes a swap request document.  Called when the requester withdraws
+  /// their pending request — the deletion makes B's incoming-tile stream
+  /// drop the request automatically.
+  Future<void> withdrawSwapRequest(String flatId, String requestId) =>
+      _swapCollection(flatId).doc(requestId).delete();
+
+  /// Declines all pending swap requests targeting [targetTaskId] except
+  /// [acceptedRequestId] (used when [acceptedRequestId] is being accepted —
+  /// any competing requests for the same target task are auto-rejected).
+  ///
+  /// Returns the requesterUids of declined requests so the caller can write
+  /// rejection notifications to each.
+  Future<List<String>> declineAllOtherPendingForTarget(
+    String flatId,
+    String targetTaskId,
+    String acceptedRequestId,
+  ) async {
+    final snap = await _swapCollection(flatId)
+        .where(fieldSwapStatus, isEqualTo: 'pending')
+        .get();
+    final others = snap.docs
+        .map(SwapRequest.fromFirestore)
+        .where((r) => r.targetTaskId == targetTaskId && r.id != acceptedRequestId)
+        .toList();
+    if (others.isEmpty) {
+      return const <String>[];
+    }
+    final batch = _db.batch();
+    for (final r in others) {
+      batch.update(
+        _swapCollection(flatId).doc(r.id),
+        {fieldSwapStatus: 'declined'},
+      );
+    }
+    await batch.commit();
+    return others.map((r) => r.requesterUid).toList();
   }
 
   /// Responds to a swap request (accepted or declined).

@@ -80,6 +80,10 @@ def notify_swap_request_callable(
         # Target task is vacant — no one to notify.
         return {"success": True, "skipped": "no assignee on target task"}
 
+    target_person = PersonRepository(db).get_member(flat_id, target_uid)
+    if target_person.on_vacation:
+        return {"success": True, "skipped": "target is on vacation"}
+
     requester = PersonRepository(db).get_member(flat_id, requester_uid)
     tokens_remaining = requester.swap_tokens_remaining
 

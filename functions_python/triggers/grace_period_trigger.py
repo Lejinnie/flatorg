@@ -20,6 +20,7 @@ from google.cloud import firestore
 from constants.strings import LOG_GRACE_PERIOD_TRANSITION
 from models.task import TaskState, effective_assigned_to
 from repository.flat_repository import FlatRepository
+from repository.person_repository import PersonRepository
 from repository.task_repository import TaskRepository
 from services.notification_service import NotificationService
 
@@ -35,6 +36,9 @@ def _notify_grace_period(db: Any, flat_id: str, task_id: str) -> None:
     task = TaskRepository(db).get_task(flat_id, task_id)
     assignee_uid = effective_assigned_to(task)
     if not assignee_uid:
+        return
+    person = PersonRepository(db).get_member(flat_id, assignee_uid)
+    if person.on_vacation:
         return
     flat = FlatRepository(db).get_flat(flat_id)
     NotificationService(db).send_grace_period_notification(

@@ -76,11 +76,21 @@ const notifTypeReminder = 'reminder';
 const notifTypeGracePeriod = 'grace_period';
 const notifTypeTaskCompleted = 'task_completed';
 const notifTypeWeekReset = 'week_reset';
+const notifTypeSwapWithdrawn = 'swap_withdrawn';
+const notifTypeSwapAccepted = 'swap_accepted';
+const notifTypeSwapRejected = 'swap_rejected';
 
 /// Cloud Function callable names.
 const callableNotifyTaskCompleted = 'notify_task_completed_callable';
 const callableNotifySwapRequest = 'notify_swap_request_callable';
+const callableNotifySwapWithdrawn = 'notify_swap_withdrawn_callable';
+const callableNotifySwapResponse = 'notify_swap_response_callable';
 const callableTranslateIssues = 'translate_issues_callable';
+
+/// FCM data payload keys/values used to deep-link a tapped push notification
+/// to the in-app notification panel.
+const fcmDataKeyType = 'type';
+const fcmDataValueSwapRequest = 'swap_request';
 
 // ── Swap request field names ──────────────────────────────────────────────────
 
@@ -228,10 +238,34 @@ const buttonDismiss = 'Close';
 
 // ── Swap request ──────────────────────────────────────────────────────────────
 
-/// Used in the notification panel. {name} is the requester's name.
-const swapRequestMessage = 'wants to swap tasks with you. Do you accept?';
+/// Suffix for the incoming swap-request tile.  The full text is
+/// "[requester name] ([target task name]) [swapRequestMessage]".
+const swapRequestMessage = 'wants to swap with you. Do you accept?';
+
+/// Outgoing swap-request tile prefix.  The full text is
+/// "[outgoingSwapPrefix] [target name] ([target task name])."
+const outgoingSwapPrefix = 'You are requesting to swap with';
+
 const buttonAccept = 'Yes';
 const buttonDecline = 'No';
+const buttonSwapAccept = 'Accept';
+const buttonSwapReject = 'Reject';
+const buttonWithdraw = 'Withdraw';
+
+// ── Swap outcome notifications (written client-side) ─────────────────────────
+
+const notifTitleSwapWithdrawn = 'Swap Request Withdrawn';
+/// {name} → the requester who withdrew.
+const notifBodySwapWithdrawnTemplate = '{name} withdrew their swap request.';
+
+const notifTitleSwapAccepted = 'Swap Accepted';
+/// {name} → the responder who accepted.
+const notifBodySwapAcceptedTemplate = '{name} accepted your swap request.';
+
+const notifTitleSwapRejected = 'Swap Rejected';
+/// {name} → the responder who rejected (or whose accept of another request
+/// caused this auto-rejection).
+const notifBodySwapRejectedTemplate = '{name} rejected your swap request.';
 
 // ── Confirmation dialogs ──────────────────────────────────────────────────────
 

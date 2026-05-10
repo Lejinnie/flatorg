@@ -23,6 +23,14 @@ NOTIF_TYPE_REMINDER = "reminder"
 NOTIF_TYPE_GRACE_PERIOD = "grace_period"
 NOTIF_TYPE_TASK_COMPLETED = "task_completed"
 NOTIF_TYPE_WEEK_RESET = "week_reset"
+NOTIF_TYPE_SWAP_WITHDRAWN = "swap_withdrawn"
+NOTIF_TYPE_SWAP_ACCEPTED = "swap_accepted"
+NOTIF_TYPE_SWAP_REJECTED = "swap_rejected"
+
+# FCM data payload keys/values used to deep-link a tapped push notification
+# to the in-app notification panel on Flutter.
+FCM_DATA_KEY_TYPE = "type"
+FCM_DATA_VALUE_SWAP_REQUEST = "swap_request"
 
 # ── Firestore field names ─────────────────────────────────────────────────────
 
@@ -121,6 +129,15 @@ NOTIFICATION_TITLE_SWAP_REQUEST = "Task Swap Request"
 NOTIFICATION_BODY_SWAP_REQUEST = "{requester_name} wants to swap tasks with you. You have {tokens}/3 tokens remaining."
 NOTIFICATION_TITLE_WEEK_RESET = "New Task Assigned"
 NOTIFICATION_BODY_WEEK_RESET = 'Your task for this week is "{task_name}".'
+
+# Swap outcome notifications (sent in addition to the in-app doc written by
+# the Flutter client; this CF only forwards as FCM push).
+NOTIFICATION_TITLE_SWAP_WITHDRAWN = "Swap Request Withdrawn"
+NOTIFICATION_BODY_SWAP_WITHDRAWN = "{requester_name} withdrew their swap request."
+NOTIFICATION_TITLE_SWAP_ACCEPTED = "Swap Accepted"
+NOTIFICATION_BODY_SWAP_ACCEPTED = "{responder_name} accepted your swap request."
+NOTIFICATION_TITLE_SWAP_REJECTED = "Swap Rejected"
+NOTIFICATION_BODY_SWAP_REJECTED = "{responder_name} rejected your swap request."
 
 # ── Log messages ──────────────────────────────────────────────────────────────
 

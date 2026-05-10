@@ -264,5 +264,79 @@ void main() {
         );
       },
     );
+
+    // ── Outgoing-request guard (one swap at a time per user) ─────────────────
+
+    testWidgets(
+      'Given a user with tokens but a pending outgoing swap request, '
+      'when a task card is rendered, '
+      'then the swap button is disabled',
+      (tester) async {
+        final assignee = _person(uid: _kBobUid);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: Scaffold(
+              body: TaskCard(
+                task:                  _task(assignedTo: _kBobUid),
+                assigneeName:          'Bob',
+                isCurrentUserAssignee: false,
+                currentPerson:         _person(),
+                assigneePerson:        assignee,
+                hasOutgoingSwapRequest: true,
+                onComplete:            () async {},
+                onVacation:            () async {},
+                onRequestSwap:         ({required isImmediate}) async {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final swapButton = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, buttonRequestSwap),
+        );
+        expect(
+          swapButton.onPressed,
+          isNull,
+          reason: 'Swap button must be disabled while the user already has '
+              'a pending outgoing swap request — only one swap at a time.',
+        );
+      },
+    );
+
+    testWidgets(
+      'Given a user with tokens and NO pending outgoing swap request, '
+      'when a task card is rendered, '
+      'then the swap button is enabled',
+      (tester) async {
+        final assignee = _person(uid: _kBobUid);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: Scaffold(
+              body: TaskCard(
+                task:                  _task(assignedTo: _kBobUid),
+                assigneeName:          'Bob',
+                isCurrentUserAssignee: false,
+                currentPerson:         _person(),
+                assigneePerson:        assignee,
+                onComplete:            () async {},
+                onVacation:            () async {},
+                onRequestSwap:         ({required isImmediate}) async {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final swapButton = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, buttonRequestSwap),
+        );
+        expect(swapButton.onPressed, isNotNull,
+            reason: 'Default behaviour: swap button is enabled when nothing '
+                'is in flight.');
+      },
+    );
   });
 }

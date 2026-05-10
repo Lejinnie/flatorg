@@ -23,6 +23,8 @@ from constants.strings import (
     COLLECTION_FLATS,
     COLLECTION_MEMBERS,
     COLLECTION_NOTIFICATIONS,
+    FCM_DATA_KEY_TYPE,
+    FCM_DATA_VALUE_SWAP_REQUEST,
     FIELD_NOTIF_BODY,
     FIELD_NOTIF_CREATED_AT,
     FIELD_NOTIF_TASK_ID,
@@ -35,12 +37,18 @@ from constants.strings import (
     NOTIFICATION_BODY_GRACE_PERIOD,
     NOTIFICATION_BODY_REMINDER_DAY_BEFORE,
     NOTIFICATION_BODY_REMINDER_HOURS_BEFORE,
+    NOTIFICATION_BODY_SWAP_ACCEPTED,
+    NOTIFICATION_BODY_SWAP_REJECTED,
     NOTIFICATION_BODY_SWAP_REQUEST,
+    NOTIFICATION_BODY_SWAP_WITHDRAWN,
     NOTIFICATION_BODY_TASK_COMPLETED,
     NOTIFICATION_BODY_WEEK_RESET,
     NOTIFICATION_TITLE_GRACE_PERIOD,
     NOTIFICATION_TITLE_REMINDER,
+    NOTIFICATION_TITLE_SWAP_ACCEPTED,
+    NOTIFICATION_TITLE_SWAP_REJECTED,
     NOTIFICATION_TITLE_SWAP_REQUEST,
+    NOTIFICATION_TITLE_SWAP_WITHDRAWN,
     NOTIFICATION_TITLE_TASK_COMPLETED,
     NOTIFICATION_TITLE_WEEK_RESET,
 )
@@ -262,22 +270,107 @@ class NotificationService:
         iOS also receives the push via APNs (FCM routes automatically).
         The request additionally appears via the swapRequests Firestore stream
         in the in-app notification panel — no separate in-app document is needed.
+
+        The push carries a `type=swap_request` data payload so the Flutter app
+        can deep-link the user to the notification panel when the system
+        notification is tapped.
         """
         token = self._get_fcm_token(flat_id, target_uid)
         if not token:
             return
         body = NOTIFICATION_BODY_SWAP_REQUEST.format(requester_name=requester_name, tokens=tokens_remaining)
-        self._send_to_token(token, NOTIFICATION_TITLE_SWAP_REQUEST, body)
+        self._send_to_token(
+            token,
+            NOTIFICATION_TITLE_SWAP_REQUEST,
+            body,
+            data={FCM_DATA_KEY_TYPE: FCM_DATA_VALUE_SWAP_REQUEST},
+        )
         logger.info(
             "send_swap_request_notification sent flat=%s uid=%s",
             flat_id,
             target_uid,
         )
 
+    def send_swap_withdrawn_notification(
+        self,
+        flat_id: str,
+        target_uid: str,
+        requester_name: str,
+    ) -> None:
+        """FCM push to the target informing them the requester withdrew.
+
+        The in-app notification document is written by the Flutter client; this
+        method only delivers the system-tray push.
+        """
+        token = self._get_fcm_token(flat_id, target_uid)
+        if not token:
+            return
+        body = NOTIFICATION_BODY_SWAP_WITHDRAWN.format(requester_name=requester_name)
+        self._send_to_token(token, NOTIFICATION_TITLE_SWAP_WITHDRAWN, body)
+        logger.info(
+            "send_swap_withdrawn_notification sent flat=%s uid=%s",
+            flat_id,
+            target_uid,
+        )
+
+    def send_swap_accepted_notification(
+        self,
+        flat_id: str,
+        requester_uid: str,
+        responder_name: str,
+    ) -> None:
+        """FCM push to the requester informing them their request was accepted.
+
+        The in-app notification document is written by the Flutter client; this
+        method only delivers the system-tray push.
+        """
+        token = self._get_fcm_token(flat_id, requester_uid)
+        if not token:
+            return
+        body = NOTIFICATION_BODY_SWAP_ACCEPTED.format(responder_name=responder_name)
+        self._send_to_token(token, NOTIFICATION_TITLE_SWAP_ACCEPTED, body)
+        logger.info(
+            "send_swap_accepted_notification sent flat=%s uid=%s",
+            flat_id,
+            requester_uid,
+        )
+
+    def send_swap_rejected_notification(
+        self,
+        flat_id: str,
+        requester_uid: str,
+        responder_name: str,
+    ) -> None:
+        """FCM push to the requester informing them their request was rejected.
+
+        The in-app notification document is written by the Flutter client; this
+        method only delivers the system-tray push.
+        """
+        token = self._get_fcm_token(flat_id, requester_uid)
+        if not token:
+            return
+        body = NOTIFICATION_BODY_SWAP_REJECTED.format(responder_name=responder_name)
+        self._send_to_token(token, NOTIFICATION_TITLE_SWAP_REJECTED, body)
+        logger.info(
+            "send_swap_rejected_notification sent flat=%s uid=%s",
+            flat_id,
+            requester_uid,
+        )
+
     # ── Low-level FCM send helpers ────────────────────────────────────────────
 
-    def _send_to_token(self, token: str, title: str, body: str) -> None:
+    def _send_to_token(
+        self,
+        token: str,
+        title: str,
+        body: str,
+        data: dict[str, str] | None = None,
+    ) -> None:
         """Send a notification to a single FCM token.
+
+        When [data] is provided it is delivered as a key/value payload alongside
+        the visible notification — used to route notification taps to specific
+        screens (see `send_swap_request_notification`).
 
         Logs but does not raise on failure — notification failure must not abort
         business logic.
@@ -287,6 +380,7 @@ class NotificationService:
                 messaging.Message(
                     token=token,
                     notification=messaging.Notification(title=title, body=body),
+                    data=data,
                 )
             )
         except Exception as exc:
