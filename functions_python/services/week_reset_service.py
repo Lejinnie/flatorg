@@ -118,10 +118,11 @@ class WeekResetService:
         persons = self._person_repo.get_all_members(flat_id)
         self._clear_reminder_notifications(flat_id, persons)
 
-        # Notify each assignee of their new task for the week.
+        # Notify each assignee of their new task for the week (skip vacation members).
+        vacation_uids = {p.uid for p in persons if p.on_vacation}
         tasks = self._task_repo.get_all_tasks(flat_id)
         for task in tasks:
-            if task.assigned_to:
+            if task.assigned_to and task.assigned_to not in vacation_uids:
                 self._notification_service.send_week_reset_notification(flat_id, task.assigned_to, task.name, task.id)
 
         logger.info("%s %s", LOG_WEEK_RESET_COMPLETE, flat_id)
