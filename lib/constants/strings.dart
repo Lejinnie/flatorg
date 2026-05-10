@@ -381,6 +381,12 @@ const confirmLogOutTitle = 'Log out?';
 const confirmLogOutMessage = 'You will be signed out of FlatOrg.';
 const confirmLogOutLabel = 'Log out';
 
+// ── Leave flat / Manage Account ───────────────────────────────────────────────
+
+const buttonLeaveFlat    = 'Leave Flat';
+const labelManageAccount = 'Manage Account';
+const headingAccount     = 'Account';
+
 // ── Delete account ────────────────────────────────────────────────────────────
 
 const buttonDeleteAccount = 'Delete Account';
