@@ -49,8 +49,8 @@ def notify_swap_withdrawn_callable(
       requesterName — display name of the person who withdrew (A)
     """
     data = req.data or {}
-    flat_id: str        = data.get("flatId", "")
-    target_uid: str     = data.get("targetUid", "")
+    flat_id: str = data.get("flatId", "")
+    target_uid: str = data.get("targetUid", "")
     requester_name: str = data.get("requesterName", "")
 
     if not flat_id or not target_uid:
@@ -60,9 +60,7 @@ def notify_swap_withdrawn_callable(
         )
 
     db = firestore.Client()
-    NotificationService(db).send_swap_withdrawn_notification(
-        flat_id, target_uid, requester_name
-    )
+    NotificationService(db).send_swap_withdrawn_notification(flat_id, target_uid, requester_name)
     logger.info(
         "notify_swap_withdrawn_callable completed flat=%s target=%s",
         flat_id,
@@ -92,10 +90,10 @@ def notify_swap_response_callable(
       accepted      — bool, true → accepted, false → rejected
     """
     data = req.data or {}
-    flat_id: str        = data.get("flatId", "")
-    requester_uid: str  = data.get("requesterUid", "")
+    flat_id: str = data.get("flatId", "")
+    requester_uid: str = data.get("requesterUid", "")
     responder_name: str = data.get("responderName", "")
-    accepted: bool      = bool(data.get("accepted", False))
+    accepted: bool = bool(data.get("accepted", False))
 
     if not flat_id or not requester_uid:
         raise https_fn.HttpsError(
@@ -103,7 +101,7 @@ def notify_swap_response_callable(
             message="flatId and requesterUid are required",
         )
 
-    db  = firestore.Client()
+    db = firestore.Client()
     svc = NotificationService(db)
     if accepted:
         svc.send_swap_accepted_notification(flat_id, requester_uid, responder_name)
