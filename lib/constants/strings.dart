@@ -53,7 +53,6 @@ const fieldIssueTitle = 'title';
 const fieldIssueDescription = 'description';
 const fieldIssueCreatedBy = 'created_by';
 const fieldIssueCreatedAt = 'created_at';
-const fieldIssueLastSentAt = 'last_sent_at';
 
 // ── Shopping item field names ─────────────────────────────────────────────────
 
@@ -351,7 +350,6 @@ const buttonSend = 'Mail';
 const buttonResolved = 'Resolved';
 const buttonSelectAll = 'Select All';
 const hintIssueImageOptional = 'Image (optional)';
-const labelRecentlySent = 'Recently sent';
 
 // ── Settings screen ───────────────────────────────────────────────────────────
 

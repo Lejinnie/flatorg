@@ -54,6 +54,3 @@ const defaultShoppingCleanupHours = 6;
 
 /// Swap tokens each member receives at the start of every ETH semester.
 const swapTokensPerSemester = 3;
-
-/// Cooldown in days before the same issue can be sent to Livit again.
-const issueSendCooldownDays = 5;

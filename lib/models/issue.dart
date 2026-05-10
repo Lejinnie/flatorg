@@ -20,28 +20,13 @@ class Issue {
   /// When the issue was created.
   final Timestamp createdAt;
 
-  /// Timestamp of the most recent send to Livit.
-  /// Null when the issue has never been sent.
-  /// Enforces the 5-day cooldown (issueSendCooldownDays).
-  final Timestamp? lastSentAt;
-
   const Issue({
     required this.id,
     required this.title,
     required this.description,
     required this.createdBy,
     required this.createdAt,
-    required this.lastSentAt,
   });
-
-  /// Returns true when the issue is on cooldown and cannot be sent.
-  bool get isOnCooldown {
-    if (lastSentAt == null) {
-      return false;
-    }
-    final cooldownEnd = lastSentAt!.toDate().add(const Duration(days: 5));
-    return DateTime.now().isBefore(cooldownEnd);
-  }
 
   /// Creates an Issue from a Firestore document snapshot.
   factory Issue.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -52,7 +37,6 @@ class Issue {
       description: (data[fieldIssueDescription] as String?) ?? '',
       createdBy: (data[fieldIssueCreatedBy] as String?) ?? '',
       createdAt: data[fieldIssueCreatedAt] as Timestamp,
-      lastSentAt: data[fieldIssueLastSentAt] as Timestamp?,
     );
   }
 
@@ -62,7 +46,6 @@ class Issue {
     fieldIssueDescription: description,
     fieldIssueCreatedBy: createdBy,
     fieldIssueCreatedAt: createdAt,
-    fieldIssueLastSentAt: lastSentAt,
   };
 
   Issue copyWith({
@@ -71,14 +54,12 @@ class Issue {
     String? description,
     String? createdBy,
     Timestamp? createdAt,
-    Timestamp? lastSentAt,
   }) => Issue(
     id: id ?? this.id,
     title: title ?? this.title,
     description: description ?? this.description,
     createdBy: createdBy ?? this.createdBy,
     createdAt: createdAt ?? this.createdAt,
-    lastSentAt: lastSentAt ?? this.lastSentAt,
   );
 }
 

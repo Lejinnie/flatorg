@@ -208,7 +208,6 @@ class _IssuesBodyState extends State<_IssuesBody> {
         description: desc,
         createdBy: creatorUid,
         createdAt: Timestamp.now(),
-        lastSentAt: null,
       ),
     );
   }
@@ -218,7 +217,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
   Future<void> _sendIssues(
     BuildContext context,
     String flatId,
-    List<Issue> sendableSelected,
+    List<Issue> selected,
     String senderName,
   ) async {
     // Capture context-dependent objects before any async gaps.
@@ -236,7 +235,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
 
     // Translate titles and descriptions to German via Cloud Function.
     // Falls back to original text on any error so the send is never blocked.
-    final translated = await _translateIssues(sendableSelected);
+    final translated = await _translateIssues(selected);
 
     // Pick a random email template.
     final templateIndex = Random().nextInt(3) + 1;
@@ -293,12 +292,6 @@ class _IssuesBodyState extends State<_IssuesBody> {
         );
       }
       return;
-    }
-
-    // Mark each sent issue with last_sent_at.
-    final repo = IssueRepository();
-    for (final issue in sendableSelected) {
-      await repo.markIssueAsSent(flatId, issue.id);
     }
 
     _exitSelection();
@@ -397,8 +390,6 @@ class _IssuesBodyState extends State<_IssuesBody> {
         stream: _issuesStream,
         builder: (ctx, snap) {
           final allIssues = snap.data ?? [];
-          final sendable   = allIssues.where((i) => !i.isOnCooldown).toList();
-          final onCooldown = allIssues.where((i) => i.isOnCooldown).toList();
 
           return Column(
             children: [
@@ -426,9 +417,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
               final canSend = shopTask.isNotEmpty &&
                   shopTask.first.assignedTo == currentUid;
 
-              final selectedSendable =
-                  sendable.where((i) => _selectedIds.contains(i.id)).toList();
-              final selectedAll =
+              final selected =
                   allIssues.where((i) => _selectedIds.contains(i.id)).toList();
 
               return Stack(
@@ -441,8 +430,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
                       top: AppTheme.spacingXs,
                     ),
                     children: [
-                      // Sendable issues.
-                      ...sendable.map(
+                      ...allIssues.map(
                         (issue) => IssueTile(
                           issue: issue,
                           isSelectionMode: _selectionMode,
@@ -470,33 +458,6 @@ class _IssuesBodyState extends State<_IssuesBody> {
                             ),
                           ),
                         ),
-
-                      // On-cooldown (recently sent) section.
-                      if (onCooldown.isNotEmpty) ...[
-                        const Divider(height: AppTheme.spacingLg),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacingMd,
-                            vertical: AppTheme.spacingXs,
-                          ),
-                          child: Text(
-                            labelRecentlySent,
-                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.grayMid,
-                                ),
-                          ),
-                        ),
-                        ...onCooldown.map(
-                          (issue) => IssueTile(
-                            issue: issue,
-                            isSelectionMode: _selectionMode,
-                            isSelected: _selectedIds.contains(issue.id),
-                            onTap: () => showIssueDetailDialog(ctx, issue),
-                            onLongPress: () => _enterSelection(issue.id),
-                            onToggleSelect: () => _toggleSelect(issue.id),
-                          ),
-                        ),
-                      ],
                     ],
                   ), // ListView
                   ), // RefreshIndicator
@@ -508,18 +469,18 @@ class _IssuesBodyState extends State<_IssuesBody> {
                       left: 0,
                       right: 0,
                       child: _SelectionActionBar(
-                        canSend: canSend && selectedSendable.isNotEmpty,
-                        canResolve: selectedAll.isNotEmpty,
+                        canSend: canSend && selected.isNotEmpty,
+                        canResolve: selected.isNotEmpty,
                         onSend: () => _sendIssues(
                           ctx,
                           flatId,
-                          selectedSendable,
+                          selected,
                           senderName,
                         ),
                         onResolve: () => _resolveIssues(
                           ctx,
                           flatId,
-                          selectedAll,
+                          selected,
                         ),
                       ),
                     ),

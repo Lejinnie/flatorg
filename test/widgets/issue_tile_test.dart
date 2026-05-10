@@ -27,36 +27,18 @@ import 'package:google_fonts/google_fonts.dart';
 
 final _kCreatedAt = Timestamp.fromDate(DateTime(2025));
 
-/// Not-on-cooldown: never sent.
-Issue _sendableIssue({
+Issue _issue({
   String id = 'issue-1',
   String title = 'Broken heater',
   String description = 'The heater in room 2 makes a loud noise.',
+  String createdBy = 'alice-uid',
 }) =>
     Issue(
       id: id,
       title: title,
       description: description,
-      createdBy: 'alice-uid',
+      createdBy: createdBy,
       createdAt: _kCreatedAt,
-      lastSentAt: null,
-    );
-
-/// On-cooldown: sent 2 days ago (< 5-day threshold).
-Issue _cooldownIssue({
-  String id = 'issue-cool',
-  String title = 'Leaky faucet',
-  String description = 'The kitchen faucet drips constantly.',
-}) =>
-    Issue(
-      id: id,
-      title: title,
-      description: description,
-      createdBy: 'bob-uid',
-      createdAt: _kCreatedAt,
-      lastSentAt: Timestamp.fromDate(
-        DateTime.now().subtract(const Duration(days: 2)),
-      ),
     );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -98,7 +80,7 @@ class _IssueListHarness extends StatefulWidget {
   final List<Issue> issues;
 
   /// When true the "current user is assigned to the Shopping task" rule is met,
-  /// so canSend is driven purely by whether sendable issues are selected.
+  /// so canSend is driven purely by whether issues are selected.
   final bool isShoppingAssignee;
 
   const _IssueListHarness({
@@ -146,15 +128,11 @@ class _IssueListHarnessState extends State<_IssueListHarness> {
 
   @override
   Widget build(BuildContext context) {
-    final sendable =
-        widget.issues.where((i) => !i.isOnCooldown).toList();
-    final selectedSendable =
-        sendable.where((i) => _selectedIds.contains(i.id)).toList();
-    final selectedAll =
+    final selected =
         widget.issues.where((i) => _selectedIds.contains(i.id)).toList();
 
-    final canSend = widget.isShoppingAssignee && selectedSendable.isNotEmpty;
-    final canResolve = selectedAll.isNotEmpty;
+    final canSend    = widget.isShoppingAssignee && selected.isNotEmpty;
+    final canResolve = selected.isNotEmpty;
 
     return Scaffold(
       body: Column(
@@ -259,23 +237,23 @@ void main() {
 
   group('Group A — IssueTile normal mode: visual state', () {
     testWidgets(
-      'Given a sendable issue in normal mode, '
+      'Given an issue in normal mode, '
       'when the tile is rendered, '
       'then the issue title is visible',
       (tester) async {
-        await _pumpTile(tester, issue: _sendableIssue());
+        await _pumpTile(tester, issue: _issue());
         expect(find.text('Broken heater'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'Given a sendable issue in normal mode, '
+      'Given an issue in normal mode, '
       'when the tile is rendered, '
       'then the issue description is visible',
       (tester) async {
         await _pumpTile(
           tester,
-          issue: _sendableIssue(description: 'Heater makes noise.'),
+          issue: _issue(description: 'Heater makes noise.'),
         );
         expect(find.text('Heater makes noise.'), findsOneWidget);
       },
@@ -286,39 +264,24 @@ void main() {
       'when the tile is rendered, '
       'then no checkbox icon is shown',
       (tester) async {
-        await _pumpTile(tester, issue: _sendableIssue());
+        await _pumpTile(tester, issue: _issue());
         expect(find.byIcon(Icons.check_box_outline_blank), findsNothing);
         expect(find.byIcon(Icons.check_box), findsNothing);
       },
     );
 
     testWidgets(
-      'Given a sendable (not-on-cooldown) issue in normal mode, '
+      'Given an issue in normal mode, '
       'when the tile is rendered, '
       'then the title color is null (inherits theme, not greyed out)',
       (tester) async {
-        await _pumpTile(tester, issue: _sendableIssue(title: 'Active Issue'));
+        await _pumpTile(tester, issue: _issue(title: 'Active Issue'));
         final titleText = tester.widget<Text>(find.text('Active Issue'));
         // copyWith(color: null) means the theme default is used — not grayMid.
         expect(
           titleText.style?.color,
           isNot(AppTheme.grayMid),
-          reason: 'Sendable issue title must not be greyed out.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Given an on-cooldown issue in normal mode, '
-      'when the tile is rendered, '
-      'then the title color is grayMid (greyed out to signal cooldown)',
-      (tester) async {
-        await _pumpTile(tester, issue: _cooldownIssue(title: 'Old Issue'));
-        final titleText = tester.widget<Text>(find.text('Old Issue'));
-        expect(
-          titleText.style?.color,
-          AppTheme.grayMid,
-          reason: 'Cooldown issue title must be greyed out.',
+          reason: 'Issue title must not be greyed out.',
         );
       },
     );
@@ -328,7 +291,7 @@ void main() {
       'when the tile is rendered, '
       'then the card has the default (non-selection) background color',
       (tester) async {
-        await _pumpTile(tester, issue: _sendableIssue());
+        await _pumpTile(tester, issue: _issue());
         final card = tester.widget<Card>(find.byType(Card).first);
         // Selection color in light mode is AppTheme.highlightColorDark.
         expect(
@@ -350,7 +313,7 @@ void main() {
       (tester) async {
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
         );
         expect(find.byIcon(Icons.check_box_outline_blank), findsOneWidget);
@@ -368,7 +331,7 @@ void main() {
 
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
           onTap: () => tapCount++,
           onToggleSelect: () => toggleCount++,
@@ -391,7 +354,7 @@ void main() {
 
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
           onLongPress: () => longPressCount++,
         );
@@ -414,7 +377,7 @@ void main() {
       (tester) async {
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
           isSelected: true,
         );
@@ -424,13 +387,13 @@ void main() {
     );
 
     testWidgets(
-      'Given a selected sendable issue in selection mode (light theme), '
+      'Given a selected issue in selection mode (light theme), '
       'when the tile is rendered, '
       'then the card uses the highlight selection color',
       (tester) async {
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
           isSelected: true,
         );
@@ -441,13 +404,13 @@ void main() {
     );
 
     testWidgets(
-      'Given a selected sendable (not-on-cooldown) issue in selection mode, '
+      'Given a selected issue in selection mode, '
       'when the tile is rendered, '
       'then the title color is grayDark (high contrast against selection bg)',
       (tester) async {
         await _pumpTile(
           tester,
-          issue: _sendableIssue(title: 'Selected Title'),
+          issue: _issue(title: 'Selected Title'),
           isSelectionMode: true,
           isSelected: true,
         );
@@ -455,27 +418,7 @@ void main() {
         expect(
           titleText.style?.color,
           AppTheme.grayDark,
-          reason: 'Selected non-cooldown tile must use grayDark for contrast.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Given a selected on-cooldown issue in selection mode, '
-      'when the tile is rendered, '
-      'then the title color is grayMid (greyed out even when selected)',
-      (tester) async {
-        await _pumpTile(
-          tester,
-          issue: _cooldownIssue(title: 'Cool Title'),
-          isSelectionMode: true,
-          isSelected: true,
-        );
-        final titleText = tester.widget<Text>(find.text('Cool Title'));
-        expect(
-          titleText.style?.color,
-          AppTheme.grayMid,
-          reason: 'Selected cooldown tile title must remain greyed out.',
+          reason: 'Selected tile must use grayDark for contrast.',
         );
       },
     );
@@ -489,7 +432,7 @@ void main() {
 
         await _pumpTile(
           tester,
-          issue: _sendableIssue(),
+          issue: _issue(),
           isSelectionMode: true,
           isSelected: true,
           onToggleSelect: () => toggleCount++,
@@ -513,7 +456,7 @@ void main() {
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a'), _sendableIssue(id: 'b')],
+          issues: [_issue(id: 'a'), _issue(id: 'b')],
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -532,7 +475,7 @@ void main() {
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a'), _sendableIssue(id: 'b')],
+          issues: [_issue(id: 'a'), _issue(id: 'b')],
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -551,7 +494,7 @@ void main() {
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a')],
+          issues: [_issue(id: 'a')],
         );
 
         // Enter selection mode.
@@ -578,8 +521,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -608,8 +551,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -638,8 +581,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -673,9 +616,9 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
-            _sendableIssue(id: 'c'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
+            _issue(id: 'c'),
           ],
         );
 
@@ -701,9 +644,9 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
-            _sendableIssue(id: 'c'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
+            _issue(id: 'c'),
           ],
         );
 
@@ -736,7 +679,7 @@ void main() {
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a'), _sendableIssue(id: 'b')],
+          issues: [_issue(id: 'a'), _issue(id: 'b')],
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -757,12 +700,12 @@ void main() {
   group('Group E — Send button: enabled/disabled rules', () {
     testWidgets(
       'Given the user is NOT the Shopping assignee, '
-      'when any sendable issue is selected, '
+      'when an issue is selected, '
       'then the Send button is disabled',
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a')],
+          issues: [_issue(id: 'a')],
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
@@ -778,35 +721,12 @@ void main() {
 
     testWidgets(
       'Given the user IS the Shopping assignee '
-      'but no sendable issue is selected, '
-      'then the Send button is disabled',
-      (tester) async {
-        // Only a cooldown issue in the list — it cannot be sent.
-        await _pumpHarness(
-          tester,
-          issues: [_cooldownIssue(id: 'cool')],
-          isShoppingAssignee: true,
-        );
-
-        await tester.longPress(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(
-          _buttonEnabled(tester, const Key('send-btn')),
-          isFalse,
-          reason: 'Cooldown issues must not satisfy the "at least one sendable" requirement.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Given the user IS the Shopping assignee '
-      'AND a sendable issue is selected, '
+      'AND an issue is selected, '
       'then the Send button is enabled',
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a')],
+          issues: [_issue(id: 'a')],
           isShoppingAssignee: true,
         );
 
@@ -821,63 +741,25 @@ void main() {
     );
 
     testWidgets(
-      'Given the Shopping assignee is in selection mode '
-      'with a cooldown issue selected AND a sendable issue selected, '
-      'then the Send button is enabled (sendable count > 0)',
+      'Given the Shopping assignee with one issue selected, '
+      'when that issue is deselected (last one — selection mode exits), '
+      'then the Send button is no longer in the tree',
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [
-            _sendableIssue(id: 'a'),
-            _cooldownIssue(id: 'cool'),
-          ],
+          issues: [_issue(id: 'a')],
           isShoppingAssignee: true,
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
         await tester.pump();
+        expect(_buttonEnabled(tester, const Key('send-btn')), isTrue);
 
-        // Also select the cooldown issue.
-        await tester.tap(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(
-          _buttonEnabled(tester, const Key('send-btn')),
-          isTrue,
-          reason: 'Having at least one sendable selected enables Send.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Given the Shopping assignee with a sendable issue selected, '
-      'when the sendable issue is deselected, '
-      'then the Send button becomes disabled',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [
-            _sendableIssue(id: 'a'),
-            _cooldownIssue(id: 'cool'),
-          ],
-          isShoppingAssignee: true,
-        );
-
-        // Select both.
-        await tester.longPress(find.byKey(const Key('tile-a')));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        // Deselect the sendable one.
+        // Deselect — selection mode exits when the last item is deselected.
         await tester.tap(find.byKey(const Key('tile-a')));
         await tester.pump();
 
-        expect(
-          _buttonEnabled(tester, const Key('send-btn')),
-          isFalse,
-          reason: 'Only a cooldown issue remains selected — Send must be disabled.',
-        );
+        expect(find.byKey(const Key('send-btn')), findsNothing);
       },
     );
   });
@@ -895,8 +777,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -909,7 +791,6 @@ void main() {
         await tester.tap(find.byKey(const Key('tile-a')));
         await tester.pump();
 
-        // Only b is selected — Resolved must be enabled (not this test's concern).
         // Now deselect b too.
         await tester.tap(find.byKey(const Key('tile-b')));
         await tester.pump();
@@ -920,64 +801,19 @@ void main() {
     );
 
     testWidgets(
-      'Given selection mode with a sendable issue selected, '
+      'Given selection mode with one issue selected, '
       'when the action bar is rendered, '
       'then the Resolved button is enabled',
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a')],
+          issues: [_issue(id: 'a')],
         );
 
         await tester.longPress(find.byKey(const Key('tile-a')));
         await tester.pump();
 
         expect(_buttonEnabled(tester, const Key('resolve-btn')), isTrue);
-      },
-    );
-
-    testWidgets(
-      'Given selection mode with a cooldown issue selected, '
-      'when the action bar is rendered, '
-      'then the Resolved button is enabled '
-      '(resolved works on any issue regardless of cooldown)',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [_cooldownIssue(id: 'cool')],
-        );
-
-        await tester.longPress(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(
-          _buttonEnabled(tester, const Key('resolve-btn')),
-          isTrue,
-          reason: 'Resolved must be enabled for cooldown issues too.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Given a mix of cooldown and sendable issues all selected, '
-      'when the action bar is rendered, '
-      'then both Resolved is enabled and Send is disabled (non-Shopping user)',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [
-            _sendableIssue(id: 'a'),
-            _cooldownIssue(id: 'cool'),
-          ],
-        );
-
-        await tester.longPress(find.byKey(const Key('tile-a')));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(_buttonEnabled(tester, const Key('resolve-btn')), isTrue);
-        expect(_buttonEnabled(tester, const Key('send-btn')), isFalse);
       },
     );
   });
@@ -992,8 +828,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -1021,9 +857,9 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
-            _sendableIssue(id: 'c'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
+            _issue(id: 'c'),
           ],
         );
 
@@ -1045,102 +881,14 @@ void main() {
     );
 
     testWidgets(
-      'Weird interleave: Shopping assignee selects sendable issue — '
-      'Send is enabled; user deselects the sendable but cooldown remains selected '
-      '— Send must flip to disabled while Resolved stays enabled',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [
-            _sendableIssue(id: 'a'),
-            _cooldownIssue(id: 'cool'),
-          ],
-          isShoppingAssignee: true,
-        );
-
-        // Select a (sendable).
-        await tester.longPress(find.byKey(const Key('tile-a')));
-        await tester.pump();
-
-        expect(_buttonEnabled(tester, const Key('send-btn')), isTrue);
-        expect(_buttonEnabled(tester, const Key('resolve-btn')), isTrue);
-
-        // Also select the cooldown issue.
-        await tester.tap(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(_buttonEnabled(tester, const Key('send-btn')), isTrue);
-
-        // Deselect the sendable (a) — only cooldown left.
-        await tester.tap(find.byKey(const Key('tile-a')));
-        await tester.pump();
-
-        expect(
-          _buttonEnabled(tester, const Key('send-btn')),
-          isFalse,
-          reason: 'No sendable selected → Send must be disabled.',
-        );
-        expect(
-          _buttonEnabled(tester, const Key('resolve-btn')),
-          isTrue,
-          reason: 'Cooldown issue still selected → Resolved stays enabled.',
-        );
-      },
-    );
-
-    testWidgets(
-      'Weird interleave: non-Shopping user selects all (mix) — '
-      'Send is always disabled; Resolved is enabled',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
-            _cooldownIssue(id: 'cool'),
-          ],
-        );
-
-        await tester.longPress(find.byKey(const Key('tile-a')));
-        await tester.pump();
-        await tester.tap(find.byKey(const Key('select-all')));
-        await tester.pump();
-
-        expect(_buttonEnabled(tester, const Key('send-btn')), isFalse);
-        expect(_buttonEnabled(tester, const Key('resolve-btn')), isTrue);
-      },
-    );
-
-    testWidgets(
-      'Weird interleave: long-press a cooldown issue first (non-Shopping user) — '
-      'Send disabled, Resolved enabled, cooldown checkbox filled',
-      (tester) async {
-        await _pumpHarness(
-          tester,
-          issues: [
-            _cooldownIssue(id: 'cool'),
-            _sendableIssue(id: 'a'),
-          ],
-        );
-
-        await tester.longPress(find.byKey(const Key('tile-cool')));
-        await tester.pump();
-
-        expect(find.byIcon(Icons.check_box), findsOneWidget);
-        expect(_buttonEnabled(tester, const Key('send-btn')), isFalse);
-        expect(_buttonEnabled(tester, const Key('resolve-btn')), isTrue);
-      },
-    );
-
-    testWidgets(
       'Weird interleave: two rapid long-presses on different issues '
       'both end up selected',
       (tester) async {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -1164,8 +912,8 @@ void main() {
         await _pumpHarness(
           tester,
           issues: [
-            _sendableIssue(id: 'a'),
-            _sendableIssue(id: 'b'),
+            _issue(id: 'a'),
+            _issue(id: 'b'),
           ],
         );
 
@@ -1193,7 +941,7 @@ void main() {
       (tester) async {
         await _pumpHarness(
           tester,
-          issues: [_sendableIssue(id: 'a')],
+          issues: [_issue(id: 'a')],
           isShoppingAssignee: true,
         );
 

@@ -204,7 +204,6 @@ A list of issues to be sent to Livit, on a separate tab.
 - Members can select individual issues or all at once, then tap a mail button which opens their email client pre-addressed to `studentvillage@ch.issworld.com`.
 - Email boilerplate: the app randomly selects one of 3 pre-written German-language templates (to avoid repetitive emails to the landlord). Each template includes a polite greeting, a reference to the flat (HWB 33), and placeholder bullet points that are replaced with the selected issues. All templates share the subject line: **"Mängelmeldung für die Wohnung HWB 33"**. See `email_templates/issue_template_1.txt`, `email_templates/issue_template_2.txt`, and `email_templates/issue_template_3.txt`.
 - Only the member currently assigned to the **Shopping** task (which includes "& report to @Livit") can trigger the send.
-- To avoid spamming: each issue can only be sent once every 5 days. The cooldown is tracked per issue via a `last_sent_at` timestamp. Issues still on cooldown are visually greyed out and cannot be selected for sending.
 
 ## UI/UX
 
@@ -389,8 +388,7 @@ Collection: flats/{flatId}/issues
         ├── title: String
         ├── description: String
         ├── created_by: String                    // user ID
-        ├── created_at: Timestamp
-        └── last_sent_at: Timestamp?              // null if never sent; cooldown of 5 days
+        └── created_at: Timestamp
 ```
 
 ### App Settings
