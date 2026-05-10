@@ -42,22 +42,28 @@ class _TasksBody extends StatefulWidget {
 
 class _TasksBodyState extends State<_TasksBody> {
   var _cachedFlatId = '';
+  var _cachedUid = '';
   Stream<List<Task>>? _tasksStream;
   Stream<List<Person>>? _membersStream;
+  Stream<List<SwapRequest>>? _outgoingSwapStream;
 
   /// Only recreates Firestore streams when the flat ID actually changes.
   /// Without this, every FlatProvider.notifyListeners() (e.g. when _flat or
   /// _currentPerson arrives from Firestore) rebuilds this widget and creates
   /// a new stream object, causing StreamBuilder to reset and briefly flash
   /// "No tasks yet."
-  void _updateStreamsIfNeeded(String flatId) {
-    if (flatId == _cachedFlatId) {
+  void _updateStreamsIfNeeded(String flatId, String uid) {
+    if (flatId == _cachedFlatId && uid == _cachedUid) {
       return;
     }
     _cachedFlatId = flatId;
-    _tasksStream = flatId.isEmpty ? null : TaskRepository().watchTasks(flatId);
+    _cachedUid    = uid;
+    _tasksStream  = flatId.isEmpty ? null : TaskRepository().watchTasks(flatId);
     _membersStream =
         flatId.isEmpty ? null : PersonRepository().watchMembers(flatId);
+    _outgoingSwapStream = (flatId.isEmpty || uid.isEmpty)
+        ? null
+        : SwapRequestRepository().watchOutgoingPendingRequests(flatId, uid);
   }
 
   @override
@@ -69,7 +75,7 @@ class _TasksBodyState extends State<_TasksBody> {
     final currentUid    = currentPerson?.uid ?? '';
     final theme         = Theme.of(context);
 
-    _updateStreamsIfNeeded(flatId);
+    _updateStreamsIfNeeded(flatId, currentUid);
 
     // Flat document hasn't arrived from Firestore yet — show a spinner rather
     // than an empty AppBar that blends into the background (both share bgLight).
@@ -97,67 +103,77 @@ class _TasksBodyState extends State<_TasksBody> {
           ),
         ],
       ),
-      body: StreamBuilder<List<Task>>(
-        stream: _tasksStream,
-        builder: (ctx, taskSnap) {
-          if (taskSnap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          // Put the current user's task first; preserve original ring order for the rest.
-          final rawTasks = taskSnap.data ?? [];
-          final tasks = [
-            ...rawTasks.where((t) => t.assignedTo == currentUid),
-            ...rawTasks.where((t) => t.assignedTo != currentUid),
-          ];
-          if (tasks.isEmpty) {
-            return Center(
-              child: Text(
-                'No tasks yet.',
-                style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.grayMid),
-              ),
-            );
-          }
+      // Wrap the body in a StreamBuilder for outgoing swap requests so we
+      // can disable swap buttons on every card while a request is pending.
+      body: StreamBuilder<List<SwapRequest>>(
+        stream: _outgoingSwapStream,
+        builder: (ctx, outSnap) {
+          final hasOutgoing = outSnap.data?.isNotEmpty ?? false;
 
-          // Whether the current user has already completed their own task.
-          final myTaskDone = rawTasks.any(
-            (t) => t.assignedTo == currentUid && t.state == TaskState.completed,
-          );
-
-          // Fetch all members for name + vacation-status resolution.
-          return StreamBuilder<List<Person>>(
-            stream: _membersStream,
-            builder: (ctx, memberSnap) {
-              final memberMap = <String, Person>{};
-              for (final m in memberSnap.data ?? <Person>[]) {
-                memberMap[m.uid] = m;
+          return StreamBuilder<List<Task>>(
+            stream: _tasksStream,
+            builder: (ctx, taskSnap) {
+              if (taskSnap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              // Put the current user's task first; preserve original ring order for the rest.
+              final rawTasks = taskSnap.data ?? [];
+              final tasks = [
+                ...rawTasks.where((t) => t.assignedTo == currentUid),
+                ...rawTasks.where((t) => t.assignedTo != currentUid),
+              ];
+              if (tasks.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No tasks yet.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.grayMid),
+                  ),
+                );
               }
 
-              return RefreshIndicator(
-                onRefresh: () async {},
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
-                  itemCount: tasks.length,
-                  itemBuilder: (ctx, i) {
-                    final task           = tasks[i];
-                    final assigneePerson = memberMap[task.assignedTo];
-                    final assigneeName   = assigneePerson?.name ?? '';
-                    final isOwner        = task.assignedTo == currentUid;
+              // Whether the current user has already completed their own task.
+              final myTaskDone = rawTasks.any(
+                (t) => t.assignedTo == currentUid && t.state == TaskState.completed,
+              );
 
-                    return TaskCard(
-                      task: task,
-                      assigneeName: assigneeName,
-                      isCurrentUserAssignee: isOwner,
-                      currentPerson: currentPerson,
-                      assigneePerson: assigneePerson,
-                      currentUserTaskDone: myTaskDone,
-                      onComplete: () => _completeTask(ctx, flatId, task),
-                      onVacation: () => _markVacation(ctx, flatId, currentUid),
-                      onRequestSwap: ({required isImmediate}) => _requestSwap(
-                          ctx, flatId, task, currentPerson?.uid ?? '',
-                          isImmediate: isImmediate),
-                    );
-                  },
-                ),
+              // Fetch all members for name + vacation-status resolution.
+              return StreamBuilder<List<Person>>(
+                stream: _membersStream,
+                builder: (ctx, memberSnap) {
+                  final memberMap = <String, Person>{};
+                  for (final m in memberSnap.data ?? <Person>[]) {
+                    memberMap[m.uid] = m;
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async {},
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                      itemCount: tasks.length,
+                      itemBuilder: (ctx, i) {
+                        final task           = tasks[i];
+                        final assigneePerson = memberMap[task.assignedTo];
+                        final assigneeName   = assigneePerson?.name ?? '';
+                        final isOwner        = task.assignedTo == currentUid;
+
+                        return TaskCard(
+                          task: task,
+                          assigneeName: assigneeName,
+                          isCurrentUserAssignee: isOwner,
+                          currentPerson: currentPerson,
+                          assigneePerson: assigneePerson,
+                          currentUserTaskDone: myTaskDone,
+                          hasOutgoingSwapRequest: hasOutgoing,
+                          onComplete: () => _completeTask(ctx, flatId, task),
+                          onVacation: () => _markVacation(ctx, flatId, currentUid),
+                          onRequestSwap: ({required isImmediate}) => _requestSwap(
+                              ctx, flatId, task, currentPerson?.uid ?? '',
+                              isImmediate: isImmediate),
+                        );
+                      },
+                    ),
+                  );
+                },
               );
             },
           );
@@ -293,7 +309,14 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
   late Stream<List<Person>>          _membersStream;
   late Stream<List<Task>>            _tasksStream;
   late Stream<List<SwapRequest>>     _swapStream;
+  late Stream<List<SwapRequest>>     _outgoingSwapStream;
   late Stream<List<AppNotification>> _notifStream;
+
+  // Caches updated on each StreamBuilder rebuild so the panel-opening
+  // callback can resolve names/UIDs without subscribing to the streams again.
+  Map<String, String> _memberNameMap     = const {};
+  Map<String, String> _taskNameMap       = const {};
+  Map<String, String> _taskAssigneeUidMap = const {};
 
   @override
   void initState() {
@@ -302,36 +325,209 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
     _tasksStream   = TaskRepository().watchTasks(widget.flatId);
     _swapStream    = SwapRequestRepository()
         .watchPendingRequestsForUser(widget.flatId, widget.currentUid);
+    _outgoingSwapStream = SwapRequestRepository()
+        .watchOutgoingPendingRequests(widget.flatId, widget.currentUid);
     _notifStream   = NotificationRepository()
         .watchNotificationsForUser(widget.flatId, widget.currentUid);
   }
 
+  // ── Orchestration ───────────────────────────────────────────────────────────
+
+  /// Handles Accept / Reject on an incoming swap-request tile.  Performs the
+  /// Firestore writes (status update + task swap on accept), notifies the
+  /// requester of the outcome, and on accept auto-rejects every other pending
+  /// request targeting the same task plus notifies each affected requester.
+  Future<void> _handleSwapResponse(
+    SwapRequest request,
+    SwapRequestStatus response,
+  ) async {
+    final swapRepo  = SwapRequestRepository();
+    final responderName = widget.currentPersonName;
+    final accepted = response == SwapRequestStatus.accepted;
+
+    // 1. Apply the response in Firestore (status update + task swap on accept).
+    await swapRepo.respondToSwapRequest(widget.flatId, request, response);
+
+    // 2. Notify the requester of the outcome (in-app + FCM push fire-and-forget).
+    unawaited(_notifyRequesterOutcome(
+      requesterUid: request.requesterUid,
+      responderName: responderName,
+      accepted: accepted,
+    ));
+
+    // 3. On accept, auto-decline every other pending request for the same
+    //    target task and notify each affected requester individually.
+    if (accepted) {
+      final rejectedUids = await swapRepo.declineAllOtherPendingForTarget(
+        widget.flatId,
+        request.targetTaskId,
+        request.id,
+      );
+      for (final uid in rejectedUids) {
+        unawaited(_notifyRequesterOutcome(
+          requesterUid: uid,
+          responderName: responderName,
+          accepted: false,
+        ));
+      }
+    }
+  }
+
+  /// Writes the outcome notification to the requester's notifications
+  /// subcollection AND fires the Cloud Function for an FCM push.
+  Future<void> _notifyRequesterOutcome({
+    required String requesterUid,
+    required String responderName,
+    required bool accepted,
+  }) async {
+    final notifRepo = NotificationRepository();
+    final type  = accepted ? notifTypeSwapAccepted : notifTypeSwapRejected;
+    final title = accepted ? notifTitleSwapAccepted : notifTitleSwapRejected;
+    final tpl   = accepted
+        ? notifBodySwapAcceptedTemplate
+        : notifBodySwapRejectedTemplate;
+    final body  = tpl.replaceFirst('{name}', responderName);
+
+    try {
+      await notifRepo.writeNotification(
+        widget.flatId,
+        requesterUid,
+        type:  type,
+        title: title,
+        body:  body,
+      );
+    } on Exception catch (e) {
+      debugPrint('writeNotification failed (response outcome): $e');
+    }
+    // Fire-and-forget FCM push.
+    unawaited(
+      FirebaseFunctions.instance
+          .httpsCallable(callableNotifySwapResponse)
+          .call<Map<String, dynamic>>({
+            'flatId':        widget.flatId,
+            'requesterUid':  requesterUid,
+            'responderName': responderName,
+            'accepted':      accepted,
+          }),
+    );
+  }
+
+  /// Handles Withdraw on an outgoing swap-request tile.  Deletes the swap
+  /// request document (B's incoming-tile stream auto-removes it) and notifies
+  /// the target person.
+  Future<void> _handleSwapWithdraw(SwapRequest request) async {
+    final swapRepo  = SwapRequestRepository();
+    final notifRepo = NotificationRepository();
+
+    // 1. Delete the swap request document.
+    await swapRepo.withdrawSwapRequest(widget.flatId, request.id);
+
+    // 2. Resolve the target person UID from the cached task→assignee map.
+    final targetUid = _taskAssigneeUidMap[request.targetTaskId] ?? '';
+    if (targetUid.isEmpty) {
+      return;
+    }
+
+    // 3. Write in-app notification to the target.
+    final body = notifBodySwapWithdrawnTemplate
+        .replaceFirst('{name}', widget.currentPersonName);
+    try {
+      await notifRepo.writeNotification(
+        widget.flatId,
+        targetUid,
+        type:  notifTypeSwapWithdrawn,
+        title: notifTitleSwapWithdrawn,
+        body:  body,
+      );
+    } on Exception catch (e) {
+      debugPrint('writeNotification failed (withdraw): $e');
+    }
+
+    // 4. Fire-and-forget FCM push.
+    unawaited(
+      FirebaseFunctions.instance
+          .httpsCallable(callableNotifySwapWithdrawn)
+          .call<Map<String, dynamic>>({
+            'flatId':        widget.flatId,
+            'targetUid':     targetUid,
+            'requesterName': widget.currentPersonName,
+          }),
+    );
+  }
+
+  /// Dismisses (deletes) a single in-app notification.
+  Future<void> _handleDismiss(AppNotification notif) =>
+      NotificationRepository().dismissNotification(
+        widget.flatId,
+        widget.currentUid,
+        notif.id,
+      );
+
+  void _openPanel(BuildContext context) {
+    NotificationPanel.show(
+      context,
+      requestStream:         _swapStream,
+      outgoingRequestStream: _outgoingSwapStream,
+      notifStream:           _notifStream,
+      getRequesterName:      (uid)    => _memberNameMap[uid]    ?? uid,
+      getRequesterTaskName:  (taskId) => _taskNameMap[taskId]   ?? taskId,
+      getTargetPersonName:   (taskId) {
+        final assigneeUid = _taskAssigneeUidMap[taskId] ?? '';
+        return _memberNameMap[assigneeUid] ?? assigneeUid;
+      },
+      onRespond:  _handleSwapResponse,
+      onWithdraw: _handleSwapWithdraw,
+      onDismiss:  _handleDismiss,
+    );
+  }
+
   @override
-  Widget build(BuildContext context) =>
-      // Stream members and tasks so we can resolve IDs to display names in
-      // the panel without re-creating Firestore listeners on each rebuild.
-      StreamBuilder<List<Person>>(
-        stream: _membersStream,
-        builder: (ctx, memberSnap) {
-          final memberMap = <String, String>{};
-          for (final m in (memberSnap.data ?? <Person>[])) {
-            memberMap[m.uid] = m.name.isNotEmpty ? m.name : m.email;
-          }
+  Widget build(BuildContext context) {
+    // Honour the FCM-tap intent: open the panel post-frame and clear the flag.
+    final flatProvider = context.watch<FlatProvider>();
+    if (flatProvider.shouldOpenNotificationPanel) {
+      flatProvider.clearNotificationPanelRequest();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openPanel(context);
+        }
+      });
+    }
 
-          return StreamBuilder<List<Task>>(
-            stream: _tasksStream,
-            builder: (ctx, taskSnap) {
-              final taskMap = <String, String>{};
-              for (final t in (taskSnap.data ?? <Task>[])) {
-                taskMap[t.id] = t.name;
-              }
+    // Stream members and tasks so we can resolve IDs to display names in
+    // the panel without re-creating Firestore listeners on each rebuild.
+    return StreamBuilder<List<Person>>(
+      stream: _membersStream,
+      builder: (ctx, memberSnap) {
+        final memberMap = <String, String>{};
+        for (final m in (memberSnap.data ?? <Person>[])) {
+          memberMap[m.uid] = m.name.isNotEmpty ? m.name : m.email;
+        }
+        _memberNameMap = memberMap;
 
-              return StreamBuilder<List<SwapRequest>>(
-                stream: _swapStream,
-                builder: (ctx, swapSnap) => StreamBuilder<List<AppNotification>>(
+        return StreamBuilder<List<Task>>(
+          stream: _tasksStream,
+          builder: (ctx, taskSnap) {
+            final taskMap = <String, String>{};
+            final assigneeMap = <String, String>{};
+            for (final t in (taskSnap.data ?? <Task>[])) {
+              taskMap[t.id] = t.name;
+              assigneeMap[t.id] = t.assignedTo;
+            }
+            _taskNameMap = taskMap;
+            _taskAssigneeUidMap = assigneeMap;
+
+            return StreamBuilder<List<SwapRequest>>(
+              stream: _swapStream,
+              builder: (ctx, swapSnap) =>
+                  StreamBuilder<List<SwapRequest>>(
+                stream: _outgoingSwapStream,
+                builder: (ctx, outSnap) =>
+                    StreamBuilder<List<AppNotification>>(
                   stream: _notifStream,
                   builder: (ctx, notifSnap) {
                     final count = (swapSnap.data?.length ?? 0)
+                        + (outSnap.data?.length ?? 0)
                         + (notifSnap.data?.length ?? 0);
 
                     return Stack(
@@ -340,15 +536,7 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
                         IconButton(
                           icon: const Icon(Icons.notifications_outlined),
                           tooltip: labelNotifications,
-                          onPressed: () {
-                            NotificationPanel.show(
-                              ctx,
-                              flatId:               widget.flatId,
-                              currentUid:           widget.currentUid,
-                              getRequesterName:     (uid)    => memberMap[uid]    ?? uid,
-                              getRequesterTaskName: (taskId) => taskMap[taskId]   ?? taskId,
-                            );
-                          },
+                          onPressed: () => _openPanel(ctx),
                         ),
                         if (count > 0)
                           Positioned(
@@ -376,9 +564,11 @@ class _NotificationBadgeState extends State<_NotificationBadge> {
                     );
                   },
                 ),
-              );
-            },
-          );
-        },
-      );
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
