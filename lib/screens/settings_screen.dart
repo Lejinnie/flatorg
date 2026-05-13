@@ -302,8 +302,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               collapsedIconColor: AppTheme.destructiveRed,
               shape: const Border(),
               collapsedShape: const Border(),
+              childrenPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd),
               children: [
-                const SizedBox(height: AppTheme.spacingXs),
+                const SizedBox(height: AppTheme.spacingMd),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
