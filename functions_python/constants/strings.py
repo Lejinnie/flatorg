@@ -84,6 +84,7 @@ FIELD_SWAP_TARGET_TASK_ID = "target_task_id"
 FIELD_SWAP_REQUESTER_TASK_ID = "requester_task_id"
 FIELD_SWAP_STATUS = "status"
 FIELD_SWAP_CREATED_AT = "created_at"
+FIELD_SWAP_IS_VACATION_SWAP = "is_vacation_swap"
 
 # ── Task state values ─────────────────────────────────────────────────────────
 

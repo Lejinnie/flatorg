@@ -25,6 +25,9 @@ class SwapRequest:
     target_task_id: str
     status: SwapRequestStatus
     created_at: Any  # Firestore Timestamp
+    # True when the target person is on vacation — requester pays 1 token.
+    # False for a mutual non-vacation swap, which is free.
+    is_vacation_swap: bool = False
 
 
 def swap_request_from_firestore(doc_id: str, data: dict[str, Any]) -> SwapRequest:
@@ -36,4 +39,5 @@ def swap_request_from_firestore(doc_id: str, data: dict[str, Any]) -> SwapReques
         target_task_id=data.get("target_task_id", ""),
         status=SwapRequestStatus(data.get("status", SwapRequestStatus.Pending)),
         created_at=data.get("created_at"),
+        is_vacation_swap=data.get("is_vacation_swap", False),
     )
