@@ -129,7 +129,10 @@ Future<void> _handleRemoveMember({
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$snackRemoveMemberError: $e')),
+      SnackBar(
+        duration: const Duration(seconds: 3),
+        content: Text('$snackRemoveMemberError: $e'),
+      ),
     );
   }
 }
@@ -373,7 +376,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorDeleteAccountFailed)),
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          content: Text(errorDeleteAccountFailed),
+        ),
       );
       return;
     }
@@ -418,7 +424,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorDeleteAccountFailed)),
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          content: Text(errorDeleteAccountFailed),
+        ),
       );
       return;
     }
@@ -481,14 +490,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final deleted = await authProvider.deleteAccount();
       if (!deleted) {
         messenger.showSnackBar(
-          SnackBar(content: Text(authProvider.errorMessage)),
+          SnackBar(
+            duration: const Duration(seconds: 3),
+            content: Text(authProvider.errorMessage),
+          ),
         );
       }
       // Router detects isSignedIn == false and redirects to /login.
     } on Exception catch (e, stack) {
       debugPrint('ERROR: _confirmDeleteAccount failed: $e\n$stack');
       messenger.showSnackBar(
-        SnackBar(content: Text('$errorDeleteAccountFailed: $e')),
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          content: Text('$errorDeleteAccountFailed: $e'),
+        ),
       );
     }
   }
@@ -516,7 +531,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     unawaited(Clipboard.setData(ClipboardData(text: code)));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(inviteCodeCopied)),
+      const SnackBar(
+        duration: Duration(seconds: 3),
+        content: Text(inviteCodeCopied),
+      ),
     );
   }
 }
@@ -901,6 +919,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
       }
       messenger.showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 3),
           content: Text(
             isNewAssignment ? snackWeekResetSuccess : snackGracePeriodSuccess,
           ),
@@ -912,7 +931,10 @@ class _AdminSettingsState extends State<_AdminSettings> {
       }
       final base = isNewAssignment ? snackWeekResetError : snackGracePeriodError;
       messenger.showSnackBar(
-        SnackBar(content: Text('$base\n${e.code}: ${e.message}')),
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          content: Text('$base\n${e.code}: ${e.message}'),
+        ),
       );
     }
   }
@@ -928,7 +950,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(labelTransferAdminAlone)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(labelTransferAdminAlone)),
       );
       return;
     }
@@ -1103,7 +1125,7 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     super.dispose();
   }
 
-  Future<void> _pickDueDate() async {
+  Future<void> _pickDate() async {
     final date = await showDatePicker(
       context: context,
       initialDate: _dueDate,
@@ -1113,6 +1135,14 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     if (date == null || !mounted) {
       return;
     }
+    setState(() {
+      _dueDate = DateTime(
+        date.year, date.month, date.day, _dueDate.hour, _dueDate.minute,
+      );
+    });
+  }
+
+  Future<void> _pickTime() async {
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_dueDate),
@@ -1122,7 +1152,7 @@ class _TaskEditTileState extends State<_TaskEditTile> {
     }
     setState(() {
       _dueDate = DateTime(
-        date.year, date.month, date.day, time.hour, time.minute,
+        _dueDate.year, _dueDate.month, _dueDate.day, time.hour, time.minute,
       );
     });
   }
@@ -1186,7 +1216,7 @@ class _TaskEditTileState extends State<_TaskEditTile> {
         message = '"$savedTaskName" ($oldName → $newName)';
       }
 
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.showSnackBar(SnackBar(duration: const Duration(seconds: 3), content: Text(message)));
       setState(() => _expanded = false);
     }
   }
@@ -1194,7 +1224,8 @@ class _TaskEditTileState extends State<_TaskEditTile> {
   @override
   Widget build(BuildContext context) {
     final theme  = Theme.of(context);
-    final dueFmt = DateFormat('d MMM yyyy, HH:mm').format(_dueDate);
+    final dateFmt = DateFormat('d MMM yyyy').format(_dueDate);
+    final timeFmt = DateFormat('HH:mm').format(_dueDate);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
@@ -1267,14 +1298,34 @@ class _TaskEditTileState extends State<_TaskEditTile> {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
-                  InkWell(
-                    onTap: _pickDueDate,
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        suffixIcon: Icon(Icons.calendar_today, size: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickDate,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              suffixIcon: Icon(Icons.calendar_today, size: 18),
+                            ),
+                            child: Text(dateFmt,
+                                style: theme.textTheme.bodyMedium),
+                          ),
+                        ),
                       ),
-                      child: Text(dueFmt, style: theme.textTheme.bodyMedium),
-                    ),
+                      const SizedBox(width: AppTheme.spacingSm),
+                      Expanded(
+                        child: InkWell(
+                          onTap: _pickTime,
+                          child: InputDecorator(
+                            decoration: const InputDecoration(
+                              suffixIcon: Icon(Icons.access_time, size: 18),
+                            ),
+                            child: Text(timeFmt,
+                                style: theme.textTheme.bodyMedium),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppTheme.spacingSm),
 

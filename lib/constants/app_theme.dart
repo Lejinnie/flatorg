@@ -218,6 +218,9 @@ class AppTheme {
         ),
       ),
       dividerTheme: const DividerThemeData(color: grayLight, space: 1),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: bgLight,
         selectedItemColor: featureColor,
@@ -311,6 +314,9 @@ class AppTheme {
         ),
       ),
       dividerTheme: const DividerThemeData(color: grayMid, space: 1),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+      ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: bgDark,
         selectedItemColor: featureColorDark,

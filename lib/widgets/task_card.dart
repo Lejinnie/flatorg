@@ -344,7 +344,7 @@ class _TaskCardState extends State<TaskCard> {
       // Roll back to the previous state before the network error.
       setState(() => _optimisticTask = null);
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorCompleteTaskFailed)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorCompleteTaskFailed)),
       );
     } finally {
       if (mounted) {
@@ -388,7 +388,7 @@ class _TaskCardState extends State<TaskCard> {
         _optimisticCurrentPerson  = null;
       });
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorVacationFailed)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorVacationFailed)),
       );
     } finally {
       if (mounted) {
@@ -435,7 +435,7 @@ class _TaskCardState extends State<TaskCard> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorSwapFailed)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorSwapFailed)),
       );
     } finally {
       if (mounted) {

@@ -288,7 +288,7 @@ class _IssuesBodyState extends State<_IssuesBody> {
     if (!launched) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(errorNoEmailClient)),
+          const SnackBar(duration: Duration(seconds: 3), content: Text(errorNoEmailClient)),
         );
       }
       return;

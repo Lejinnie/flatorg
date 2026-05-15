@@ -179,7 +179,7 @@ class _AccountSheet extends StatelessWidget {
     final deleted = await authProvider.deleteAccount();
     if (!deleted) {
       messenger.showSnackBar(
-        SnackBar(content: Text(authProvider.errorMessage)),
+        SnackBar(duration: const Duration(seconds: 3), content: Text(authProvider.errorMessage)),
       );
     }
     // Router detects isSignedIn == false and redirects to /login.

@@ -124,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 3),
           content: Text(success ? resetLinkSent : auth.errorMessage),
           backgroundColor: success ? AppTheme.featureColor : AppTheme.stateNotDone,
         ),
@@ -152,6 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        duration: const Duration(seconds: 3),
         content: Text(message),
         backgroundColor: AppTheme.stateNotDone,
       ),
