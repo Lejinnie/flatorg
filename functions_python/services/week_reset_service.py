@@ -195,9 +195,13 @@ class WeekResetService:
         return str(swap_ref.id)
 
     def accept_swap(self, flat_id: str, swap_request_id: str) -> None:
-        """Accept a swap request: swap assigned_to on both tasks, deduct 1 token.
+        """Accept a swap request: swap assigned_to on both tasks.
 
-        Raises ValueError when the request is not Pending or the requester has no tokens.
+        Only deducts a token when is_vacation_swap is True (requester takes a
+        vacation person's slot).  Mutual non-vacation swaps are free.
+
+        Raises ValueError when the request is not Pending or the requester has
+        no tokens on a vacation swap.
         """
         from google.cloud.firestore_v1.transaction import transactional
 
@@ -215,10 +219,6 @@ class WeekResetService:
 
             if swap.status != SwapRequestStatus.Pending:
                 raise ValueError(ERROR_SWAP_NOT_PENDING)
-
-            requester = self._person_repo.get_member(flat_id, swap.requester_uid)
-            if requester.swap_tokens_remaining <= 0:
-                raise ValueError(ERROR_INSUFFICIENT_SWAP_TOKENS)
 
             requester_task = self._task_repo.get_task_in_transaction(flat_id, swap.requester_task_id, transaction)
             target_task = self._task_repo.get_task_in_transaction(flat_id, swap.target_task_id, transaction)
@@ -241,12 +241,19 @@ class WeekResetService:
                 },
                 transaction,
             )
-            self._person_repo.update_member_in_transaction(
-                flat_id,
-                swap.requester_uid,
-                {"swap_tokens_remaining": requester.swap_tokens_remaining - 1},
-                transaction,
-            )
+
+            # Only vacation swaps cost 1 token; mutual non-vacation swaps are free.
+            if swap.is_vacation_swap:
+                requester = self._person_repo.get_member(flat_id, swap.requester_uid)
+                if requester.swap_tokens_remaining <= 0:
+                    raise ValueError(ERROR_INSUFFICIENT_SWAP_TOKENS)
+                self._person_repo.update_member_in_transaction(
+                    flat_id,
+                    swap.requester_uid,
+                    {"swap_tokens_remaining": requester.swap_tokens_remaining - 1},
+                    transaction,
+                )
+
             transaction.update(swap_ref, {"status": SwapRequestStatus.Accepted.value})
 
         _run(self._db.transaction())

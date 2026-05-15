@@ -16,13 +16,13 @@ class EthSemesterCalendar:
     """Static methods for ETH Zurich semester boundary calculations."""
 
     # First ISO week of the Autumn Semester (Herbstsemester).
-    _HS_START_WEEK: int = 38
+    HS_START_WEEK: int = 38
     # Last ISO week of the Autumn Semester.
-    _HS_END_WEEK: int = 51
+    HS_END_WEEK: int = 51
     # First ISO week of the Spring Semester (Frühjahrssemester).
-    _FS_START_WEEK: int = 8
+    FS_START_WEEK: int = 8
     # Last ISO week of the Spring Semester.
-    _FS_END_WEEK: int = 22
+    FS_END_WEEK: int = 22
 
     @staticmethod
     def iso_week_number(dt: datetime) -> int:
@@ -38,8 +38,8 @@ class EthSemesterCalendar:
         """Return True when the given datetime falls within an active ETH semester."""
         week = EthSemesterCalendar.iso_week_number(dt)
         return (
-            EthSemesterCalendar._HS_START_WEEK <= week <= EthSemesterCalendar._HS_END_WEEK
-            or EthSemesterCalendar._FS_START_WEEK <= week <= EthSemesterCalendar._FS_END_WEEK
+            EthSemesterCalendar.HS_START_WEEK <= week <= EthSemesterCalendar.HS_END_WEEK
+            or EthSemesterCalendar.FS_START_WEEK <= week <= EthSemesterCalendar.FS_END_WEEK
         )
 
     @staticmethod
@@ -61,10 +61,10 @@ class EthSemesterCalendar:
         week = EthSemesterCalendar.iso_week_number(dt)
         year = dt.year
 
-        if EthSemesterCalendar._HS_START_WEEK <= week <= EthSemesterCalendar._HS_END_WEEK:
-            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar._HS_START_WEEK)
-        if EthSemesterCalendar._FS_START_WEEK <= week <= EthSemesterCalendar._FS_END_WEEK:
-            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar._FS_START_WEEK)
+        if EthSemesterCalendar.HS_START_WEEK <= week <= EthSemesterCalendar.HS_END_WEEK:
+            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar.HS_START_WEEK)
+        if EthSemesterCalendar.FS_START_WEEK <= week <= EthSemesterCalendar.FS_END_WEEK:
+            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar.FS_START_WEEK)
         return None
 
     @staticmethod
@@ -80,12 +80,12 @@ class EthSemesterCalendar:
         year = dt.year
 
         # Currently in HS or after HS (weeks 38+) → next is FS in the following year
-        if week >= EthSemesterCalendar._HS_START_WEEK:
-            return EthSemesterCalendar._monday_of_iso_week(year + 1, EthSemesterCalendar._FS_START_WEEK)
+        if week >= EthSemesterCalendar.HS_START_WEEK:
+            return EthSemesterCalendar._monday_of_iso_week(year + 1, EthSemesterCalendar.FS_START_WEEK)
 
         # Between FS end and HS start (weeks 23–37) → next is HS this year
-        if week > EthSemesterCalendar._FS_END_WEEK:
-            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar._HS_START_WEEK)
+        if week > EthSemesterCalendar.FS_END_WEEK:
+            return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar.HS_START_WEEK)
 
         # Currently in FS or before FS (weeks 1–22) → next is HS this year
-        return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar._HS_START_WEEK)
+        return EthSemesterCalendar._monday_of_iso_week(year, EthSemesterCalendar.HS_START_WEEK)

@@ -3,8 +3,10 @@
 Resets swap_tokens_remaining to SWAP_TOKENS_PER_SEMESTER for every member
 across all flats at the start of each ETH semester.
 
-Schedule: "0 0 1 2,9 *" — midnight on 1st of February and September (UTC+1 Zurich).
-Running the reset slightly early is harmless — tokens are replenished idempotently.
+Schedule: "every monday 09:00" (Zurich time) — runs once per week.
+The handler only performs the reset on the exact ISO week that opens each
+semester (week 8 for FS, week 38 for HS), so the reset fires precisely on
+the first day of term rather than arbitrarily early.
 """
 
 from __future__ import annotations
@@ -23,13 +25,26 @@ from services.eth_semester_calendar import EthSemesterCalendar
 
 logger = logging.getLogger(__name__)
 
+_SEMESTER_START_WEEKS = frozenset(
+    {EthSemesterCalendar.FS_START_WEEK, EthSemesterCalendar.HS_START_WEEK}
+)
 
-@scheduler_fn.on_schedule(schedule="0 0 1 2,9 *", timezone=ZoneInfo("Europe/Zurich"))  # type: ignore[untyped-decorator]
+
+@scheduler_fn.on_schedule(  # type: ignore[untyped-decorator]
+    schedule="every monday 09:00",
+    timezone=ZoneInfo("Europe/Zurich"),
+)
 def token_reset_scheduled(_event: scheduler_fn.ScheduledEvent) -> None:
-    """Reset swap tokens at the start of each ETH semester."""
+    """Reset swap tokens on the Monday that opens each ETH semester.
+
+    Runs every Monday but only acts when the ISO week number matches the
+    first week of FS (week 8) or HS (week 38).  All other Mondays are
+    no-ops, so the reset fires exactly once per semester start.
+    """
     now = datetime.now(tz=UTC)
-    if not EthSemesterCalendar.is_in_semester(now):
-        logger.info("token_reset_scheduled: not in semester, skipping date=%s", now.isoformat())
+    week = EthSemesterCalendar.iso_week_number(now)
+    if week not in _SEMESTER_START_WEEKS:
+        logger.info("token_reset_scheduled: not semester start week=%d, skipping", week)
         return
 
     db = firestore.Client()
