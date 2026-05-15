@@ -288,13 +288,21 @@ class GreenL2Strategy(AssignmentStrategy):
                     assign_slot(ctx, free_l2[0], pair.person.uid)
 
 
-# ── Step 4: Red L3 ────────────────────────────────────────────────────────────
+# ── Step 6 (new): Red L3 ──────────────────────────────────────────────────────
 
 
 class RedL3Strategy(AssignmentStrategy):
-    """Red L3 people stay at L3.
+    """Red L3 people stay at L3, with forced rotation to prevent stagnation.
 
-    They take their same task if unassigned; otherwise any other free L3.
+    Runs AFTER Red L1 and Red L2 so those people can claim their punishment
+    slots first.  Red L2 scanning backward may have taken Red L3's own slot,
+    which naturally forces a rotation.  scan_forward_for_free_slot tries every
+    other L3 task before wrapping back to the person's own slot at offset 9,
+    so rotation is always attempted first.
+
+    Fallback: if all three L3 slots are taken (only possible when many Red L1
+    and Red L2 people were all promoted to L3 simultaneously), assign the
+    person to any remaining free slot to avoid leaving tasks vacant.
     """
 
     def execute(self, ctx: WeekResetContext) -> None:
@@ -302,14 +310,17 @@ class RedL3Strategy(AssignmentStrategy):
         red_l3 = [p for p in red if level_of_slot(p.task.ring_index) == TaskLevel.L3]
 
         for pair in red_l3:
-            if ctx.next_assignments[pair.task.ring_index] == "":
-                assign_slot(ctx, pair.task.ring_index, pair.person.uid)
+            # Forward scan from current position: tries every other L3 slot
+            # first (offsets 1–8) and only returns to own slot at offset 9.
+            target = scan_forward_for_free_slot(ctx, pair.task.ring_index, TaskLevel.L3)
+            if target != -1:
+                assign_slot(ctx, target, pair.person.uid)
             else:
-                free_l3 = free_slots_by_level(ctx, TaskLevel.L3)
-                if free_l3:
-                    assign_slot(ctx, free_l3[0], pair.person.uid)
-                # If no free L3 (all taken by Blue), the Red L3 person is left unassigned;
-                # a later catch-all step handles that edge case.
+                # All L3 slots claimed by Red L1/L2 promotions — extreme edge case.
+                # Fall back to any remaining free slot to keep every task assigned.
+                free_any = [i for i, uid in enumerate(ctx.next_assignments) if uid == ""]
+                if free_any:
+                    assign_slot(ctx, free_any[0], pair.person.uid)
 
 
 # ── Step 5: Red L2 ────────────────────────────────────────────────────────────

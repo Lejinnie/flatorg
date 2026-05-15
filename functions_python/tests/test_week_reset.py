@@ -157,11 +157,11 @@ class TestRedL1MovesUpToL2:
         assert p2_slot in L2_SLOTS
 
 
-# ── Scenario: Red L3 stays at L3 ─────────────────────────────────────────────
+# ── Scenario: Red L3 rotates to a different L3 ───────────────────────────────
 
 
-class TestRedL3StaysAtL3:
-    """Scenario: Red L3 person stays at L3."""
+class TestRedL3Rotates:
+    """Scenario: Red L3 person rotates to a different L3 task to prevent stagnation."""
 
     def test_failed_toilet_stays_at_l3(self) -> None:
         ids = [f"p{i}" for i in range(9)]
@@ -173,10 +173,12 @@ class TestRedL3StaysAtL3:
 
         assert result.index("p0") in L3_SLOTS
 
-    def test_red_l3_retains_same_task_when_still_free(self) -> None:
-        """Red L3 retains their same task when it is still free.
+    def test_red_l3_rotates_to_different_l3_when_other_slot_is_free(self) -> None:
+        """Red L3 rotates to a different L3 task rather than staying at Toilet.
 
-        Green L3s (p3, p6) scan forward past Toilet — leaving Toilet free for p0.
+        Green L3s (p3, p6) take L2 slots (forward scan), leaving all three
+        L3 slots free. p0 should pick Shower (next L3 forward) rather than
+        staying at Toilet, so the rotation prevents stagnation.
         """
         ids = [f"p{i}" for i in range(9)]
         task_states = dict.fromkeys(range(9), TaskState.Completed)
@@ -185,7 +187,9 @@ class TestRedL3StaysAtL3:
         tasks, persons = build_full_scenario(ids, task_states)
         result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
 
-        assert result[0] == "p0"
+        # p0 must be at L3, but NOT at their own Toilet slot.
+        assert result.index("p0") in L3_SLOTS
+        assert result[0] != "p0"
 
 
 # ── Scenario: Blue short vacation (protected) ────────────────────────────────

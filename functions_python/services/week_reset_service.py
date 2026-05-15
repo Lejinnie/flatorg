@@ -57,7 +57,7 @@ class WeekResetService:
       1. Blue short vacation (protected slots)
       2. Green L3 → L2/L1 (scan forward)
       3. Green L2 → L1 (scan forward)
-      4. Red L3 → stay L3
+      4. Red L3 → rotate to different L3 if possible, else own slot
       5. Red L2 → up to L3
       6. Red L1 → up to L2/L3
       7. Green L1 → fill remaining (shortest ring distance)
