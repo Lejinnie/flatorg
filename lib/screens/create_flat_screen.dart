@@ -171,9 +171,9 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 
   // ── Due-date picker ───────────────────────────────────────────────────────
 
-  Future<void> _pickDueDate(int index) async {
+  Future<void> _pickDate(int index) async {
     final entry = _taskEntries[index];
-    final date  = await showDatePicker(
+    final date = await showDatePicker(
       context: context,
       initialDate: entry.dueDate,
       firstDate: DateTime.now(),
@@ -182,7 +182,16 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
     if (date == null || !mounted) {
       return;
     }
+    setState(() {
+      _taskEntries[index].dueDate = DateTime(
+        date.year, date.month, date.day,
+        entry.dueDate.hour, entry.dueDate.minute,
+      );
+    });
+  }
 
+  Future<void> _pickTime(int index) async {
+    final entry = _taskEntries[index];
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(entry.dueDate),
@@ -190,14 +199,10 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
     if (time == null || !mounted) {
       return;
     }
-
     setState(() {
       _taskEntries[index].dueDate = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
+        entry.dueDate.year, entry.dueDate.month, entry.dueDate.day,
+        time.hour, time.minute,
       );
     });
   }
@@ -275,7 +280,8 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
 
   Widget _buildTaskEntry(BuildContext context, int index, _TaskEntry entry) {
     final theme     = Theme.of(context);
-    final dueFmt    = DateFormat('d MMM yyyy, HH:mm').format(entry.dueDate);
+    final dateFmt = DateFormat('d MMM yyyy').format(entry.dueDate);
+    final timeFmt = DateFormat('HH:mm').format(entry.dueDate);
     final canRemove = _taskEntries.length > 1;
 
     return Container(
@@ -347,15 +353,32 @@ class _CreateFlatScreenState extends State<CreateFlatScreen> {
             ),
           ),
           const SizedBox(height: AppTheme.spacingSm),
-          InkWell(
-            onTap: () => _pickDueDate(index),
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                hintText: hintDueDate,
-                suffixIcon: Icon(Icons.calendar_today, size: 18),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _pickDate(index),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      suffixIcon: Icon(Icons.calendar_today, size: 18),
+                    ),
+                    child: Text(dateFmt, style: theme.textTheme.bodyMedium),
+                  ),
+                ),
               ),
-              child: Text(dueFmt, style: theme.textTheme.bodyMedium),
-            ),
+              const SizedBox(width: AppTheme.spacingSm),
+              Expanded(
+                child: InkWell(
+                  onTap: () => _pickTime(index),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      suffixIcon: Icon(Icons.access_time, size: 18),
+                    ),
+                    child: Text(timeFmt, style: theme.textTheme.bodyMedium),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
