@@ -17,6 +17,7 @@ from constants.strings import (
     COLLECTION_SWAP_REQUESTS,
     ERROR_INSUFFICIENT_SWAP_TOKENS,
     ERROR_SWAP_NOT_PENDING,
+    ERROR_SWAP_TASK_VACANT,
     FIELD_FLAT_LAST_WEEK_RESET_AT,
     FIELD_NOTIF_TYPE,
     FIELD_TASK_DAY_BEFORE_REMINDER_SENT,
@@ -241,6 +242,9 @@ class WeekResetService:
 
             requester_task = self._task_repo.get_task_in_transaction(flat_id, swap.requester_task_id, transaction)
             target_task = self._task_repo.get_task_in_transaction(flat_id, swap.target_task_id, transaction)
+
+            if not requester_task.assigned_to or not target_task.assigned_to:
+                raise ValueError(ERROR_SWAP_TASK_VACANT)
 
             self._task_repo.update_task_in_transaction(
                 flat_id,
