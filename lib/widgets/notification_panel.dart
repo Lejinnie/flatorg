@@ -300,7 +300,7 @@ class _SwapRequestTileState extends State<_SwapRequestTile> {
       }
       setState(() => _responded = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorGeneric)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorGeneric)),
       );
     }
   }
@@ -394,7 +394,7 @@ class _OutgoingSwapRequestTileState extends State<_OutgoingSwapRequestTile> {
       }
       setState(() => _withdrawn = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorGeneric)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorGeneric)),
       );
     }
   }
@@ -477,7 +477,7 @@ class _AppNotificationTileState extends State<_AppNotificationTile> {
       }
       setState(() => _dismissed = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorGeneric)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(errorGeneric)),
       );
     }
   }

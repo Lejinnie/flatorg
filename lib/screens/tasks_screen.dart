@@ -235,7 +235,7 @@ class _TasksBodyState extends State<_TasksBody> {
     if (myTaskMatches.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(errorNoTaskAssigned)),
+          const SnackBar(duration: Duration(seconds: 3), content: Text(errorNoTaskAssigned)),
         );
       }
       return;

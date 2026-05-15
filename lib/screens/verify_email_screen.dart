@@ -73,6 +73,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   }
                   messenger.showSnackBar(
                     SnackBar(
+                      duration: const Duration(seconds: 3),
                       content: Text(error.isEmpty ? 'Verification email resent!' : error),
                       backgroundColor: error.isEmpty ? null : AppTheme.stateNotDone,
                     ),

@@ -129,7 +129,10 @@ Future<void> _handleRemoveMember({
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$snackRemoveMemberError: $e')),
+      SnackBar(
+        duration: const Duration(seconds: 3),
+        content: Text('$snackRemoveMemberError: $e'),
+      ),
     );
   }
 }
@@ -373,7 +376,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorDeleteAccountFailed)),
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          content: Text(errorDeleteAccountFailed),
+        ),
       );
       return;
     }
@@ -418,7 +424,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text(errorDeleteAccountFailed)),
+        const SnackBar(
+          duration: Duration(seconds: 3),
+          content: Text(errorDeleteAccountFailed),
+        ),
       );
       return;
     }
@@ -481,14 +490,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final deleted = await authProvider.deleteAccount();
       if (!deleted) {
         messenger.showSnackBar(
-          SnackBar(content: Text(authProvider.errorMessage)),
+          SnackBar(
+            duration: const Duration(seconds: 3),
+            content: Text(authProvider.errorMessage),
+          ),
         );
       }
       // Router detects isSignedIn == false and redirects to /login.
     } on Exception catch (e, stack) {
       debugPrint('ERROR: _confirmDeleteAccount failed: $e\n$stack');
       messenger.showSnackBar(
-        SnackBar(content: Text('$errorDeleteAccountFailed: $e')),
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          content: Text('$errorDeleteAccountFailed: $e'),
+        ),
       );
     }
   }
@@ -516,7 +531,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     unawaited(Clipboard.setData(ClipboardData(text: code)));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(inviteCodeCopied)),
+      const SnackBar(
+        duration: Duration(seconds: 3),
+        content: Text(inviteCodeCopied),
+      ),
     );
   }
 }
@@ -901,6 +919,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
       }
       messenger.showSnackBar(
         SnackBar(
+          duration: const Duration(seconds: 3),
           content: Text(
             isNewAssignment ? snackWeekResetSuccess : snackGracePeriodSuccess,
           ),
@@ -912,7 +931,10 @@ class _AdminSettingsState extends State<_AdminSettings> {
       }
       final base = isNewAssignment ? snackWeekResetError : snackGracePeriodError;
       messenger.showSnackBar(
-        SnackBar(content: Text('$base\n${e.code}: ${e.message}')),
+        SnackBar(
+          duration: const Duration(seconds: 3),
+          content: Text('$base\n${e.code}: ${e.message}'),
+        ),
       );
     }
   }
@@ -928,7 +950,7 @@ class _AdminSettingsState extends State<_AdminSettings> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(labelTransferAdminAlone)),
+        const SnackBar(duration: Duration(seconds: 3), content: Text(labelTransferAdminAlone)),
       );
       return;
     }
@@ -1194,7 +1216,7 @@ class _TaskEditTileState extends State<_TaskEditTile> {
         message = '"$savedTaskName" ($oldName → $newName)';
       }
 
-      messenger.showSnackBar(SnackBar(content: Text(message)));
+      messenger.showSnackBar(SnackBar(duration: const Duration(seconds: 3), content: Text(message)));
       setState(() => _expanded = false);
     }
   }
