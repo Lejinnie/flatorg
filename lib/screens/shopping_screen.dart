@@ -39,10 +39,12 @@ class _ShoppingBody extends StatefulWidget {
 
 class _ShoppingBodyState extends State<_ShoppingBody> {
   final _addCtrl = TextEditingController();
+  Timer? _undoDismissTimer;
 
   @override
   void dispose() {
     _addCtrl.dispose();
+    _undoDismissTimer?.cancel();
     super.dispose();
   }
 
@@ -97,22 +99,28 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
     final messenger = ScaffoldMessenger.of(context);
     final repo = ShoppingRepository();
     unawaited(repo.deleteItem(flatId, item.id));
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          content: Text('"${item.text}" deleted'),
-          action: SnackBarAction(
-            label: buttonUndo,
-            // Explicit colour so the button is always legible against the
-            // SnackBar background regardless of theme.
-            textColor: AppTheme.featureColor,
-            onPressed: () => unawaited(repo.addShoppingItem(flatId, item)),
-          ),
+    _undoDismissTimer?.cancel();
+    messenger.clearSnackBars();
+    final controller = messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        content: Text('"${item.text}" deleted'),
+        action: SnackBarAction(
+          label: buttonUndo,
+          // Explicit colour so the button is always legible against the
+          // SnackBar background regardless of theme.
+          textColor: AppTheme.featureColor,
+          onPressed: () {
+            _undoDismissTimer?.cancel();
+            unawaited(repo.addShoppingItem(flatId, item));
+          },
         ),
-      );
+      ),
+    );
+    // Flutter ignores the duration for action snackbars in accessibility mode
+    // and shows them for 10 s instead. Close manually so it always goes away.
+    _undoDismissTimer = Timer(const Duration(seconds: 3), controller.close);
   }
 
   /// Red slide-left background shown while the user drags an item toward dismissal.
