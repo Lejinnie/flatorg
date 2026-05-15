@@ -102,6 +102,7 @@ class _ShoppingBodyState extends State<_ShoppingBody> {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
           content: Text('"${item.text}" deleted'),
           action: SnackBarAction(
             label: buttonUndo,

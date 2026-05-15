@@ -248,6 +248,10 @@ class _TaskCardState extends State<TaskCard> {
     if (widget.currentUserTaskDone) {
       return const SizedBox.shrink();
     }
+    // Cannot swap with a completed task.
+    if (_displayTask.state == TaskState.completed) {
+      return const SizedBox.shrink();
+    }
     return _buildSwapAction(context);
   }
 

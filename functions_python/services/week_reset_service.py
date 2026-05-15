@@ -7,7 +7,7 @@ runs inside a single Firestore transaction to guarantee atomicity.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar
 
 from constants.strings import (
@@ -57,7 +57,7 @@ class WeekResetService:
       1. Blue short vacation (protected slots)
       2. Green L3 → L2/L1 (scan forward)
       3. Green L2 → L1 (scan forward)
-      4. Red L3 → stay L3
+      4. Red L3 → rotate to different L3 if possible, else own slot
       5. Red L2 → up to L3
       6. Red L1 → up to L2/L3
       7. Green L1 → fill remaining (shortest ring distance)
@@ -291,6 +291,12 @@ def _write_reset_results(
         task = task_by_ring_index.get(ring_index)
         if task is None:
             continue
+        # Advance due date by one week so the deadline-check guard
+        # (last_week_reset_at >= latest_due) clears automatically next cycle.
+        current_due: datetime = task.due_date_time
+        if current_due.tzinfo is None:
+            current_due = current_due.replace(tzinfo=UTC)
+        new_due = current_due + timedelta(weeks=1)
         task_repo.update_task_in_transaction(
             flat_id,
             task.id,
@@ -299,6 +305,7 @@ def _write_reset_results(
                 "original_assigned_to": "",
                 "state": TaskState.Pending.value,
                 "weeks_not_cleaned": task.weeks_not_cleaned,
+                "due_date_time": new_due,
                 # Reset reminder flags so they fire again in the new week.
                 FIELD_TASK_DAY_BEFORE_REMINDER_SENT: False,
                 FIELD_TASK_HOURS_BEFORE_REMINDER_SENT: False,
