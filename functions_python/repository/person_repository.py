@@ -43,6 +43,13 @@ class PersonRepository:
             raise ValueError(f"{ERROR_PERSON_NOT_FOUND}: {uid}")
         return person_from_firestore(doc.id, doc.to_dict())
 
+    def get_member_in_transaction(self, flat_id: str, uid: str, transaction: Any) -> Person:
+        """Fetch a single member by UID within a transaction; raise ValueError if not found."""
+        doc = self._member_ref(flat_id, uid).get(transaction=transaction)
+        if not doc.exists:
+            raise ValueError(f"{ERROR_PERSON_NOT_FOUND}: {uid}")
+        return person_from_firestore(doc.id, doc.to_dict())
+
     def update_member(self, flat_id: str, uid: str, updates: dict[str, Any]) -> None:
         """Update specific fields on a member document."""
         self._member_ref(flat_id, uid).update(updates)

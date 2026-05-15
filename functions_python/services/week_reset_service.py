@@ -176,9 +176,27 @@ class WeekResetService:
     ) -> str:
         """Record a swap request from requester_uid targeting target_task_id.
 
+        Determines is_vacation_swap by reading the target task's assignee and
+        their on_vacation status at creation time.  accept_swap() relies on
+        this flag to decide whether to deduct a token.
+
         Returns the created swap request document ID.
         """
         from google.cloud.firestore_v1 import SERVER_TIMESTAMP
+
+        # Determine if this is a vacation swap (costs 1 token) by reading the
+        # target assignee's vacation status.  The check is best-effort: if the
+        # task is vacant or the person doc is missing, default to False.
+        is_vacation_swap = False
+        try:
+            target_task = self._task_repo.get_task(flat_id, target_task_id)
+            target_uid = effective_assigned_to(target_task)
+            if target_uid:
+                target_person = self._person_repo.get_member(flat_id, target_uid)
+                is_vacation_swap = target_person.on_vacation
+        except ValueError:
+            # Vacant task or missing person — treat as non-vacation swap.
+            pass
 
         swap_ref = (
             self._db.collection(COLLECTION_FLATS).document(flat_id).collection(COLLECTION_SWAP_REQUESTS).document()
@@ -189,6 +207,7 @@ class WeekResetService:
                 "requester_task_id": requester_task_id,
                 "target_task_id": target_task_id,
                 "status": SwapRequestStatus.Pending.value,
+                "is_vacation_swap": is_vacation_swap,
                 "created_at": SERVER_TIMESTAMP,
             }
         )
@@ -243,8 +262,10 @@ class WeekResetService:
             )
 
             # Only vacation swaps cost 1 token; mutual non-vacation swaps are free.
+            # Use a transactional read so the token balance is current and
+            # consistent with the rest of the atomic batch.
             if swap.is_vacation_swap:
-                requester = self._person_repo.get_member(flat_id, swap.requester_uid)
+                requester = self._person_repo.get_member_in_transaction(flat_id, swap.requester_uid, transaction)
                 if requester.swap_tokens_remaining <= 0:
                     raise ValueError(ERROR_INSUFFICIENT_SWAP_TOKENS)
                 self._person_repo.update_member_in_transaction(
