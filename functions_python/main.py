@@ -9,37 +9,29 @@ import firebase_admin
 # Initialise Firebase Admin SDK once. All functions share this instance.
 firebase_admin.initialize_app()
 
-# ── Automatic deadline / reminder / week-reset scheduler ─────────────────────
+# All trigger imports kept alphabetical (one block) to satisfy isort/ruff.
+# F401 silences unused-import (Firebase resolves them dynamically); E402
+# silences module-level-import-not-at-top (initialize_app must run first).
+from triggers.accept_swap_trigger import accept_swap_callable  # noqa: F401, E402
 from triggers.deadline_check_trigger import (  # noqa: F401, E402
     check_deadlines_http,
     check_deadlines_scheduled,
 )
-
-# ── Grace period (pending → not_done) ────────────────────────────────────────
 from triggers.grace_period_trigger import (  # noqa: F401, E402
     enter_grace_period_all_callable,
     enter_grace_period_callable,
     enter_grace_period_http,
 )
-
-# ── Swap lifecycle ────────────────────────────────────────────────────────────
-from triggers.accept_swap_trigger import accept_swap_callable  # noqa: F401, E402
 from triggers.notify_swap_request_trigger import notify_swap_request_callable  # noqa: F401, E402
 from triggers.notify_swap_response_trigger import (  # noqa: F401, E402
     notify_swap_response_callable,
     notify_swap_withdrawn_callable,
 )
-
-# ── Push / in-app notification callables ─────────────────────────────────────
 from triggers.notify_task_completed_trigger import notify_task_completed_callable  # noqa: F401, E402
-
-# ── Shopping item cleanup ─────────────────────────────────────────────────────
 from triggers.shopping_cleanup_trigger import (  # noqa: F401, E402
     shopping_cleanup_http,
     shopping_cleanup_scheduled,
 )
-
-# ── Semester token reset ──────────────────────────────────────────────────────
 from triggers.token_reset_trigger import token_reset_http, token_reset_scheduled  # noqa: F401, E402
 from triggers.translate_issues_trigger import translate_issues_callable  # noqa: F401, E402
 from triggers.week_reset_trigger import week_reset_callable, week_reset_http  # noqa: F401, E402
