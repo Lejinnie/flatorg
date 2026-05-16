@@ -45,6 +45,21 @@ def make_task(
     )
 
 
+def make_vacant_task(ring_index: int, weeks_not_cleaned: int = 1) -> Task:
+    """Build a Vacant task with no assignee.  Used by the phantom-sweep tests."""
+    return Task(
+        id=f"task-{ring_index}",
+        name=f"Task {ring_index}",
+        description=[],
+        due_date_time=FUTURE_DATE,
+        assigned_to="",
+        original_assigned_to="",
+        state=TaskState.Vacant,
+        weeks_not_cleaned=weeks_not_cleaned,
+        ring_index=ring_index,
+    )
+
+
 def build_full_scenario(
     person_ids: list[str],
     task_states: dict[int, TaskState] | None = None,

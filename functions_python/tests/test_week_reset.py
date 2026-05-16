@@ -24,13 +24,16 @@ from pathlib import Path
 # directly from the tests/ directory or from the project root.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from models.task import TaskState
+from constants.task_constants import PHANTOM_VACANT_UID_PREFIX
+from models.person import Person
+from models.task import Task, TaskState
 from services.week_reset_service import run_week_reset_algorithm
 from tests.helpers import (
     DEFAULT_FLAT,
     build_full_scenario,
     make_person,
     make_task,
+    make_vacant_task,
 )
 
 L3_SLOTS = [0, 3, 6]
@@ -491,3 +494,118 @@ class TestVacationOverflowBlocksGreenL3Reward:
         assert result.index("p6") in L3_SLOTS
 
         assert len({uid for uid in result if uid != ""}) == 9
+
+
+# ── Scenario: Vacant tasks behave like vacation slots ────────────────────────
+
+
+class TestVacantBehavesLikeVacation:
+    """Vacant tasks travel through the algorithm like vacation slots.
+
+    Short-vacant (weeks_not_cleaned ≤ threshold): phantom takes a protected
+    slot in step 1 — its original ring_index gets filled by a real assignee
+    and the vacancy MOVES to the slot the phantom claimed.
+
+    Long-vacant (> threshold): phantom takes a leftover slot in step 8 —
+    same migration mechanic, unprotected.
+    """
+
+    def _build(
+        self,
+        vacant_indices: dict[int, int],  # ring_index → weeks_not_cleaned
+        absent_uids: set[str] | None = None,
+    ) -> tuple[list[Task], list[Person], list[str]]:
+        """Build tasks with `vacant_indices` ring positions vacant.
+
+        Other rings get a fresh person assigned, all Completed by default.
+        `absent_uids` are persons not added to the persons list (rare; for
+        scenarios with fewer real persons than active rings).
+        """
+        absent_uids = absent_uids or set()
+        person_ids = [f"p{i}" for i in range(9)]
+        persons = [make_person(uid) for uid in person_ids if uid not in absent_uids]
+        tasks = []
+        for i in range(9):
+            if i in vacant_indices:
+                tasks.append(make_vacant_task(i, weeks_not_cleaned=vacant_indices[i]))
+            else:
+                tasks.append(make_task(i, person_ids[i], TaskState.Completed))
+        return tasks, persons, person_ids
+
+    def test_given_short_vacant_l3_when_reset_then_original_ring_gets_real_person(self) -> None:
+        # Vacant Toilet (ring 0, L3, weeks_not_cleaned=0 → becomes 1 after
+        # increment → Blue Short).  Other 8 people Green.  Phantom for ring 0
+        # grabs an L1 slot in step 1, so ring 0 ends up with a real assignee.
+        tasks, persons, _ = self._build({0: 0}, absent_uids={"p0"})
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        assert result[0] != "", "ring 0 should now have a real assignee"
+        assert not result[0].startswith(PHANTOM_VACANT_UID_PREFIX)
+
+    def test_given_short_vacant_l3_when_reset_then_new_vacant_slot_is_l1(self) -> None:
+        # Phantom for short-vacant L3 task ends up in the first free L1 slot
+        # via BlueShortVacationStrategy's preferred-levels = [L1, L2, L3].
+        # After sweep, that L1 slot becomes the new vacancy.
+        tasks, persons, _ = self._build({0: 0}, absent_uids={"p0"})
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        empty_slots = [i for i, uid in enumerate(result) if uid == ""]
+        assert len(empty_slots) == 1
+        assert empty_slots[0] in L1_SLOTS
+
+    def test_given_long_vacant_when_reset_then_phantom_lands_in_leftover_slot(self) -> None:
+        # Vacant Toilet weeks_not_cleaned=2 (→ 3 after increment → > threshold=1).
+        # Phantom goes to step 8 (Blue Long) and takes whatever slot is leftover
+        # after Green L1 shortest-distance has run.
+        tasks, persons, _ = self._build({0: 2}, absent_uids={"p0"})
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        empty_slots = [i for i, uid in enumerate(result) if uid == ""]
+        assert len(empty_slots) == 1
+        # All 8 real people assigned, exactly one slot vacant.
+        assert len({uid for uid in result if uid != ""}) == 8
+
+    def test_given_vacant_task_when_reset_then_no_phantom_uid_leaks(self) -> None:
+        # Sanity check: phantom UIDs are sentinel — none must survive the sweep.
+        # Mix one short (weeks=0→1) and one long (weeks=2→3) vacant.
+        tasks, persons, _ = self._build({0: 0, 3: 2}, absent_uids={"p0", "p3"})
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        for uid in result:
+            assert not uid.startswith(PHANTOM_VACANT_UID_PREFIX)
+
+    def test_given_multiple_short_vacant_when_reset_then_all_real_people_assigned(self) -> None:
+        # 3 vacant L3 tasks (rings 0, 3, 6) all short (weeks=0 → 1 after increment).
+        # 6 real Green people on rings 1, 2, 4, 5, 7, 8.  Phantoms (all L3
+        # original, all Blue Short) take 3 protected slots in step 1.  Real
+        # people fill 6 remaining slots.  Net: 3 vacancies after sweep, 6
+        # assignees, no overlap.
+        tasks, persons, _ = self._build({0: 0, 3: 0, 6: 0}, absent_uids={"p0", "p3", "p6"})
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        assigned = [uid for uid in result if uid != ""]
+        assert len(assigned) == 6, "all 6 real people should be assigned exactly once"
+        assert len(set(assigned)) == 6
+        assert sum(1 for uid in result if uid == "") == 3
+
+    def test_given_mixed_vacant_and_real_vacation_when_reset_then_both_protected_in_step_1(self) -> None:
+        # 1 short-vacant L3 (ring 0, weeks=0 → 1) + 1 real Blue Short member at
+        # ring 3 (weeks=0 → 1).  Both should be placed by BlueShortVacationStrategy
+        # in step 1.  After sweep: real member has a slot, vacancy has moved.
+        person_ids = [f"p{i}" for i in range(9)]
+        persons = [make_person(uid, on_vacation=(uid == "p3")) for uid in person_ids if uid != "p0"]
+        tasks = []
+        for i in range(9):
+            if i == 0:
+                tasks.append(make_vacant_task(0, weeks_not_cleaned=0))
+            else:
+                tasks.append(make_task(i, person_ids[i], TaskState.Completed))
+        result = run_week_reset_algorithm(tasks, persons, DEFAULT_FLAT)
+
+        # p3 (real vacation) must have a slot.
+        assert "p3" in result
+        # Exactly one empty slot (the migrated vacancy).
+        assert sum(1 for uid in result if uid == "") == 1
+        # No phantom UIDs leaked.
+        for uid in result:
+            assert not uid.startswith(PHANTOM_VACANT_UID_PREFIX)
