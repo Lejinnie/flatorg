@@ -45,6 +45,7 @@ from services.assignment_strategy import (
     RedL3Strategy,
     WeekResetContext,
     build_week_reset_context,
+    is_phantom_uid,
 )
 from services.notification_service import NotificationService
 
@@ -101,6 +102,8 @@ class WeekResetService:
             ctx = build_week_reset_context(updated_tasks, persons, flat.vacation_threshold_weeks)
             for strategy in self._STRATEGIES:
                 strategy.execute(ctx)
+
+            _sweep_phantom_placements(ctx)
 
             _write_reset_results(
                 flat_id,
@@ -287,6 +290,19 @@ class WeekResetService:
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 
+def _sweep_phantom_placements(ctx: WeekResetContext) -> None:
+    """Wipe phantom UIDs from next_assignments so vacant slots travel correctly.
+
+    Phantoms are injected during categorisation to make vacant tasks behave
+    like vacation slots (protected in step 1 / leftover in step 8).  After all
+    strategies have run, the slot a phantom claimed becomes the new vacancy
+    and its original ring_index has been filled by a real assignee.
+    """
+    for i, uid in enumerate(ctx.next_assignments):
+        if is_phantom_uid(uid):
+            ctx.next_assignments[i] = ""
+
+
 def _increment_weeks_not_cleaned(tasks: list[Task], persons: list[Person]) -> list[Task]:
     """Increment weeks_not_cleaned on every task whose assignee is on vacation or Vacant.
 
@@ -389,5 +405,7 @@ def run_week_reset_algorithm(
     ]
     for strategy in strategies:
         strategy.execute(ctx)
+
+    _sweep_phantom_placements(ctx)
 
     return ctx.next_assignments

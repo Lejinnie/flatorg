@@ -13,10 +13,11 @@ from constants.task_constants import (
     L1_RING_INDICES,
     L2_RING_INDICES,
     L3_RING_INDICES,
+    PHANTOM_VACANT_UID_PREFIX,
     TASK_LEVEL_BY_RING_INDEX,
     TOTAL_TASKS,
 )
-from models.person import Person
+from models.person import Person, PersonRole
 from models.task import Task, TaskLevel, TaskState, effective_assigned_to
 
 # ── Shared context ────────────────────────────────────────────────────────────
@@ -72,6 +73,30 @@ def _build_uid_to_task_map(tasks: list[Task]) -> dict[str, Task]:
     return mapping
 
 
+def is_phantom_uid(uid: str) -> bool:
+    """Return True if the UID was injected for a vacant task; sweep wipes these post-strategy."""
+    return uid.startswith(PHANTOM_VACANT_UID_PREFIX)
+
+
+def _make_phantom_pair(task: Task) -> PersonTaskPair:
+    """Synthetic Blue person standing in for a vacant task during categorisation.
+
+    The UID encodes the vacant task's ring_index so the post-strategy sweep in
+    week_reset_service can recognise and wipe it back to ''.  Phantoms run
+    through the existing Blue Short / Blue Long strategies — their claimed
+    slot becomes the new vacancy, while real people fill the original ring.
+    """
+    phantom = Person(
+        uid=f"{PHANTOM_VACANT_UID_PREFIX}{task.ring_index}",
+        name="",
+        email="",
+        role=PersonRole.Member,
+        on_vacation=True,
+        swap_tokens_remaining=0,
+    )
+    return PersonTaskPair(person=phantom, task=task)
+
+
 def categorise_persons(
     ctx: WeekResetContext,
 ) -> tuple[
@@ -107,6 +132,21 @@ def categorise_persons(
         else:
             # NotDone, Pending-but-past-deadline, or Vacant → treated as Red.
             red.append(PersonTaskPair(person=person, task=task))
+
+    # Vacant tasks have no person, so the loop above misses them.  Inject a
+    # phantom Blue assignee — Short if weeks_not_cleaned ≤ threshold (protected
+    # placement in step 1), Long otherwise (leftover placement in step 8).  The
+    # slot the phantom claims gets wiped back to '' after all strategies run,
+    # so the vacancy MOVES while real people fill the original vacant ring.
+    for task in ctx.tasks:
+        is_vacant = task.state == TaskState.Vacant and not task.assigned_to and not task.original_assigned_to
+        if not is_vacant:
+            continue
+        phantom_pair = _make_phantom_pair(task)
+        if task.weeks_not_cleaned <= ctx.vacation_threshold_weeks:
+            blue_short.append(phantom_pair)
+        else:
+            blue_long.append(phantom_pair)
 
     def by_ring_index(pair: PersonTaskPair) -> int:
         return int(pair.task.ring_index)

@@ -53,3 +53,8 @@ EMAIL_TEMPLATE_COUNT: int = 3
 
 # Milliseconds per hour — avoids magic numbers in cleanup calculations.
 MS_PER_HOUR: int = 3_600_000
+
+# Sentinel UID prefix for phantom Blue assignees injected for Vacant tasks.
+# These never reach Firestore — the week_reset sweep wipes them back to '' so
+# the vacancy "moves" to whatever slot the phantom claimed.
+PHANTOM_VACANT_UID_PREFIX: str = "__phantom_vacant__"
