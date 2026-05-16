@@ -25,9 +25,7 @@ from services.eth_semester_calendar import EthSemesterCalendar
 
 logger = logging.getLogger(__name__)
 
-_SEMESTER_START_WEEKS = frozenset(
-    {EthSemesterCalendar.FS_START_WEEK, EthSemesterCalendar.HS_START_WEEK}
-)
+_SEMESTER_START_WEEKS = frozenset({EthSemesterCalendar.FS_START_WEEK, EthSemesterCalendar.HS_START_WEEK})
 
 
 @scheduler_fn.on_schedule(  # type: ignore[untyped-decorator]

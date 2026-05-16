@@ -164,6 +164,7 @@ ERROR_SWAP_REQUEST_NOT_FOUND = "Swap request not found"
 ERROR_INSUFFICIENT_SWAP_TOKENS = "Insufficient swap tokens"
 ERROR_TASK_ALREADY_COMPLETED = "Task is already completed"
 ERROR_SWAP_NOT_PENDING = "Swap request is not in pending state"
+ERROR_SWAP_TASK_VACANT = "Cannot accept swap: one of the tasks is now vacant"
 
 # ── Livit email ───────────────────────────────────────────────────────────────
 
