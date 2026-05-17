@@ -13,6 +13,16 @@ set -euo pipefail
 
 cd /home/lejinnie/Projects/flatorg
 
+# Safety guard: distributing from a non-main branch risks merging a stale
+# pubspec.yaml back to main and regressing the version number.
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "ERROR: firebase_distribute.sh must be run from the 'main' branch."
+  echo "       Currently on: $CURRENT_BRANCH"
+  echo "       Run: git checkout main && git pull"
+  exit 1
+fi
+
 RELEASE_NOTES=""
 NEW_VERSION=""
 GROUP="testing"
@@ -43,9 +53,8 @@ done
 
 # ── Version handling ─────────────────────────────────────────────────────────
 
-# Always read the base version from main so feature-branch pubspec.yaml values
-# (which may lag behind already-released builds) never produce a lower version.
-CURRENT_LINE=$(git show main:pubspec.yaml | grep -E '^version:')
+# Read the current version+build line from pubspec.yaml.
+CURRENT_LINE=$(grep -E '^version:' pubspec.yaml)
 CURRENT_VERSION=$(echo "$CURRENT_LINE" | sed -E 's/version: ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
 CURRENT_BUILD=$(echo "$CURRENT_LINE" | sed -E 's/.*\+([0-9]+)/\1/')
 
