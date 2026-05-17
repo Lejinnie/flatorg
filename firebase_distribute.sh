@@ -43,8 +43,9 @@ done
 
 # ── Version handling ─────────────────────────────────────────────────────────
 
-# Read the current version+build line from pubspec.yaml.
-CURRENT_LINE=$(grep -E '^version:' pubspec.yaml)
+# Always read the base version from main so feature-branch pubspec.yaml values
+# (which may lag behind already-released builds) never produce a lower version.
+CURRENT_LINE=$(git show main:pubspec.yaml | grep -E '^version:')
 CURRENT_VERSION=$(echo "$CURRENT_LINE" | sed -E 's/version: ([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
 CURRENT_BUILD=$(echo "$CURRENT_LINE" | sed -E 's/.*\+([0-9]+)/\1/')
 
