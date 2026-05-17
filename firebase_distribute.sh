@@ -13,6 +13,16 @@ set -euo pipefail
 
 cd /home/lejinnie/Projects/flatorg
 
+# Safety guard: distributing from a non-main branch risks merging a stale
+# pubspec.yaml back to main and regressing the version number.
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "ERROR: firebase_distribute.sh must be run from the 'main' branch."
+  echo "       Currently on: $CURRENT_BRANCH"
+  echo "       Run: git checkout main && git pull"
+  exit 1
+fi
+
 RELEASE_NOTES=""
 NEW_VERSION=""
 GROUP="testing"
